@@ -27,9 +27,9 @@ class SyncShopifyOrders extends Command
      */
     public function handle()
     {
-        //$shopDomain = 'rightangled-store.myshopify.com'; // e.g., yourstore.myshopify.com
+       
         $shopDomain = config('Shopify.api_host'); // e.g., yourstore.myshopify.com
-        //$accessToken = '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';
+       
         $accessToken = config('Shopify.access_token');
         $apiVersion = '2024-10';
         
