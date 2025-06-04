@@ -53,6 +53,13 @@
 
                 @endif
 
+                {{-- <div class="sb-sidenav-menu-heading">Manage </div> --}}
+                <a class="nav-link {{ request()->routeIs('admin.stores.index') ? 'active' : '' }}"
+                    href="{{ route('admin.stores.index') }}">
+                    <div class="sb-nav-link-icon"><i class="fa-solid fa-gear"></i></div>
+                    Store
+                </a>
+
                 @role('Admin')
                     <div class="sb-sidenav-menu-heading">Manage Users</div>
                     <a class="nav-link {{ request()->routeIs('users.index') ? 'active' : '' }}"
@@ -60,16 +67,14 @@
                         <div class="sb-nav-link-icon"><i class="fas fa-user"></i></div>
                         Users
                     </a>
-                
-            @endrole
-            @role('Admin')
-                <div class="sb-sidenav-menu-heading">Store</div>
-                <a class="nav-link {{ request()->routeIs('admin.stores.index') ? 'active' : '' }}"
-                    href="{{ route('admin.stores.index') }}">
-                    <div class="sb-nav-link-icon"><i class="fa-solid fa-gear"></i></div>
-                    Store
-                </a>
-        @endrole
+                @endrole
+                <div class="sb-sidenav-menu-heading">Modules</div>
+                <a class="nav-link {{ request()->routeIs('orders.index') ? 'active' : '' }}"
+                    href="{{ route('orders.index') }}">
+                    <div class="sb-nav-link-icon"><i class="fa fa-first-order" aria-hidden="true"></i>
 </div>
-</nav>
+                    Orders
+                </a>
+            </div>
+    </nav>
 </div>

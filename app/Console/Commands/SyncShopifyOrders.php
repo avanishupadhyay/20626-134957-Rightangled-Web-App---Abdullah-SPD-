@@ -4,7 +4,8 @@ namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Http;
-use App\Models\Order; 
+use App\Models\Order;
+use Carbon\Carbon;
 
 class SyncShopifyOrders extends Command
 {
@@ -27,11 +28,10 @@ class SyncShopifyOrders extends Command
      */
     public function handle()
     {
-       
-        $shopDomain = ''; // e.g., yourstore.myshopify.com
+        $shopDomain =''; // e.g., yourstore.myshopify.com
         $accessToken = '';
         $apiVersion = '2024-10';
-        
+
         $response = Http::withHeaders([
             'X-Shopify-Access-Token' => $accessToken,
         ])->get("https://{$shopDomain}/admin/api/{$apiVersion}/orders.json", [
@@ -41,6 +41,7 @@ class SyncShopifyOrders extends Command
 
         if ($response->successful()) {
             $orders = $response->json()['orders'];
+            // dd($orders);
             foreach ($orders as $order) {
                 Order::updateOrCreate(
                     ['order_number' => $order['id']],
@@ -52,6 +53,8 @@ class SyncShopifyOrders extends Command
                         'financial_status' => $order['financial_status'],
                         'fulfillment_status' => $order['fulfillment_status'],
                         'order_data' => json_encode($order),
+                        'created_at' => isset($order['created_at']) ? Carbon::parse($order['created_at']) : now(),
+                        'updated_at' => now(),
                     ]
                 );
             }
