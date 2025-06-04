@@ -79,7 +79,7 @@ class StoreController extends Controller
         $data = $request->all();
         $data['status'] = !empty($data['status']) ? 1 : 0;
         $data['domain'] = trim($data['domain'], '/');
-
+        Store::create($data);
         return redirect()->route('admin.stores.index')
             ->with('success', 'Store is created successfully.');
     }
