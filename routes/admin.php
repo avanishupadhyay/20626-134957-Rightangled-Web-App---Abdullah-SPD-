@@ -4,6 +4,10 @@ use App\Http\Controllers\Admin\ConfigurationsController;
 use App\Http\Controllers\Admin\UserLogsController;
 use App\Http\Controllers\Admin\OrdersController;
 use App\Http\Controllers\Admin\LoyalityController;
+use App\Http\Controllers\RoleController;
+use App\Http\Controllers\Admin\UserController;
+use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Admin\StoreController;
 
 
 Route::post('/configurations/make-slug', [ConfigurationsController::class, 'make_slug'])->name('configurations.make_slug');
@@ -25,11 +29,16 @@ Route::middleware(['auth'])->prefix('admin')->group(function () {
 	Route::match(['get'], '/configurations/change/{id}', [ConfigurationsController::class, 'admin_change'])->name('admin.configurations.admin_change');
 	Route::match(['get'], '/configurations/moveup/{id}', [ConfigurationsController::class, 'admin_moveup'])->name('admin.configurations.admin_moveup');
 	Route::match(['get'], '/configurations/movedown/{id}', [ConfigurationsController::class, 'admin_movedown'])->name('admin.configurations.admin_movedown');
-	
+
 
 	/* User Logs  */
-	Route::get('/user_logs/index', [UserLogsController::class, 'admin_index'])->name('admin.user_logs.index');
-	Route::get('/orders/index', [OrdersController::class, 'admin_index'])->name('admin.orders.index');
-	Route::get('/loyalities/index', [LoyalityController::class, 'admin_index'])->name('admin.loyalities.index');
 
+	Route::resource('roles', RoleController::class);
+	Route::resource('users', UserController::class);
+
+	/* Store */
+	Route::name('admin.')->group(function () {
+		Route::match(['get', 'post'], '/stores/set_store', [StoreController::class, 'set_store'])->name('stores.set_store');
+		Route::resource('stores', StoreController::class);
+	});
 });
