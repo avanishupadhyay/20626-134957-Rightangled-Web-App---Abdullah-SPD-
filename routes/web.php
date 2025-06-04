@@ -46,6 +46,11 @@ Route::get('config-clear', function() {
 	echo 'success';
 });
 
+Route::get('sync-shopify-orders', function() {
+	\Artisan::call('sync-shopify-orders');
+	echo 'success';
+});
+
 
 
 Route::prefix('admin')->name('admin.')->group(function () {
