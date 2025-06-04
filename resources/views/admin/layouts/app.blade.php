@@ -20,6 +20,9 @@
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="{{ asset('js/deleteconfirm.js') }}"></script>
 
+<!-- CSS -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+
 
 </head>
 
@@ -75,6 +78,9 @@
     </div>
     @include('admin.elements.js_scripts')
     @yield('custom_js_scripts')
+    <!-- JS dependencies -->
+<script src="https://cdn.jsdelivr.net/npm/moment@2.29.4/moment.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
 </body>
 
 </html>
