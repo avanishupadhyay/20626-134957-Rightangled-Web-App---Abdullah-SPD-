@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Admin;
 
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
@@ -14,7 +14,18 @@ use Illuminate\Http\RedirectResponse;
 
 class UserController extends Controller
 {
-   
+
+
+    public function __construct()
+    {
+        $this->middleware(function ($request, $next) {
+            if (!auth()->check() || !auth()->user()->hasRole('Admin')) {
+                abort(403, 'Access denied');
+            }
+            return $next($request);
+        });
+    }
+
     public function index(Request $request): View
     {
         $query = User::query();
@@ -45,9 +56,7 @@ class UserController extends Controller
 
     public function create(): View
     {
-        if (!auth()->check() || !auth()->user()->hasRole('Admin')) {
-            abort(403, 'Access denied');
-        }
+       
         $roles = Role::pluck('name', 'name')->all();
 
         return view('rbac.users.create', compact('roles'));
@@ -55,9 +64,7 @@ class UserController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
-        if (!auth()->check() || !auth()->user()->hasRole('Admin')) {
-            abort(403, 'Access denied');
-        }
+       
 
         $this->validate($request, [
             'name' => 'required',
@@ -89,9 +96,7 @@ class UserController extends Controller
 
     public function update(Request $request, $id): RedirectResponse
     {
-          if (!auth()->check() || !auth()->user()->hasRole('Admin')) {
-            abort(403, 'Access denied');
-        }
+       
         $this->validate($request, [
             'name' => 'required',
             'email' => 'required|email|unique:users,email,' . $id,

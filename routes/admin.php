@@ -5,8 +5,9 @@ use App\Http\Controllers\Admin\UserLogsController;
 use App\Http\Controllers\Admin\OrdersController;
 use App\Http\Controllers\Admin\LoyalityController;
 use App\Http\Controllers\RoleController;
-use App\Http\Controllers\UserController;
+use App\Http\Controllers\Admin\UserController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Admin\StoreController;
 
 
 Route::post('/configurations/make-slug', [ConfigurationsController::class, 'make_slug'])->name('configurations.make_slug');
@@ -34,4 +35,10 @@ Route::middleware(['auth'])->prefix('admin')->group(function () {
 
 	Route::resource('roles', RoleController::class);
 	Route::resource('users', UserController::class);
+
+	/* Store */
+	Route::name('admin.')->group(function () {
+		Route::match(['get', 'post'], '/stores/set_store', [StoreController::class, 'set_store'])->name('stores.set_store');
+		Route::resource('stores', StoreController::class);
+	});
 });
