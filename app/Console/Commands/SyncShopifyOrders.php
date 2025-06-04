@@ -28,9 +28,8 @@ class SyncShopifyOrders extends Command
     public function handle()
     {
        
-        $shopDomain = config('Shopify.api_host'); // e.g., yourstore.myshopify.com
-       
-        $accessToken = config('Shopify.access_token');
+        $shopDomain = ''; // e.g., yourstore.myshopify.com
+        $accessToken = '';
         $apiVersion = '2024-10';
         
         $response = Http::withHeaders([
