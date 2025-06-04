@@ -60,8 +60,16 @@
                         <div class="sb-nav-link-icon"><i class="fas fa-user"></i></div>
                         Users
                     </a>
-                </div>
+                
             @endrole
-        </div>
-    </nav>
+            @role('Admin')
+                <div class="sb-sidenav-menu-heading">Store</div>
+                <a class="nav-link {{ request()->routeIs('admin.stores.index') ? 'active' : '' }}"
+                    href="{{ route('admin.stores.index') }}">
+                    <div class="sb-nav-link-icon"><i class="fa-solid fa-gear"></i></div>
+                    Store
+                </a>
+        @endrole
+</div>
+</nav>
 </div>
