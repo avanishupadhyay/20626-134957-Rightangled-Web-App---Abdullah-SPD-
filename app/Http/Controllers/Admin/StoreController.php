@@ -99,12 +99,14 @@ class StoreController extends Controller
     {
         $request->validate($this->validationRules($store->id));
 
-        $image_name     = $this->imageSave($request);
-
         $data           = $request->all();
-        $data['image']  = $image_name;
         $data['status'] = !empty($data['status']) ? 1 : 0;
         $data['domain'] = trim($data['domain'], '/');
+        
+        if ($request->hasFile('image')) {
+            $image_name = $this->imageSave($request);
+            $data['image']  = $image_name;
+        }
 
         $store->update($data);
 
