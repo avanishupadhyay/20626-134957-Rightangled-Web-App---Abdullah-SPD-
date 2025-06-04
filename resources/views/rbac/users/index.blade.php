@@ -82,7 +82,7 @@
                                     <th>Roles</th>
                                     <th width="280px">Action</th>
                                 </tr>
-                                @foreach ($data as $key => $user)
+                                @forelse ($data as $key => $user)
                                     <tr>
                                         <td>{{ ++$i }}</td>
                                         <td>{{ $user->name }}</td>
@@ -119,7 +119,13 @@
 
                                         </td>
                                     </tr>
-                                @endforeach
+                                        @empty
+                                        <tr>
+                                            <td colspan="6" class="text-center">
+                                                <p>Records Not Found</p>
+                                            </td>
+                                        </tr>
+                                    @endforelse
                             </table>
                         </div>
                     </div>
