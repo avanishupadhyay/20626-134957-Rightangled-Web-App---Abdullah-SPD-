@@ -44,7 +44,7 @@
                                 </select>
                             </div>
 
-                            <div class="col-md-4">
+                            <div class="col-md-3">
                                 <input type="text" name="date_range" id="date_range" value="{{ request('date_range') }}"
                                     class="form-control" placeholder="Select date range" autocomplete="off" />
                             </div>
@@ -82,10 +82,12 @@
                                     <th>Order Number</th>
                                     <th>Name</th>
                                     <th>Email</th>
-                                    <th>Total Price ({{ $currency }})</th>
+                                    <th>Total Price {{ config('Site.currency') }}</th>
                                     <th>Financial Status</th>
-                                    {{-- <th>Fulfillment Status</th> --}}
+                                    <th>Fulfillment Status</th>
                                     <th>Created At</th>
+                                    <th>Action</th>
+
                                 </tr>
                                 {{-- </thead> --}}
                                 <tbody>
@@ -113,9 +115,24 @@
                                                 </span>
                                             </td>
 
-                                            {{-- <td>{{ ucfirst($order->financial_status) }}</td> --}}
-                                            {{-- <td>{{ ucfirst($order->fulfillment_status) }}</td> --}}
-                                            <td>{{ $order->created_at->format('Y-m-d H:i') }}</td>
+                                            <td>{{ ucfirst($order->fulfillment_status) ?? 'NA' }}</td>
+                                            <td>{{ $order->created_at->format(config('Reading.date_time_format')) }}</td>
+                                            {{-- <td>
+                                               <a class="btn btn-primary btn-sm" href="{{ route('orders.view', $order->id) }}"><i
+                                                    class="fa-solid fa-pen-to-square" style="width: 100px"></i> </a>
+                                            </td> --}}
+                                            <td class="d-flex">
+                                                <a href="{{ route('orders.view', $order->id) }}"
+                                                    class="btn btn-primary btn-sm"><i class="fa-solid fa-pen-to-square"
+                                                        style="width: 100px"></i></a>
+
+                                                {{-- <a href="{{ route('orders.downloadPDF', $order->id) }}"
+                                                    class="btn btn-sm btn-danger ms-2" target="_blank" title="Download PDF">
+                                                    <i class="fas fa-file-pdf"></i>
+                                                </a> --}}
+
+                                            </td>
+
                                         </tr>
                                     @empty
                                         <tr>

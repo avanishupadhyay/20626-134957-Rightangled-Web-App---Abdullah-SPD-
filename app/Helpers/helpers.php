@@ -1,18 +1,22 @@
 <?php
 
+use Illuminate\Support\Facades\Http;
+
 if (!function_exists('pr')) {
-    
-    function pr($data) {
+
+	function pr($data)
+	{
 		echo '<pre>';
-        print_r($data);
+		print_r($data);
 		echo '</pre>';
-    }
+	}
 }
 
 
 if (!function_exists('getConfigurationMenu')) {
-    
-	function getConfigurationMenu() {
+
+	function getConfigurationMenu()
+	{
 		$configuration = new \App\Models\Configuration();
 		return $configuration->getprefix();
 	}
@@ -20,24 +24,27 @@ if (!function_exists('getConfigurationMenu')) {
 
 
 if (!function_exists('getTotalSubscribeUser')) {
-    
-	function getTotalSubscribeUser() {
+
+	function getTotalSubscribeUser()
+	{
 		$userLogObj = new \App\Models\UserLog();
 		return $userLogObj->count();
 	}
 }
 
 if (!function_exists('getTotalUserOrder')) {
-    
-	function getTotalUserOrder() {
+
+	function getTotalUserOrder()
+	{
 		$orderObj = new \App\Models\Order();
 		return $orderObj->count();
 	}
 }
 
 if (!function_exists('getTotalUserLoyality')) {
-    
-	function getTotalUserLoyality() {
+
+	function getTotalUserLoyality()
+	{
 		$loyalityObj = new \App\Models\Loyality();
 		return $loyalityObj->count();
 	}
@@ -45,10 +52,11 @@ if (!function_exists('getTotalUserLoyality')) {
 
 
 if (!function_exists('getRecentSubscribers')) {
-    
-	function getRecentSubscribers() {
+
+	function getRecentSubscribers()
+	{
 		$userLogObj = 	new \App\Models\UserLog();
-		$userLogs	=	$userLogObj->orderBy('id','desc')->limit(10)->get();
+		$userLogs	=	$userLogObj->orderBy('id', 'desc')->limit(10)->get();
 
 		return $userLogs;
 	}
@@ -56,8 +64,9 @@ if (!function_exists('getRecentSubscribers')) {
 
 
 if (!function_exists('getDraftOrderMutation')) {
-    
-	function getDraftOrderMutation() {
+
+	function getDraftOrderMutation()
+	{
 		return 'mutation DraftOrderCreate($input: DraftOrderInput!) {
 			draftOrderCreate(input: $input) {
 				draftOrder {
@@ -270,13 +279,12 @@ if (!function_exists('getDraftOrderMutation')) {
 				}
 			}
 			}';
-
-		
 	}
 }
 
 if (!function_exists('getUpdateDraftOrderMutation')) {
-    function getUpdateDraftOrderMutation() {
+	function getUpdateDraftOrderMutation()
+	{
 		return 'mutation updateDraftOrderDiscount($id: ID!, $input: DraftOrderInput!) {
 					draftOrderUpdate(id: $id, input: $input) {
 					draftOrder {
@@ -298,21 +306,23 @@ if (!function_exists('getUpdateDraftOrderMutation')) {
 
 
 if (!function_exists('getLastIntegerFromGid')) {
-    function getLastIntegerFromGid($gid) {
+	function getLastIntegerFromGid($gid)
+	{
 		/* gid example : gid://shopify/Customer/8474572914881 */
 		if (preg_match('/(\d+)$/', $gid, $matches)) {
 			return $matches[1]; /* Return the matched digits */
 		}
 
-		return null; 
+		return null;
 	}
 }
 
 if (!function_exists('isLoyaltyUserExists')) {
-    function isLoyaltyUserExists($email) {
-		$userExists = \App\Models\UserLog::where('email', $email)->where('marketing_agreement',1)->exists();
+	function isLoyaltyUserExists($email)
+	{
+		$userExists = \App\Models\UserLog::where('email', $email)->where('marketing_agreement', 1)->exists();
 
-		if($userExists){
+		if ($userExists) {
 			return true;
 		}
 
@@ -322,10 +332,11 @@ if (!function_exists('isLoyaltyUserExists')) {
 
 
 if (!function_exists('isOrderExists')) {
-    function isOrderExists($order_number) {
+	function isOrderExists($order_number)
+	{
 		$orderExists = \App\Models\Order::where('order_number', $order_number)->exists();
 
-		if($orderExists){
+		if ($orderExists) {
 			return true;
 		}
 
@@ -333,8 +344,9 @@ if (!function_exists('isOrderExists')) {
 	}
 }
 
-function getCountryISDByCode($country_code){
-	
+function getCountryISDByCode($country_code)
+{
+
 	$isd_codes = [
 		'AF' => '93',
 		'AL' => '355',
@@ -525,9 +537,74 @@ function getCountryISDByCode($country_code){
 		'ZW' => '263'
 	];
 
-	return !empty($isd_codes[$country_code]) ? $isd_codes[$country_code] : '44' ;
+	return !empty($isd_codes[$country_code]) ? $isd_codes[$country_code] : '44';
 }
 
 
+// function getProductMetafield($productId)
+// {
+// 	// $shopDomain = config('shopify.domain');
+// 	// $accessToken = config('shopify.access_token');
+// 	$shopDomain = 'rightangled-store.myshopify.com'; // e.g., yourstore.myshopify.com
+// 	$accessToken = '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';
 
+// 	$url = "https://{$shopDomain}/admin/api/2024-01/products/{$productId}/metafields.json";
 
+// 	$response = Http::withHeaders([
+// 		'X-Shopify-Access-Token' => $accessToken,
+// 		'Content-Type' => 'application/json',
+// 	])->get($url);
+
+// 	if ($response->successful()) {
+// 		foreach ($response['metafields'] as $field) {
+// 			if ($field['key'] === $namespaceKey) {
+// 				return $field['value'];
+// 			}
+// 		}
+// 	}
+
+// 	return 'N/A';
+// }
+// helpers.php
+
+function getProductMetafield($productId)
+{
+	$shopDomain = 'rightangled-store.myshopify.com'; // e.g., yourstore.myshopify.com
+	$accessToken = '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';
+
+	$response = Http::withHeaders([
+		'X-Shopify-Access-Token' => $accessToken,
+	])->get("https://{$shopDomain}/admin/api/2024-10/products/{$productId}/metafields.json");
+
+	if ($response->successful()) {
+		$metafields = $response->json('metafields');
+
+		return collect($metafields)->firstWhere('key', 'direction_of_use_single_line')['value'] ?? null;
+	}
+
+	return null;
+}
+function getOrderMetafields($orderId)
+{
+	$shopDomain = 'rightangled-store.myshopify.com'; // e.g., yourstore.myshopify.com
+	$accessToken = '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';
+	$apiVersion = '2024-10';
+
+	$response = Http::withHeaders([
+		'X-Shopify-Access-Token' => $accessToken,
+	])->get("https://{$shopDomain}/admin/api/{$apiVersion}/orders/{$orderId}/metafields.json");
+
+	if ($response->successful()) {
+		$metafields = collect($response->json('metafields'));
+
+		return [
+			'prescriber_s_name' => $metafields->firstWhere('key', 'prescriber_s_name')['value'] ?? null,
+			'gphc_number_' => $metafields->firstWhere('key', 'gphc_number_')['value'] ?? null,
+			'patient_s_dob' => $metafields->firstWhere('key', 'patient_s_dob')['value'] ?? null,
+			'approval' => $metafields->firstWhere('key', 'approval')['value'] ?? null,
+			'prescriber_s_signature' => $metafields->firstWhere('key', 'prescriber_s_signature')['value'] ?? null, // optional image URL
+		];
+	}
+
+	return [];
+}

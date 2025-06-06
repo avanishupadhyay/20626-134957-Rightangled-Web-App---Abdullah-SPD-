@@ -46,12 +46,11 @@ class UserController extends Controller
                 $q->where('name', $request->role);
             });
         }
-
-        $data = $query->latest()->paginate(10)->appends($request->all());
+        $data = $query->latest()->paginate(config('Reading.nodes_per_page'))->appends($request->all());
         $roles = \Spatie\Permission\Models\Role::pluck('name', 'name');
 
         return view('rbac.users.index', compact('data', 'roles'))
-            ->with('i', ($request->input('page', 1) - 1) * 10);
+            ->with('i', ($request->input('page', 1) - 1) * config('Reading.nodes_per_page'));
     }
 
     public function create(): View
