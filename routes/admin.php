@@ -46,5 +46,8 @@ Route::middleware(['auth'])->prefix('admin')->group(function () {
 
 	//order listing
 Route::get('/orders', [OrderController::class, 'index'])->name('orders.index');
+Route::get('/orders/{id}/view', [OrderController::class, 'view'])->name('orders.view');
+Route::get('/orders/{order}/download-pdf', [OrderController::class, 'downloadPDF'])->name('orders.downloadPDF');
+
 
 });
