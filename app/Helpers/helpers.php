@@ -586,8 +586,11 @@ function getProductMetafield($productId)
 }
 function getOrderMetafields($orderId)
 {
-	$shopDomain = 'rightangled-store.myshopify.com'; // e.g., yourstore.myshopify.com
-	$accessToken = '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';
+	// $shopDomain = 'rightangled-store.myshopify.com'; // e.g., yourstore.myshopify.com
+	// $accessToken = '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';
+	$shopDomain = 'ds-demo-testing.myshopify.com';
+	$accessToken = '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';
+
 	$apiVersion = '2024-10';
 
 	$response = Http::withHeaders([
@@ -596,6 +599,7 @@ function getOrderMetafields($orderId)
 
 	if ($response->successful()) {
 		$metafields = collect($response->json('metafields'));
+		// dd($metafields);
 
 		return [
 			'prescriber_s_name' => $metafields->firstWhere('key', 'prescriber_s_name')['value'] ?? null,
@@ -603,6 +607,8 @@ function getOrderMetafields($orderId)
 			'patient_s_dob' => $metafields->firstWhere('key', 'patient_s_dob')['value'] ?? null,
 			'approval' => $metafields->firstWhere('key', 'approval')['value'] ?? null,
 			'prescriber_s_signature' => $metafields->firstWhere('key', 'prescriber_s_signature')['value'] ?? null, // optional image URL
+			'on_hold_reason' => $metafields->firstWhere('key', 'on_hold_reason')['value'] ?? null, // optional image URL
+
 		];
 	}
 

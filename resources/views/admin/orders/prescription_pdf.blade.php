@@ -83,7 +83,7 @@
         {{-- Left Side: Logo --}}
 
         <div class="logo-container">
-            <img src="{{ asset('storage/configuration-images/' . config('Site.logo')) }}" alt="Rightangled Logo">
+            <img src="{{ asset('public/storage/configuration-images/' . config('Site.logo')) }}" alt="Rightangled Logo">
         </div>
 
         {{-- Right Side: Prescriber Info --}}

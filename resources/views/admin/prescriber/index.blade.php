@@ -24,7 +24,7 @@
                         <h4 class="card-title">Search</h4>
                     </div>
                     <div class="card-body">
-                        <form method="GET" action="{{ route('orders.index') }}" class="row g-2 align-items-end">
+                        <form method="GET" action="{{ route('prescriber_orders.index') }}" class="row g-2 align-items-end">
                             {{-- Search --}}
                             <div class="col-md-4">
                                 <input type="text" name="search" value="{{ request('search') }}" class="form-control"
@@ -122,14 +122,14 @@
                                                     class="fa-solid fa-pen-to-square" style="width: 100px"></i> </a>
                                             </td> --}}
                                             <td class="d-flex">
-                                                <a href="{{ route('orders.view', $order->id) }}"
+                                                <a href="{{ route('prescriber_orders.view', $order->id) }}"
                                                     class="btn btn-primary btn-sm"><i class="fa-solid fa-pen-to-square"
                                                         style="width: 100px"></i></a>
 
-                                                {{-- <a href="{{ route('orders.downloadPDF', $order->id) }}"
+                                                <a href="{{ route('orders.downloadPDF', $order->id) }}"
                                                     class="btn btn-sm btn-danger ms-2" target="_blank" title="Download PDF">
                                                     <i class="fas fa-file-pdf"></i>
-                                                </a> --}}
+                                                </a>
 
                                             </td>
 

@@ -17,6 +17,12 @@
                     <div class="sb-nav-link-icon"><i class="fas fa-tachometer-alt"></i></div>
                     Dashboard
                 </a>
+                <a class="nav-link {{ request()->routeIs('prescriber_orders.index', 'prescriber_orders.view') ? 'active' : '' }}"
+                    href="{{ route('prescriber_orders.index') }}">
+                    <div class="sb-nav-link-icon"><i class="fa fa-first-order" aria-hidden="true"></i></div>
+                    Prescribers
+                </a>
+
 
                 <div class="sb-sidenav-menu-heading">Configurations</div>
 
@@ -72,7 +78,7 @@
                 <a class="nav-link {{ request()->routeIs('orders.index') ? 'active' : '' }}"
                     href="{{ route('orders.index') }}">
                     <div class="sb-nav-link-icon"><i class="fa fa-first-order" aria-hidden="true"></i>
-</div>
+                    </div>
                     Orders
                 </a>
             </div>
