@@ -546,7 +546,7 @@ function getCountryISDByCode($country_code)
 // 	// $shopDomain = config('shopify.domain');
 // 	// $accessToken = config('shopify.access_token');
 // 	$shopDomain = 'rightangled-store.myshopify.com'; // e.g., yourstore.myshopify.com
-// 	$accessToken = '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';
+// 	$accessToken = '';
 
 // 	$url = "https://{$shopDomain}/admin/api/2024-01/products/{$productId}/metafields.json";
 
@@ -570,7 +570,7 @@ function getCountryISDByCode($country_code)
 function getProductMetafield($productId)
 {
 	$shopDomain = 'rightangled-store.myshopify.com'; // e.g., yourstore.myshopify.com
-	$accessToken = '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';
+	$accessToken = '';
 
 	$response = Http::withHeaders([
 		'X-Shopify-Access-Token' => $accessToken,
@@ -589,7 +589,7 @@ function getOrderMetafields($orderId)
 	// $shopDomain = 'rightangled-store.myshopify.com'; // e.g., yourstore.myshopify.com
 	// $accessToken = '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';
 	$shopDomain = 'ds-demo-testing.myshopify.com';
-	$accessToken = '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';
+	$accessToken = '';
 
 	$apiVersion = '2024-10';
 

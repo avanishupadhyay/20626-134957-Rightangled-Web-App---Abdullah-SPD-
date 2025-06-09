@@ -268,7 +268,7 @@ class PrescriberOrderController extends Controller
     public function markFulfillmentOnHold($orderId, $reason)
     {
         $shopDomain = 'ds-demo-testing.myshopify.com';
-        $accessToken = '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';
+        $accessToken = '';
         // Step 1: Get the order to fetch fulfillment_order ID
         $response = Http::withHeaders([
             'X-Shopify-Access-Token' => $accessToken,
@@ -307,7 +307,7 @@ class PrescriberOrderController extends Controller
     public function cancelOrderWithRefund($orderId, $reason)
     {
         $shopDomain = 'ds-demo-testing.myshopify.com';
-        $accessToken = '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';
+        $accessToken = '';
 
         $response = Http::withHeaders([
             'X-Shopify-Access-Token' => $accessToken,

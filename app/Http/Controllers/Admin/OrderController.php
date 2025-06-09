@@ -119,7 +119,7 @@ class OrderController extends Controller
     function addMetafields($orderId)
     {
         $shopDomain = 'ds-demo-testing.myshopify.com';
-        $accessToken = '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';
+        $accessToken = '';
 
 
 
@@ -180,7 +180,7 @@ class OrderController extends Controller
     //     public function getMediaImageUrlFromGid($mediaGid)
     // {
     //     $shopDomain = 'rightangled-store.myshopify.com';
-    //     $accessToken = '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';
+    //     $accessToken = '';
 
     //     $response = Http::withHeaders([
     //         'X-Shopify-Access-Token' => $accessToken,
@@ -240,7 +240,7 @@ class OrderController extends Controller
     //     ]);
 
     //     $shopDomain = 'ds-demo-testing.myshopify.com';
-    //     $accessToken = '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';
+    //     $accessToken = '';
 
     //     $metafields = [];
 
@@ -566,7 +566,7 @@ class OrderController extends Controller
     public function markFulfillmentOnHold($orderId, $reason)
     {
         $shopDomain = 'ds-demo-testing.myshopify.com';
-        $accessToken = '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';
+        $accessToken = '';
         // Step 1: Get the order to fetch fulfillment_order ID
         $response = Http::withHeaders([
             'X-Shopify-Access-Token' => $accessToken,
@@ -605,7 +605,7 @@ class OrderController extends Controller
     public function cancelOrderWithRefund($orderId, $reason)
     {
         $shopDomain = 'ds-demo-testing.myshopify.com';
-        $accessToken = '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';
+        $accessToken = '';
 
         $response = Http::withHeaders([
             'X-Shopify-Access-Token' => $accessToken,
