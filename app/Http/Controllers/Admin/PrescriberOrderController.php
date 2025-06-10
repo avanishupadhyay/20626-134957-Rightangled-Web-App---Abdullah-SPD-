@@ -290,7 +290,7 @@ class PrescriberOrderController extends Controller
                 'decision_timestamp' => now(),
                 'prescribed_pdf' => $pdfPath,
             ]);
-
+    
 
             // Step 4: Log
             AuditLog::create([
