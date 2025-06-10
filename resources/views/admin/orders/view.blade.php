@@ -263,19 +263,6 @@
                     </div>
 
                     <div class="modal-body">
-                       
-
-                        <div class="mb-3">
-                            <label class="form-label">GPhC Number</label>
-                            <input type="text" name="gphc_number_" class="form-control"
-                                value="{{ $shopifyData['gphc_number_'] ?? '' }}" required>
-                        </div>
-
-                        <div class="mb-3">
-                            <label class="form-label">Patient Date of Birth</label>
-                            <input type="date" name="patient_s_dob" class="form-control"
-                                value="{{ $shopifyData['patient_s_dob'] ?? '' }}" required>
-                        </div>
                         <div class="mb-3">
                             <label class="form-label">Clinical Reasoning</label>
                             <textarea name="clinical_reasoning" class="form-control" required>{{ old('clinical_reasoning') }}</textarea>

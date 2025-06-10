@@ -177,253 +177,6 @@ class OrderController extends Controller
     }
 
 
-    //     public function getMediaImageUrlFromGid($mediaGid)
-    // {
-    //     $shopDomain = 'rightangled-store.myshopify.com';
-    //     $accessToken = '';
-
-    //     $response = Http::withHeaders([
-    //         'X-Shopify-Access-Token' => $accessToken,
-    //         'Content-Type' => 'application/json',
-    //     ])->get("https://{$shopDomain}/admin/api/2024-04/files/{$mediaGid}.json");
-
-    //     dd([
-    //         'status' => $response->status(),
-    //         'body' => $response->json(),
-    //     ]);
-    //     // 💥 Show full response to debug
-    //     // dd([
-    //     //     'status' => $response->status(),
-    //     //     'body' => $response->json(),
-    //     //     'raw' => $response->body()
-    //     // ]);
-
-    //     if ($response->successful()) {
-
-    //         return $response->json('data.mediaImage.image.originalSrc');
-    //     }
-
-    //     \Log::error('Shopify GraphQL Error', [
-    //         'status' => $response->status(),
-    //         'body' => $response->body(),
-    //     ]);
-
-    //     return null;
-    // }
-
-
-
-
-    // public function prescribe(Request $request, $orderId)
-    // {
-    //     $request->validate([
-    //         'decision_status' => 'required|in:approved,rejected,on_hold',
-    //         'clinical_reasoning' => 'required_if:decision_status,approved',
-    //         'rejection_reason' => 'required_if:decision_status,rejected',
-    //         'on_hold_reason' => 'required_if:decision_status,on_hold',
-    //         'patient_s_dob' => 'required_if:decision_status,approved|date',
-    //         'gphc_number_' => 'required_if:decision_status,approved',
-
-    //     ]);
-    //     // dd($request->all());
-    //     // dd($orderId);
-
-    //     $prescription = Prescription::updateOrCreate(['order_id' => $orderId], [
-    //         'prescriber_id' => auth()->id(),
-    //         'gphc_number_' => $request->gphc_number_,
-    //         'signature_image' => 'nothing',
-    //         'clinical_reasoning' => $request->clinical_reasoning,
-    //         'decision_status' => $request->decision_status,
-    //         'rejection_reason' => $request->rejection_reason,
-    //         'on_hold_reason' => $request->on_hold_reason,
-    //         'decision_timestamp' => now(),
-    //     ]);
-
-    //     $shopDomain = 'ds-demo-testing.myshopify.com';
-    //     $accessToken = '';
-
-    //     $metafields = [];
-
-    //     if ($request->decision_status === 'approved') {
-    //         $metafields = [
-    //             [
-    //                 'namespace' => 'custom',
-    //                 'key' => 'prescriber_s_name',
-    //                 'type' => 'single_line_text_field',
-    //                 'value' => auth()->user()->name,
-    //             ],
-    //             [
-    //                 'namespace' => 'custom',
-    //                 'key' => 'gphc_number_',
-    //                 'type' => 'single_line_text_field',
-    //                 'value' => $request->ghpc_number,
-    //             ],
-    //             [
-    //                 'namespace' => 'custom',
-    //                 'key' => 'patient_s_dob',
-    //                 'type' => 'date',
-    //                 'value' => $request->patient_s_dob,
-    //             ],
-    //             [
-    //                 'namespace' => 'custom',
-    //                 'key' => 'approval',
-    //                 'type' => 'boolean',
-    //                 'value' => true,
-    //             ],
-    //             [
-    //                 'namespace' => 'custom',
-    //                 'key' => 'prescriber_s_signature',
-    //                 'type' => 'single_line_text_field',
-    //                 'value' => auth()->user()->signature_image ?? 'Signed by ' . auth()->user()->name,
-    //             ],
-    //         ];
-    //     } elseif ($request->decision_status === 'rejected') {
-    //         $metafields[] = [
-    //             'namespace' => 'custom',
-    //             'key' => 'rejection_reason',
-    //             'type' => 'multi_line_text_field',
-    //             'value' => $request->rejection_reason,
-    //         ];
-    //     } elseif ($request->decision_status === 'on_hold') {
-    //         $metafields[] = [
-    //             'namespace' => 'custom',
-    //             'key' => 'on_hold_reason',
-    //             'type' => 'multi_line_text_field',
-    //             'value' => $request->on_hold_reason,
-    //         ];
-    //         $this->markFulfillmentOnHold($orderId, $request->on_hold_reason);
-
-    //         // $this->updateShopifyFulfillmentStatus($orderId, 'on_hold');
-    //     }
-
-    //     // Store metafields to Shopify
-    //     foreach ($metafields as $metafield) {
-    //         Http::withHeaders([
-    //             'X-Shopify-Access-Token' => $accessToken,
-    //             'Content-Type' => 'application/json',
-    //         ])->post("https://{$shopDomain}/admin/api/2023-10/orders/{$orderId}/metafields.json", [
-    //             'metafield' => $metafield,
-    //         ]);
-    //     }
-
-    //     // Log action
-    //     AuditLog::create([
-    //         'user_id' => auth()->id(),
-    //         'action' => 'Prescription ' . $request->decision_status,
-    //         'order_id' => $orderId,
-    //         'details' => $request->clinical_reasoning ?? $request->rejection_reason ?? $request->on_hold_reason,
-    //     ]);
-
-    //     return back()->with('status', 'Order reviewed successfully.');
-    // }
-
-
-    //     public function prescribe(Request $request, $orderId)
-    // {
-    //     $request->validate([
-    //         'decision_status' => 'required|in:approved,rejected,on_hold',
-    //         'clinical_reasoning' => 'required_if:decision_status,approved',
-    //         'rejection_reason' => 'required_if:decision_status,rejected',
-    //         'on_hold_reason' => 'required_if:decision_status,on_hold',
-    //         'patient_s_dob' => 'required_if:decision_status,approved|date',
-    //         'gphc_number_' => 'required_if:decision_status,approved',
-    //     ]);
-
-    //     $metafields = [];
-
-    //     if ($request->decision_status === 'approved') {
-    //         $metafields = [
-    //             [
-    //                 'namespace' => 'custom',
-    //                 'key' => 'prescriber_s_name',
-    //                 'type' => 'single_line_text_field',
-    //                 'value' => auth()->user()->name,
-    //             ],
-    //             [
-    //                 'namespace' => 'custom',
-    //                 'key' => 'gphc_number_',
-    //                 'type' => 'single_line_text_field',
-    //                 'value' => $request->gphc_number_,
-    //             ],
-    //             [
-    //                 'namespace' => 'custom',
-    //                 'key' => 'patient_s_dob',
-    //                 'type' => 'date',
-    //                 'value' => $request->patient_s_dob,
-    //             ],
-    //             [
-    //                 'namespace' => 'custom',
-    //                 'key' => 'approval',
-    //                 'type' => 'boolean',
-    //                 'value' => true,
-    //             ],
-    //             [
-    //                 'namespace' => 'custom',
-    //                 'key' => 'prescriber_s_signature',
-    //                 'type' => 'single_line_text_field',
-    //                 'value' => auth()->user()->signature_image ?? 'Signed by ' . auth()->user()->name,
-    //             ],
-    //         ];
-    //     } elseif ($request->decision_status === 'rejected') {
-    //         $metafields[] = [
-    //             'namespace' => 'custom',
-    //             'key' => 'rejection_reason',
-    //             'type' => 'multi_line_text_field',
-    //             'value' => $request->rejection_reason,
-    //         ];
-    //     } elseif ($request->decision_status === 'on_hold') {
-    //         $metafields[] = [
-    //             'namespace' => 'custom',
-    //             'key' => 'on_hold_reason',
-    //             'type' => 'multi_line_text_field',
-    //             'value' => $request->on_hold_reason,
-    //         ];
-    //     }
-
-    //     DB::beginTransaction();
-    //     try {
-    //         // Step 1: Push to Shopify (metafields and fulfillment hold if required)
-    //         $metafieldsSuccess = $shopifyService->createMetafields($orderId, $metafields);
-
-    //         if (!$metafieldsSuccess) {
-    //             throw new \Exception('Metafield creation failed');
-    //         }
-
-    //         if ($request->decision_status === 'on_hold') {
-    //             $onHoldSuccess = $shopifyService->putFulfillmentOnHold($orderId, $request->on_hold_reason);
-    //             if (!$onHoldSuccess) {
-    //                 throw new \Exception('Failed to mark fulfillment on hold');
-    //             }
-    //         }
-
-    //         // Step 2: Save to DB
-    //         Prescription::updateOrCreate(['order_id' => $orderId], [
-    //             'prescriber_id' => auth()->id(),
-    //             'gphc_number_' => $request->gphc_number_,
-    //             'signature_image' => 'nothing',
-    //             'clinical_reasoning' => $request->clinical_reasoning,
-    //             'decision_status' => $request->decision_status,
-    //             'rejection_reason' => $request->rejection_reason,
-    //             'on_hold_reason' => $request->on_hold_reason,
-    //             'decision_timestamp' => now(),
-    //         ]);
-
-    //         AuditLog::create([
-    //             'user_id' => auth()->id(),
-    //             'action' => 'Prescription ' . $request->decision_status,
-    //             'order_id' => $orderId,
-    //             'details' => $request->clinical_reasoning ?? $request->rejection_reason ?? $request->on_hold_reason,
-    //         ]);
-
-    //         DB::commit();
-    //         return back()->with('status', 'Order reviewed successfully.');
-    //     } catch (\Throwable $e) {
-    //         DB::rollBack();
-    //         return back()->withErrors('Failed to update order: ' . $e->getMessage());
-    //     }
-
-    // }
-
     public function prescribe(Request $request, $orderId)
     {
         $request->validate([
@@ -436,25 +189,26 @@ class OrderController extends Controller
         ]);
 
         $decisionStatus = $request->decision_status;
-        $metafields = $this->buildCommonMetafields($request, $decisionStatus);
-
+        $metafields = buildCommonMetafields($request, $decisionStatus);
+        $shopDomain = env('SHOP_DOMAIN');
+        $accessToken = env('ACCESS_TOKEN');
         DB::beginTransaction();
         try {
             // Step 1: Push metafields to Shopify
             foreach ($metafields as $field) {
                 Http::withHeaders([
-                    'X-Shopify-Access-Token' => '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',
+                    'X-Shopify-Access-Token' => $accessToken,
                     'Content-Type' => 'application/json',
-                ])->post("https://ds-demo-testing.myshopify.com/admin/api/2023-10/orders/{$orderId}/metafields.json", [
+                ])->post("https://{$shopDomain}/admin/api/2023-10/orders/{$orderId}/metafields.json", [
                     'metafield' => $field
                 ]);
             }
 
             // Step 2: Take action based on decision
             if ($decisionStatus === 'on_hold') {
-                $this->markFulfillmentOnHold($orderId, $request->on_hold_reason);
+                markFulfillmentOnHold($orderId, $request->on_hold_reason);
             } elseif ($decisionStatus === 'rejected') {
-                $this->cancelOrderWithRefund($orderId, $request->rejection_reason);
+                cancelOrder($orderId, $request->rejection_reason);
             }
 
             // Step 3: Save to DB
@@ -478,152 +232,10 @@ class OrderController extends Controller
             ]);
 
             DB::commit();
-            return back()->with('status', 'Order reviewed successfully.');
+            return back()->with('suceess', 'Order status changed successfully.');
         } catch (\Throwable $e) {
             DB::rollBack();
             return back()->withErrors('Failed to update order: ' . $e->getMessage());
         }
-    }
-
-
-    public function buildCommonMetafields(Request $request, string $decisionStatus): array
-    {
-        $user = auth()->user();
-
-        $metafields = [
-            [
-                'namespace' => 'custom',
-                'key' => 'prescriber_id',
-                'type' => 'number_integer',
-                'value' => $user->id,
-            ],
-            [
-                'namespace' => 'custom',
-                'key' => 'gphc_number_',
-                'type' => 'single_line_text_field',
-                'value' => $request->gphc_number_,
-            ],
-            [
-                'namespace' => 'custom',
-                'key' => 'signature_image',
-                'type' => 'single_line_text_field',
-                'value' => $user->signature_image ?? 'Signed by ' . $user->name,
-            ],
-            [
-                'namespace' => 'custom',
-                'key' => 'decision_status',
-                'type' => 'single_line_text_field',
-                'value' => $decisionStatus,
-            ],
-            [
-                'namespace' => 'custom',
-                'key' => 'decision_timestamp',
-                'type' => 'date_time',
-                'value' => now()->toIso8601String(),
-            ],
-        ];
-
-        if ($decisionStatus === 'approved') {
-            $metafields[] = [
-                'namespace' => 'custom',
-                'key' => 'clinical_reasoning',
-                'type' => 'multi_line_text_field',
-                'value' => $request->clinical_reasoning,
-            ];
-            $metafields[] = [
-                'namespace' => 'custom',
-                'key' => 'patient_s_dob',
-                'type' => 'date',
-                'value' => $request->patient_s_dob,
-            ];
-            $metafields[] = [
-                'namespace' => 'custom',
-                'key' => 'approval',
-                'type' => 'boolean',
-                'value' => true,
-            ];
-        } elseif ($decisionStatus === 'rejected') {
-            $metafields[] = [
-                'namespace' => 'custom',
-                'key' => 'rejection_reason',
-                'type' => 'multi_line_text_field',
-                'value' => $request->rejection_reason,
-            ];
-        } elseif ($decisionStatus === 'on_hold') {
-            $metafields[] = [
-                'namespace' => 'custom',
-                'key' => 'on_hold_reason',
-                'type' => 'multi_line_text_field',
-                'value' => $request->on_hold_reason,
-            ];
-        }
-
-        return $metafields;
-    }
-
-
-
-    public function markFulfillmentOnHold($orderId, $reason)
-    {
-        $shopDomain = 'ds-demo-testing.myshopify.com';
-        $accessToken = '';
-        // Step 1: Get the order to fetch fulfillment_order ID
-        $response = Http::withHeaders([
-            'X-Shopify-Access-Token' => $accessToken,
-        ])->get("https://{$shopDomain}/admin/api/2023-10/orders/{$orderId}/fulfillment_orders.json");
-
-        $fulfillmentOrders = $response->json('fulfillment_orders');
-
-        if (empty($fulfillmentOrders)) {
-            return response()->json(['error' => 'No fulfillment orders found.'], 404);
-        }
-
-        $fulfillmentOrderId = $fulfillmentOrders[0]['id'];
-
-
-        // Step 2: Create fulfillment hold (mark as on-hold)
-        $holdResponse = Http::withHeaders([
-            'X-Shopify-Access-Token' => $accessToken,
-            'Content-Type' => 'application/json',
-        ])->post("https://{$shopDomain}/admin/api/2023-10/fulfillment_orders/{$fulfillmentOrderId}/hold.json", [
-            'fulfillment_hold' => [
-                'reason' => 'other', // ✅ valid reason
-                'reason_notes' => $reason ?? 'Order placed on hold during review.',
-            ],
-        ]);
-        if ($holdResponse->failed()) {
-            return response()->json([
-                'error' => 'Failed to put fulfillment on hold',
-                'details' => $holdResponse->json()
-            ], 500);
-        }
-
-        return true;
-    }
-
-
-    public function cancelOrderWithRefund($orderId, $reason)
-    {
-        $shopDomain = 'ds-demo-testing.myshopify.com';
-        $accessToken = '';
-
-        $response = Http::withHeaders([
-            'X-Shopify-Access-Token' => $accessToken,
-            'Content-Type' => 'application/json',
-        ])->post("https://{$shopDomain}/admin/api/2023-10/orders/{$orderId}/cancel.json", [
-            'email' => true,
-            'reason' => 'customer', // or 'other', 'fraud', 'inventory'
-            'restock' => true,
-            'note' => $reason ?? 'Order rejected by prescriber.',
-            'refund' => [
-                'notify' => true,
-            ],
-        ]);
-
-        if ($response->failed()) {
-            throw new \Exception('Order cancellation failed: ' . json_encode($response->json()));
-        }
-
-        return true;
     }
 }

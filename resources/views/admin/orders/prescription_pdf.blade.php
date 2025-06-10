@@ -91,14 +91,14 @@
             <p><strong>Order Number:</strong> {{ $order->name }}</p>
             <p><strong>Issue Date:</strong> {{ $order->updated_at }}</p>
             <p><strong>Note:</strong> dispensed</p>
-            <p><strong>Patinets DOB:</strong>  {{ $patient_s_dob }}</p>
-            <p><strong>Approved:</strong>{{$approval}}</p>
+            <p><strong>Patinets DOB:</strong> {{ $patient_s_dob }}</p>
+            <p><strong>Approved:</strong> {{ $approval == 1 ? 'true' : 'false' }}</p>
 
             <p><strong>Prescriber</strong> {{ $prescriber_s_name }}</p>
             <p><strong>Prescriber’s Reg Number:</strong> {{ $prescriber_reg }}</p>
 
             {{-- <p><strong>GPhC Number:</strong> {{ $gphc_number }}</p> --}}
-          
+
 
 
         </div>

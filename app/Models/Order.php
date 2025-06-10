@@ -12,4 +12,9 @@ class Order extends Model
     protected $table = 'orders'; // Table name
     protected $fillable = ['customer_id','order_number','name','email','total_price','financial_status','fulfillment_status','order_data'];
     
+
+    public function prescription()
+{
+    return $this->hasOne(Prescription::class, 'order_id', 'order_number');
+}
 }

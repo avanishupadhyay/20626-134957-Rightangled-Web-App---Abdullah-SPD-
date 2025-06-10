@@ -80,7 +80,8 @@
                                 <tr>
                                     <th>#</th>
                                     <th>Order Number</th>
-                                    <th>Name</th>
+                                                                        <th>Name</th>
+
                                     <th>Email</th>
                                     <th>Total Price {{ config('Site.currency') }}</th>
                                     <th>Financial Status</th>
@@ -95,7 +96,8 @@
                                         <tr>
                                             <td>{{ $index + 1 }}</td>
                                             <td>{{ $order->order_number }}</td>
-                                            <td>{{ $order->name }}</td>
+                                                                                        <td>{{ $order->name }}</td>
+
                                             <td>{{ $order->email }}</td>
                                             <td>{{ number_format($order->total_price, 2) }}</td>
                                             <td>
@@ -116,6 +118,7 @@
                                             </td>
 
                                             <td>{{ ucfirst($order->fulfillment_status) ?? 'NA' }}</td>
+
                                             <td>{{ $order->created_at->format(config('Reading.date_time_format')) }}</td>
                                             {{-- <td>
                                                <a class="btn btn-primary btn-sm" href="{{ route('orders.view', $order->id) }}"><i
@@ -126,10 +129,10 @@
                                                     class="btn btn-primary btn-sm"><i class="fa-solid fa-pen-to-square"
                                                         style="width: 100px"></i></a>
 
-                                                <a href="{{ route('orders.downloadPDF', $order->id) }}"
+                                                {{-- <a href="{{ route('orders.downloadPDF', $order->id) }}"
                                                     class="btn btn-sm btn-danger ms-2" target="_blank" title="Download PDF">
                                                     <i class="fas fa-file-pdf"></i>
-                                                </a>
+                                                </a> --}}
 
                                             </td>
 
@@ -147,7 +150,7 @@
             </div>
         </div>
         <div class="mt-1">
-            {!! $orders->links('pagination::bootstrap-5') !!}
+            {!! $orders->appends(request()->query())->links('pagination::bootstrap-5') !!}
         </div>
         <script>
             document.addEventListener('DOMContentLoaded', function() {

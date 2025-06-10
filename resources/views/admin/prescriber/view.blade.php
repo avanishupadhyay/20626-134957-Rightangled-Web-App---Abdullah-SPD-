@@ -13,11 +13,16 @@
             overflow-y: auto;
         }
     </style>
+  
     <div class="container">
         <div class="row page-titles mx-0 mb-3">
             <div class="col-sm-6 p-0">
                 <div class="welcome-text">
-                    <h4>Order {{ $orderData['name'] ?? 'Order' }}</h4>
+                    <h4>Order {{ $orderData['name'] ?? 'Order' }}
+                        @if (!empty($orderData['cancelled_at']))
+                            <span class="badge bg-danger ms-2">Cancelled</span>
+                        @endif
+                    </h4>
                 </div>
             </div>
             <div class="col-sm-6 p-0 justify-content-sm-end mt-2 mt-sm-0 d-flex">
@@ -30,11 +35,19 @@
         </div>
 
         <!-- Buttons -->
-        <div class="m-2">
+        {{-- <div class="m-2">
             <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#approveModal">Approve</button>
             <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#rejectModal">Reject</button>
             <button class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#onHoldModal">On Hold</button>
-        </div>
+        </div> --}}
+        @if (is_null($order->fulfillment_status) && is_null($orderData['cancelled_at']) && is_null($order->prescription))
+            <div class="m-2">
+                <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#approveModal">Approve</button>
+                <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#rejectModal">Reject</button>
+                <button class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#onHoldModal">On Hold</button>
+            </div>
+        @endif
+
         <div class="row">
             {{-- Left Card --}}
             <div class="col-md-6">
@@ -262,19 +275,6 @@
                     </div>
 
                     <div class="modal-body">
-
-
-                        <div class="mb-3">
-                            <label class="form-label">GPhC Number</label>
-                            <input type="text" name="gphc_number_" class="form-control"
-                                value="{{ $shopifyData['gphc_number_'] ?? '' }}" required>
-                        </div>
-
-                        <div class="mb-3">
-                            <label class="form-label">Patient Date of Birth</label>
-                            <input type="date" name="patient_s_dob" class="form-control"
-                                value="{{ $shopifyData['patient_s_dob'] ?? '' }}" required>
-                        </div>
                         <div class="mb-3">
                             <label class="form-label">Clinical Reasoning</label>
                             <textarea name="clinical_reasoning" class="form-control" required>{{ old('clinical_reasoning') }}</textarea>
