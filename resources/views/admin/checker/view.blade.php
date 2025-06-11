@@ -13,23 +13,34 @@
             overflow-y: auto;
         }
     </style>
+  
     <div class="container">
         <div class="row page-titles mx-0 mb-3">
             <div class="col-sm-6 p-0">
                 <div class="welcome-text">
-                    <h4>Order {{ $orderData['name'] ?? 'Order' }}</h4>
+                    <h4>Order {{ $orderData['name'] ?? 'Order' }}
+                        @if (!empty($orderData['cancelled_at']))
+                            <span class="badge bg-danger ms-2">Cancelled</span>
+                        @endif
+                    </h4>
                 </div>
             </div>
             <div class="col-sm-6 p-0 justify-content-sm-end mt-2 mt-sm-0 d-flex">
                 <ol class="breadcrumb">
                     <li class="breadcrumb-item"><a href="{{ route('admin.dashboard') }}">Dashboard</a></li>
-                    <li class="breadcrumb-item"><a href="{{ route('orders.index') }}">Orders</a></li>
+                    <li class="breadcrumb-item"><a href="{{ route('checker_orders.index') }}">Checkers</a></li>
                     <li class="breadcrumb-item active">Edit</li>
                 </ol>
             </div>
         </div>
 
-
+        @if (is_null($order->fulfillment_status) && is_null($orderData['cancelled_at']) && is_null($order->prescription))
+            <div class="m-2">
+                <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#approveModal">Approve</button>
+                <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#rejectModal">Reject</button>
+                <button class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#onHoldModal">On Hold</button>
+            </div>
+        @endif
 
         <div class="row">
             {{-- Left Card --}}
@@ -38,7 +49,7 @@
                     <div class="card-header">
                         <strong>Fulfillment Status:</strong>
                         <span class="badge bg-{{ $orderData['fulfillment_status'] ? 'success' : 'secondary' }}">
-                            {{ ucfirst($orderData['fulfillment_status'] ?? 'Unfulfilled') }}
+                            {{ ucfirst($order['fulfillment_status'] ?? 'Unfulfilled') }}
                         </span>
                     </div>
                     <div class="card-body">
@@ -105,7 +116,7 @@
             </div>
         </div>
 
-        
+
         <div class="row">
             <div class="col-md-6">
                 <div class="card mb-4 equal-height-card">
@@ -242,4 +253,79 @@
 
 
     </div>
+
+
+    <!-- Approve Modal -->
+    <div class="modal fade" id="approveModal" tabindex="-1">
+        <div class="modal-dialog">
+            <form method="POST" action="{{ route('orders.checker', $order->order_number) }}">
+                @csrf
+                <input type="hidden" name="decision_status" value="approved">
+
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Approve Prescription</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">Clinical Reasoning</label>
+                            <textarea name="clinical_reasoning" class="form-control" required>{{ old('clinical_reasoning') }}</textarea>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button class="btn btn-success">Submit Approval</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+
+    <!-- Reject Modal -->
+    <div class="modal fade" id="rejectModal" tabindex="-1">
+        <div class="modal-dialog">
+            <form method="POST" action="{{ route('orders.checker', $order->order_number) }}">
+                @csrf
+                <input type="hidden" name="decision_status" value="rejected">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Reject Prescription</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <textarea name="rejection_reason" class="form-control" placeholder="Rejection reason" required></textarea>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-danger">Submit</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- On Hold Modal -->
+    <div class="modal fade" id="onHoldModal" tabindex="-1">
+        <div class="modal-dialog">
+            <form method="POST" action="{{ route('orders.checker', $order->order_number) }}">
+                @csrf
+                <input type="hidden" name="decision_status" value="on_hold">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Put On Hold</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <textarea name="on_hold_reason" class="form-control" placeholder="Reason for putting on hold" required></textarea>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-warning">Submit</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
 @endsection
