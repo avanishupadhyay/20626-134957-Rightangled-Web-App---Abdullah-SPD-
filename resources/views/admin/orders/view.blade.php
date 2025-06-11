@@ -13,6 +13,9 @@
             overflow-y: auto;
         }
     </style>
+    {{-- @php
+        $statuses = getOrderDecisionStatus($order->id);
+    @endphp --}}
     <div class="container">
         <div class="row page-titles mx-0 mb-3">
             <div class="col-sm-6 p-0">
@@ -32,8 +35,38 @@
         <!-- Buttons -->
         <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#approveModal">Approve</button>
         <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#rejectModal">Reject</button>
-        <button class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#onHoldModal">On Hold</button>
+        <button class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#onHoldModal">On Hold</button> 
+      
+      
+        <div class="m-3">
+        @if (!$statuses['is_cancelled'])
+            @if ($statuses['fulfillment_status'] === 'on_hold')
+                <form action="{{ route('orders.releaseHold', $order->id) }}" method="POST" class="d-inline">
+                    @csrf
+                    <button class="btn btn-secondary" onclick="return confirm('Are you sure you want to release hold?')">
+                        Release Hold
+                    </button>
+                </form>
+            @else
+                @switch($statuses['prescription_status'])
+                    @case('approved')
+                        <button class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#onHoldModal">On Hold</button>
+                        <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#rejectModal">Reject</button>
+                    @break
 
+                    @case('rejected')
+                        <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#approveModal">Approve</button>
+                        <button class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#onHoldModal">On Hold</button>
+                    @break
+
+                    @default
+                        <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#approveModal">Approve</button>
+                        <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#rejectModal">Reject</button>
+                        <button class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#onHoldModal">On Hold</button>
+                @endswitch
+            @endif
+        @endif
+       </div>
         <div class="row">
             {{-- Left Card --}}
             <div class="col-md-6">
@@ -129,14 +162,14 @@
             @php
                 $hasData = collect($orderMetafields)->filter(fn($v) => !empty($v))->isNotEmpty();
             @endphp
-            <div class="col-md-6">
+            {{-- <div class="col-md-6">
 
                 <div class="card equal-height-card">
                     <div class="card-header"><strong>Order Metafields</strong></div>
                     <div class="card-body">
                         @if ($hasData)
                             @foreach ($orderMetafields as $key => $value)
-                                @continue(empty($value)) {{-- Skip empty values --}}
+                                @continue(empty($value)) 
 
                                 <div class="mb-2">
                                     <strong>{{ ucwords(str_replace(['_', '-'], ' ', $key)) }}:</strong>
@@ -155,7 +188,37 @@
                         @endif
                     </div>
                 </div>
+            </div> --}}
+            <div class="col-md-6">
+                <div class="card equal-height-card">
+                    <div class="card-header"><strong>Order Metafields</strong></div>
+                    <div class="card-body">
+                        @if ($hasData)
+                            @foreach ($orderMetafields as $key => $value)
+                                @continue(empty($value)) {{-- Skip empty values --}}
+
+                                <div class="mb-2">
+                                    <strong>{{ ucwords(str_replace(['_', '-'], ' ', $key)) }}:</strong>
+
+                                    @if (is_bool($value))
+                                        {{ $value ? 'Yes' : 'No' }}
+                                    @elseif (Str::startsWith($value, 'gid://shopify/MediaImage/'))
+                                        <p><em>(Image GID: {{ $value }})</em></p>
+                                    @elseif (filter_var($value, FILTER_VALIDATE_URL))
+                                        <a href="{{ $value }}" target="_blank"
+                                            rel="noopener noreferrer">{{ $value }}</a>
+                                    @else
+                                        {{ $value }}
+                                    @endif
+                                </div>
+                            @endforeach
+                        @else
+                            <p class="text-muted">No data found.</p>
+                        @endif
+                    </div>
+                </div>
             </div>
+
         </div>
 
         {{-- ✅ 4. Customer Info --}}
@@ -252,7 +315,7 @@
     <!-- Approve Modal -->
     <div class="modal fade" id="approveModal" tabindex="-1">
         <div class="modal-dialog">
-            <form method="POST" action="{{ route('orders.prescribe',$order->order_number) }}">
+            <form method="POST" action="{{ route('orders.prescribe', $order->order_number) }}">
                 @csrf
                 <input type="hidden" name="decision_status" value="approved">
 
@@ -281,7 +344,7 @@
     <!-- Reject Modal -->
     <div class="modal fade" id="rejectModal" tabindex="-1">
         <div class="modal-dialog">
-            <form method="POST" action="{{ route('orders.prescribe',$order->order_number) }}">
+            <form method="POST" action="{{ route('orders.prescribe', $order->order_number) }}">
                 @csrf
                 <input type="hidden" name="decision_status" value="rejected">
                 <div class="modal-content">
@@ -303,7 +366,7 @@
     <!-- On Hold Modal -->
     <div class="modal fade" id="onHoldModal" tabindex="-1">
         <div class="modal-dialog">
-            <form method="POST" action="{{ route('orders.prescribe',$order->order_number) }}">
+            <form method="POST" action="{{ route('orders.prescribe', $order->order_number) }}">
                 @csrf
                 <input type="hidden" name="decision_status" value="on_hold">
                 <div class="modal-content">

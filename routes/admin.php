@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\StoreController;
 use App\Http\Controllers\Admin\OrderController;
 use App\Http\Controllers\Admin\PrescriberOrderController;
+use App\Http\Controllers\Admin\CheckerOrderController;
 
 
 
@@ -56,5 +57,11 @@ Route::post('/orders/{orderId}/prescribe', [OrderController::class, 'prescribe']
 Route::get('Prescriber/orders', [PrescriberOrderController::class, 'index'])->name('prescriber_orders.index');
 Route::get('Prescriber/orders/{id}/view', [PrescriberOrderController::class, 'view'])->name('prescriber_orders.view');
 Route::post('Prescriber/orders/{orderId}/prescribe', [PrescriberOrderController::class, 'prescribe'])->name('orders.prescriber');
+
+
+//Checker route
+Route::get('Checker/orders', [CheckerOrderController::class, 'index'])->name('checker_orders.index');
+Route::get('Checker/orders/{id}/view', [CheckerOrderController::class, 'view'])->name('checker_orders.view');
+Route::post('Checker/orders/{orderId}/check', [CheckerOrderController::class, 'check'])->name('orders.checker');
 
 });

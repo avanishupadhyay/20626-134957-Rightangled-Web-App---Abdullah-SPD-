@@ -139,9 +139,9 @@
                                                 </span>
                                             </td>
                                             <td>{{ ucfirst($order->fulfillment_status) ?? 'NA' }}</td>
-                                            <td>{{ $order->prescription->decision_status ?? 'N/A' }}</td>
-                                            <td>{{ $order->prescription->prescriber->name ?? 'N/A' }}</td>
-                                            <td>{{ $order->prescription?->decision_timestamp?->format(config('Reading.date_time_format')) ?? 'N/A' }}
+                                            <td>{{ $order->orderaction->decision_status ?? 'N/A' }}</td>
+                                            <td>{{ $order->orderaction->user->name ?? 'N/A' }}</td>
+                                            <td>{{ $order->orderaction?->decision_timestamp?->format(config('Reading.date_time_format')) ?? 'N/A' }}
                                             </td>
                                             <td>{{ $order->created_at->format(config('Reading.date_time_format')) }}</td>
                                             <td class="d-flex">

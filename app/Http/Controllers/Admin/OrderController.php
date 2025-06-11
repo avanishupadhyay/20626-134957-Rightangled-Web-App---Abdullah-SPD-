@@ -7,7 +7,7 @@ use App\Models\Order;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Http;
 use App\Models\AuditLog;
-use App\Models\Prescription;
+use App\Models\OrderAction;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 
@@ -212,16 +212,20 @@ class OrderController extends Controller
             }
 
             // Step 3: Save to DB
-            Prescription::updateOrCreate(['order_id' => $orderId], [
-                'prescriber_id' => auth()->id(),
-                'gphc_number_' => $request->gphc_number_,
-                'signature_image' => auth()->user()->signature_image ?? 'Signed by ' . auth()->user()->name,
-                'clinical_reasoning' => $request->clinical_reasoning,
-                'decision_status' => $decisionStatus,
-                'rejection_reason' => $request->rejection_reason,
-                'on_hold_reason' => $request->on_hold_reason,
-                'decision_timestamp' => now(),
-            ]);
+            OrderAction::updateOrCreate(
+                [
+                    'order_id' => $orderId,
+                    'user_id' => auth()->id(),
+                ],
+                [
+                    'clinical_reasoning' => $request->clinical_reasoning,
+                    'decision_status' => $decisionStatus,
+                    'rejection_reason' => $request->rejection_reason,
+                    'on_hold_reason' => $request->on_hold_reason,
+                    'decision_timestamp' => now(),
+
+                ]
+            );
 
             // Step 4: Log
             AuditLog::create([

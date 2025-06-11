@@ -7,7 +7,7 @@ use App\Models\Order;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Http;
 use App\Models\AuditLog;
-use App\Models\Prescription;
+use App\Models\OrderAction;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Storage;
@@ -102,10 +102,19 @@ class PrescriberOrderController extends Controller
 
     public function index(Request $request)
     {
-        $query = Order::with('prescription')
-            ->whereNull('fulfillment_status');
-        // ->whereRaw("JSON_EXTRACT(order_data, '$.cancelled_at') IS NULL");
-        // only non-cancelled, unfulfilled orders
+
+        $query = Order::with('orderaction')
+            ->whereNull('fulfillment_status')
+            // Exclude cancelled orders
+            ->where(function ($q) {
+                $q->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(order_data, '$.cancelled_at')) IS NULL")
+                    ->orWhereRaw("JSON_UNQUOTE(JSON_EXTRACT(order_data, '$.cancelled_at')) = 'null'");
+            })
+            // Exclude orders whose prescription decision_status is 'approved'
+            ->whereDoesntHave('orderaction', function ($q) {
+                $q->where('decision_status', 'approved');
+            });
+
 
         // Search by name, email or order number
         if ($request->filled('search')) {
@@ -279,23 +288,27 @@ class PrescriberOrderController extends Controller
                 ]);
             }
 
+            OrderAction::updateOrCreate(
+                [
+                    'order_id' => $orderId,
+                    'user_id' => auth()->id(),
+                ],
+                [
+                    'clinical_reasoning' => $request->clinical_reasoning,
+                    'decision_status' => $decisionStatus,
+                    'rejection_reason' => $request->rejection_reason,
+                    'on_hold_reason' => $request->on_hold_reason,
+                    'decision_timestamp' => now(),
+                    'prescribed_pdf' => $pdfPath,
 
-            // Step 3: Save to DB
-            Prescription::updateOrCreate(['order_id' => $orderId], [
-                'prescriber_id' => auth()->id(),
-                'clinical_reasoning' => $request->clinical_reasoning,
-                'decision_status' => $decisionStatus,
-                'rejection_reason' => $request->rejection_reason,
-                'on_hold_reason' => $request->on_hold_reason,
-                'decision_timestamp' => now(),
-                'prescribed_pdf' => $pdfPath,
-            ]);
-    
+                ]
+            );
+
 
             // Step 4: Log
             AuditLog::create([
                 'user_id' => auth()->id(),
-                'action' => 'Prescription ' . $decisionStatus,
+                'action' => $decisionStatus,
                 'order_id' => $orderId,
                 'details' => $request->clinical_reasoning ?? $request->rejection_reason ?? $request->on_hold_reason,
             ]);

@@ -28,19 +28,13 @@
             <div class="col-sm-6 p-0 justify-content-sm-end mt-2 mt-sm-0 d-flex">
                 <ol class="breadcrumb">
                     <li class="breadcrumb-item"><a href="{{ route('admin.dashboard') }}">Dashboard</a></li>
-                    <li class="breadcrumb-item"><a href="{{ route('prescriber_orders.index') }}">Prescribers</a></li>
+                    <li class="breadcrumb-item"><a href="{{ route('checker_orders.index') }}">Checkers</a></li>
                     <li class="breadcrumb-item active">Edit</li>
                 </ol>
             </div>
         </div>
 
-        <!-- Buttons -->
-        {{-- <div class="m-2">
-            <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#approveModal">Approve</button>
-            <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#rejectModal">Reject</button>
-            <button class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#onHoldModal">On Hold</button>
-        </div> --}}
-        @if (is_null($order->fulfillment_status) && is_null($orderData['cancelled_at']))
+        @if (is_null($order->fulfillment_status) && is_null($orderData['cancelled_at']) && is_null($order->prescription))
             <div class="m-2">
                 <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#approveModal">Approve</button>
                 <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#rejectModal">Reject</button>
@@ -264,7 +258,7 @@
     <!-- Approve Modal -->
     <div class="modal fade" id="approveModal" tabindex="-1">
         <div class="modal-dialog">
-            <form method="POST" action="{{ route('orders.prescriber', $order->order_number) }}">
+            <form method="POST" action="{{ route('orders.checker', $order->order_number) }}">
                 @csrf
                 <input type="hidden" name="decision_status" value="approved">
 
@@ -293,7 +287,7 @@
     <!-- Reject Modal -->
     <div class="modal fade" id="rejectModal" tabindex="-1">
         <div class="modal-dialog">
-            <form method="POST" action="{{ route('orders.prescriber', $order->order_number) }}">
+            <form method="POST" action="{{ route('orders.checker', $order->order_number) }}">
                 @csrf
                 <input type="hidden" name="decision_status" value="rejected">
                 <div class="modal-content">
@@ -315,7 +309,7 @@
     <!-- On Hold Modal -->
     <div class="modal fade" id="onHoldModal" tabindex="-1">
         <div class="modal-dialog">
-            <form method="POST" action="{{ route('orders.prescriber', $order->order_number) }}">
+            <form method="POST" action="{{ route('orders.checker', $order->order_number) }}">
                 @csrf
                 <input type="hidden" name="decision_status" value="on_hold">
                 <div class="modal-content">

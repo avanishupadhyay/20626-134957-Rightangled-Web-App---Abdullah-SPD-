@@ -7,11 +7,10 @@ use App\Models\Order;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Http;
 use App\Models\AuditLog;
-use App\Models\Prescription;
+use App\Models\OrderAction;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Storage;
-use App\Models\Checker;
 
 class CheckerOrderController extends Controller
 {
@@ -28,148 +27,10 @@ class CheckerOrderController extends Controller
 
     }
 
-    // public function index(Request $request)
-    // {
-    //     $query = Order::query();
 
-    //     // Search by name, email or order number
-    //     if ($request->filled('search')) {
-    //         $query->where(function ($q) use ($request) {
-    //             $q->where('name', 'like', '%' . $request->search . '%')
-    //                 ->orWhere('email', 'like', '%' . $request->search . '%')
-    //                 ->orWhere('order_number', 'like', '%' . $request->search . '%');
-    //         });
-    //     }
-    //     // Filter by financial status
-    //     if ($request->filled('financial_status')) {
-    //         $query->where('financial_status', $request->financial_status);
-    //     }
-
-    //     if ($request->filled('date_range')) {
-    //         $dates = explode(' to ', $request->date_range);
-    //         if (count($dates) == 2) {
-    //             $from = $dates[0];
-    //             $to = $dates[1];
-
-    //             $query->whereDate('created_at', '>=', $from)
-    //                 ->whereDate('created_at', '<=', $to);
-    //         }
-    //     }
-    //     // if ($request->filled('order_type')) {
-    //     //     $query->whereIn('email', function ($subQuery) use ($request) {
-    //     //         $subQuery->select('email')
-    //     //             ->from('orders')
-    //     //             ->groupBy('email')
-    //     //             ->havingRaw($request->order_type === 'new' ? 'COUNT(*) = 1' : 'COUNT(*) > 1');
-    //     //     });
-    //     // }
-    //     if ($request->filled('filter_type')) {
-    //         switch ($request->filter_type) {
-    //             case 'new':
-    //                 $emailsWithMultipleOrders = Order::select('email')
-    //                     ->groupBy('email')
-    //                     ->havingRaw('COUNT(*) > 1')
-    //                     ->pluck('email')
-    //                     ->toArray();
-    //                 $query->whereNull('fulfillment_status')
-    //                     ->whereNotIn('email', $emailsWithMultipleOrders);
-    //                 break;
-
-    //             case 'repeat':
-    //                 $query->whereNull('fulfillment_status')
-    //                     ->where('order_data', 'like', '%Seal Subscription%'); // adjust as needed
-    //                 break;
-
-    //             case 'international':
-    //                 $query->whereNull('fulfillment_status')
-    //                     ->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(order_data, '$.shipping_address.country_code')) != 'GB'");
-    //                 break;
-
-    //             case 'all':
-    //                 $query->whereNull('fulfillment_status')
-    //                     ->orderBy('created_at', 'asc');
-    //                 break;
-    //         }
-    //     }
-
-    //     // Get filtered results
-    //     $orders = $query->latest()->paginate(config('Reading.nodes_per_page'));
-    //     // Get distinct statuses for the filter dropdown
-    //     $statuses = Order::select('financial_status')->distinct()->pluck('financial_status');
-    //     return view('admin.prescriber.index', compact('orders', 'statuses'));
-    // }
-
-    // public function index(Request $request)
-    // {
-    //     $query = Order::with('prescription')
-    //         ->whereNull('fulfillment_status');
-    //     // ->whereRaw("JSON_EXTRACT(order_data, '$.cancelled_at') IS NULL");
-    //     // only non-cancelled, unfulfilled orders
-
-    //     // Search by name, email or order number
-    //     if ($request->filled('search')) {
-    //         $query->where(function ($q) use ($request) {
-    //             $q->where('name', 'like', '%' . $request->search . '%')
-    //                 ->orWhere('email', 'like', '%' . $request->search . '%')
-    //                 ->orWhere('order_number', 'like', '%' . $request->search . '%');
-    //         });
-    //     }
-
-    //     // Filter by financial status
-    //     if ($request->filled('financial_status')) {
-    //         $query->where('financial_status', $request->financial_status);
-    //     }
-
-    //     // Filter by date range
-    //     if ($request->filled('date_range')) {
-    //         $dates = explode(' to ', $request->date_range);
-    //         if (count($dates) == 2) {
-    //             $from = $dates[0];
-    //             $to = $dates[1];
-
-    //             $query->whereDate('created_at', '>=', $from)
-    //                 ->whereDate('created_at', '<=', $to);
-    //         }
-    //     }
-
-    //     // Filter by custom type
-    //     if ($request->filled('filter_type')) {
-    //         switch ($request->filter_type) {
-    //             case 'new':
-    //                 $emailsWithMultipleOrders = Order::select('email')
-    //                     ->groupBy('email')
-    //                     ->havingRaw('COUNT(*) > 1')
-    //                     ->pluck('email')
-    //                     ->toArray();
-
-    //                 $query->whereNotIn('email', $emailsWithMultipleOrders);
-    //                 break;
-
-    //             case 'repeat':
-    //                 $query->where('order_data', 'like', '%Seal Subscription%');
-    //                 break;
-
-    //             case 'international':
-    //                 $query->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(order_data, '$.shipping_address.country_code')) != 'GB'");
-    //                 break;
-
-    //             case 'all':
-    //                 // No additional filters
-    //                 break;
-    //         }
-    //     }
-
-    //     // Get paginated result
-    //     $orders = $query->latest()->paginate(config('Reading.nodes_per_page'));
-
-    //     // Get distinct statuses
-    //     $statuses = Order::select('financial_status')->distinct()->pluck('financial_status');
-
-    //     return view('admin.checker.index', compact('orders', 'statuses'));
-    // }
     public function index(Request $request)
     {
-        $query = Order::with('prescription')
+        $query = Order::with('orderaction')
             ->whereNull('fulfillment_status')
             // Add the B2B filter directly here
             ->whereRaw("JSON_EXTRACT(order_data, '$.company.id') IS NOT NULL")
@@ -177,7 +38,7 @@ class CheckerOrderController extends Controller
             ->where(function ($q) {
                 $q->whereRaw("JSON_EXTRACT(order_data, '$.cancelled_at') IS NULL")
                     ->orWhereRaw("JSON_UNQUOTE(JSON_EXTRACT(order_data, '$.cancelled_at')) = 'null'");
-            })->whereDoesntHave('checker', function ($q) {
+            })->whereDoesntHave('orderaction', function ($q) {
                 $q->where('decision_status', 'approved');
             });
 
@@ -327,15 +188,19 @@ class CheckerOrderController extends Controller
             }
 
 
-            // Step 3: Save to DB
-            Checker::updateOrCreate(['order_id' => $orderId], [
-                'checker_id' => auth()->id(),
-                'clinical_reasoning' => $request->clinical_reasoning,
-                'decision_status' => $decisionStatus,
-                'rejection_reason' => $request->rejection_reason,
-                'on_hold_reason' => $request->on_hold_reason,
-                'decision_timestamp' => now(),
-            ]);
+            OrderAction::updateOrCreate(
+                [
+                    'order_id' => $orderId,
+                    'user_id' => auth()->id(),
+                ],
+                [
+                    'clinical_reasoning' => $request->clinical_reasoning,
+                    'decision_status' => $decisionStatus,
+                    'rejection_reason' => $request->rejection_reason,
+                    'on_hold_reason' => $request->on_hold_reason,
+                    'decision_timestamp' => now(),
+                ]
+            );
 
 
             // Step 4: Log

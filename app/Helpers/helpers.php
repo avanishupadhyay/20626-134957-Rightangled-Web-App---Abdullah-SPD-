@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Http;
 use Illuminate\Http\Request;
+use App\Models\Order;
 
 
 if (!function_exists('pr')) {
@@ -610,6 +611,9 @@ function getOrderMetafields($orderId)
 			'prescriber_s_signature' => $metafields->firstWhere('key', 'prescriber_s_signature')['value'] ?? null, // optional image URL
 			'on_hold_reason' => $metafields->firstWhere('key', 'on_hold_reason')['value'] ?? null, // optional image URL
 			'prescriber_pdf' => $metafields->firstWhere('key', 'prescriber_pdf')['value'] ?? null, // optional image URL
+			'checker_name' => $metafields->firstWhere('key', 'checker_name')['value'] ?? null, // optional image URL
+			'checker_approval' => $metafields->firstWhere('key', 'checker_approval')['value'] ?? null, // optional image URL
+			'checker_notes' => $metafields->firstWhere('key', 'checker_notes')['value'] ?? null, // optional image URL
 
 		];
 	}
@@ -705,6 +709,71 @@ function buildCommonMetafields(Request $request, string $decisionStatus, $pdfUrl
 	return $metafields;
 }
 
+function buildCommonMetafieldsChecker(Request $request, string $decisionStatus): array
+{
+	$user = auth()->user();
+
+	$metafields = [
+		[
+			'namespace' => 'custom',
+			'key' => 'checker_id',
+			'type' => 'number_integer',
+			'value' => $user->id,
+		],
+		[
+			'namespace' => 'custom',
+			'key' => 'checker_name',
+			'type' => 'single_line_text_field',
+			'value' => $user->name ?? 'admin_user',
+		],
+
+		[
+			'namespace' => 'custom',
+			'key' => 'checker_decision_status',
+			'type' => 'single_line_text_field',
+			'value' => $decisionStatus,
+		],
+		[
+			'namespace' => 'custom',
+			'key' => 'decision_timestamp',
+			'type' => 'date_time',
+			'value' => now()->toIso8601String(),
+		],
+
+	];
+
+	if ($decisionStatus === 'approved') {
+		$metafields[] = [
+			'namespace' => 'custom',
+			'key' => 'checker_notes',
+			'type' => 'multi_line_text_field',
+			'value' => 'Order Approved: ' . $request->clinical_reasoning,
+		];
+		$metafields[] = [
+			'namespace' => 'custom',
+			'key' => 'checker_approval',
+			'type' => 'boolean',
+			'value' => true,
+		];
+	} elseif ($decisionStatus === 'rejected') {
+		$metafields[] = [
+			'namespace' => 'custom',
+			'key' => 'checker_notes',
+			'type' => 'multi_line_text_field',
+			'value' =>  'Order Rejected: ' . $request->rejection_reason,
+		];
+	} elseif ($decisionStatus === 'on_hold') {
+		$metafields[] = [
+			'namespace' => 'custom',
+			'key' => 'checker_notes',
+			'type' => 'multi_line_text_field',
+			'value' => 'Order On Hold: ' . $request->on_hold_reason,
+		];
+	}
+
+	return $metafields;
+}
+
 function markFulfillmentOnHold($orderId, $reason)
 {
 	$shopDomain = env('SHOP_DOMAIN');
@@ -752,7 +821,7 @@ function cancelOrder($orderId, $reason)
 		'Content-Type' => 'application/json',
 	])->post("https://{$shopDomain}/admin/api/2023-10/orders/{$orderId}/cancel.json", [
 		'email' => true,
-		'reason' => 'customer', // or 'other', 'fraud', 'inventory'
+		'reason' => $reason, // or 'other', 'fraud', 'inventory'
 		// 'restock' => true,
 		'note' => $reason ?? 'Order rejected by prescriber.',
 
@@ -760,6 +829,76 @@ function cancelOrder($orderId, $reason)
 
 	if ($response->failed()) {
 		throw new \Exception('Order cancellation failed: ' . json_encode($response->json()));
+	}
+
+	return true;
+}
+
+
+// function getOrderDecisionStatus($orderId)
+// {
+// 	$order = Order::with(['prescription', 'checker'])->find($orderId);
+
+// 	if (!$order) return null;
+
+// 	$prescriptionStatus = optional($order->prescription)->decision_status;
+// 	$checkerStatus = optional($order->checker)->decision_status;
+// 	$fulfillmentStatus = $order->fulfillment_status;
+
+// 	// Check if 'cancelled_at' exists and is not null in the JSON
+// 	$orderData = $order->order_data;
+// 	$cancelledAt = null;
+
+// 	if (isset($orderData['cancelled_at']) && $orderData['cancelled_at'] !== null && $orderData['cancelled_at'] !== 'null') {
+// 		$cancelledAt = $orderData['cancelled_at'];
+// 	}
+
+// 	$isCancelled = $cancelledAt !== null;
+
+// 	return [
+// 		'prescription_status' => $prescriptionStatus,
+// 		'checker_status' => $checkerStatus,
+// 		'fulfillment_status' => $fulfillmentStatus,
+// 		'is_cancelled' => $isCancelled,
+// 		'cancelled_at' => $cancelledAt,
+// 	];
+// }
+
+function releaseFulfillmentHold($orderId)
+{
+	$shopDomain = env('SHOP_DOMAIN');
+	$accessToken = env('ACCESS_TOKEN');
+	// Step 1: Get fulfillment orders for the order
+	$response = Http::withHeaders([
+		'X-Shopify-Access-Token' => $accessToken,
+	])->get("https://{$shopDomain}/admin/api/2023-10/orders/{$orderId}/fulfillment_orders.json");
+
+	if ($response->failed()) {
+		return response()->json([
+			'error' => 'Failed to fetch fulfillment orders',
+			'details' => $response->json()
+		], 500);
+	}
+
+	$fulfillmentOrders = $response->json('fulfillment_orders');
+
+	if (empty($fulfillmentOrders)) {
+		return response()->json(['error' => 'No fulfillment orders found.'], 404);
+	}
+
+	$fulfillmentOrderId = $fulfillmentOrders[0]['id'];
+
+	// Step 2: Release hold
+	$releaseResponse = Http::withHeaders([
+		'X-Shopify-Access-Token' => $accessToken,
+		'Content-Type' => 'application/json',
+	])->post("https://{$shopDomain}/admin/api/2023-10/fulfillment_orders/{$fulfillmentOrderId}/release_hold.json");
+
+	if ($releaseResponse->failed()) {
+		return response()->json([
+			'error' => 'Failed to release fulfillment hold',
+			'details' => $releaseResponse->json()
+		], 500);
 	}
 
 	return true;
