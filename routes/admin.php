@@ -53,7 +53,7 @@ Route::get('/orders/{order}/download-pdf', [OrderController::class, 'downloadPDF
 // Route::get('/shopify/add-order-metafields/{orderId}', [OrderController::class, 'addMetafields']);
 
 //prescriber route
-Route::post('/orders/{orderId}/prescribe', [OrderController::class, 'prescribe'])->name('orders.prescribe');
+Route::post('/orders/{orderId}/prescribe', [OrderController::class, 'overrideaction'])->name('orders.prescribe');
 Route::get('Prescriber/orders', [PrescriberOrderController::class, 'index'])->name('prescriber_orders.index');
 Route::get('Prescriber/orders/{id}/view', [PrescriberOrderController::class, 'view'])->name('prescriber_orders.view');
 Route::post('Prescriber/orders/{orderId}/prescribe', [PrescriberOrderController::class, 'prescribe'])->name('orders.prescriber');

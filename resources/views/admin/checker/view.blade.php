@@ -13,7 +13,7 @@
             overflow-y: auto;
         }
     </style>
-  
+
     <div class="container">
         <div class="row page-titles mx-0 mb-3">
             <div class="col-sm-6 p-0">
@@ -34,14 +34,27 @@
             </div>
         </div>
 
-        @if (is_null($order->fulfillment_status) && is_null($orderData['cancelled_at']) && is_null($order->prescription))
+        {{-- @if (is_null($order->fulfillment_status) && is_null($orderData['cancelled_at']) && is_null($order->prescription))
             <div class="m-2">
                 <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#approveModal">Approve</button>
                 <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#rejectModal">Reject</button>
                 <button class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#onHoldModal">On Hold</button>
             </div>
+        @endif --}}
+        @php
+            $statuses = getOrderDecisionStatus($order->id);
+            // dd($statuses);
+        @endphp
+        @if (!$statuses['is_cancelled'])
+            <div class="m-3">
+                @if (is_null($statuses['fulfillment_status']) &&
+                        (is_null($statuses['latest_decision_status']) || $statuses['latest_decision_status'] === 'release_hold'))
+                    <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#approveModal">Approve</button>
+                    <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#rejectModal">Reject</button>
+                    <button class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#onHoldModal">On Hold</button>
+                @endif
+            </div>
         @endif
-
         <div class="row">
             {{-- Left Card --}}
             <div class="col-md-6">

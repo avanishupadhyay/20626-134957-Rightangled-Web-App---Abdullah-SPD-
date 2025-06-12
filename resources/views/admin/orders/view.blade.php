@@ -13,9 +13,9 @@
             overflow-y: auto;
         }
     </style>
-    {{-- @php
+    @php
         $statuses = getOrderDecisionStatus($order->id);
-    @endphp --}}
+    @endphp
     <div class="container">
         <div class="row page-titles mx-0 mb-3">
             <div class="col-sm-6 p-0">
@@ -33,40 +33,39 @@
         </div>
 
         <!-- Buttons -->
-        <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#approveModal">Approve</button>
+        {{-- <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#approveModal">Approve</button>
         <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#rejectModal">Reject</button>
-        <button class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#onHoldModal">On Hold</button> 
-      
-      
+        <button class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#onHoldModal">On Hold</button>
+        <button class="btn btn-info" data-bs-toggle="modal" data-bs-target="#releaseHoldModal">Release Hold</button> --}}
+
+
+
         <div class="m-3">
-        @if (!$statuses['is_cancelled'])
-            @if ($statuses['fulfillment_status'] === 'on_hold')
-                <form action="{{ route('orders.releaseHold', $order->id) }}" method="POST" class="d-inline">
-                    @csrf
-                    <button class="btn btn-secondary" onclick="return confirm('Are you sure you want to release hold?')">
-                        Release Hold
-                    </button>
-                </form>
-            @else
-                @switch($statuses['prescription_status'])
-                    @case('approved')
-                        <button class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#onHoldModal">On Hold</button>
-                        <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#rejectModal">Reject</button>
-                    @break
+            @if (!$statuses['is_cancelled'])
+                @if ($statuses['fulfillment_status'] === 'on_hold')
+                    <button class="btn btn-info" data-bs-toggle="modal" data-bs-target="#releaseHoldModal">Release
+                        Hold</button>
+                @else
+                    @switch($statuses['latest_decision_status'])
+                        @case('approved')
+                            <button class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#onHoldModal">On Hold</button>
+                            <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#rejectModal">Reject</button>
+                        @break
 
-                    @case('rejected')
-                        <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#approveModal">Approve</button>
-                        <button class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#onHoldModal">On Hold</button>
-                    @break
+                        @case('rejected')
+                            <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#approveModal">Approve</button>
+                            <button class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#onHoldModal">On Hold</button>
+                        @break
 
-                    @default
-                        <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#approveModal">Approve</button>
-                        <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#rejectModal">Reject</button>
-                        <button class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#onHoldModal">On Hold</button>
-                @endswitch
+                        @default
+                            <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#approveModal">Approve</button>
+                            <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#rejectModal">Reject</button>
+                            <button class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#onHoldModal">On Hold</button>
+                    @endswitch
+                @endif
             @endif
-        @endif
-       </div>
+        </div>
+
         <div class="row">
             {{-- Left Card --}}
             <div class="col-md-6">
@@ -376,6 +375,28 @@
                     </div>
                     <div class="modal-body">
                         <textarea name="on_hold_reason" class="form-control" placeholder="Reason for putting on hold" required></textarea>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-warning">Submit</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+
+    <div class="modal fade" id="releaseHoldModal" tabindex="-1">
+        <div class="modal-dialog">
+            <form method="POST" action="{{ route('orders.prescribe', $order->order_number) }}">
+                @csrf
+                <input type="hidden" name="decision_status" value="release_hold">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Release Hold</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <textarea name="release_hold_reason" class="form-control" placeholder="Reason for releasing hold" required></textarea>
                     </div>
                     <div class="modal-footer">
                         <button class="btn btn-warning">Submit</button>
