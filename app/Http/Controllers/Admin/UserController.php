@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Models\Prescriber;
 use Spatie\Permission\Models\Role;
 use DB;
 use Hash;
@@ -61,23 +62,38 @@ class UserController extends Controller
         return view('rbac.users.create', compact('roles'));
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request) : RedirectResponse
     {
-       
 
         $this->validate($request, [
             'name' => 'required',
             'email' => 'required|email|unique:users,email',
-            'password' => 'required|same:confirm-password',
+            'password' => 'required|same:confirm-password', 
             'roles' => 'required'
         ]);
 
-        $input = $request->all();
-        $input['password'] = Hash::make($input['password']);
+        // Create the user first
+        $user = User::create([
+            'name' => $request->name,
+            'email' => $request->email,
+            'password' => Hash::make($request->password),
+        ]);
 
-        $user = User::create($input);
+        // Assign roles to the user
         $user->assignRole($request->input('roles'));
 
+        // Handle signature image upload
+        $signatureImage = null;
+        if ($request->hasFile('signature')) {
+            $signatureImage = $this->imageSave($request);
+        }
+        // Create the prescriber record
+        Prescriber::create([
+            'user_id' => $user->id,
+            'gphc_number' => $request->gphc_number ?? '',
+            'signature_image' => $signatureImage,
+        ]);
+        
         return redirect()->route('users.index')
             ->with('success', 'User created successfully');
     }
@@ -87,13 +103,14 @@ class UserController extends Controller
     {
         $user = User::find($id);
         $roles = Role::pluck('name', 'name')->all();
+        $prescriber = Prescriber::where('user_id',$id)->first();
         $userRole = $user->roles->pluck('name', 'name')->all();
-
-        return view('rbac.users.edit', compact('user', 'roles', 'userRole'));
+    
+        return view('rbac.users.edit', compact('user', 'roles', 'userRole','prescriber'));
     }
 
 
-    public function update(Request $request, $id): RedirectResponse
+      public function update(Request $request, $id): RedirectResponse
     {
        
         $this->validate($request, [
@@ -110,12 +127,38 @@ class UserController extends Controller
         } else {
             $input = Arr::except($input, array('password'));
         }
-
+     
+        if(isset($input['gphc_number']) && isset($input['signature']) && !empty($input['gphc_number']) && !empty($input['signature'])){
+            unset($input['gphc_number']);
+            unset($input['signature']);
+        }
+ 
         $user = User::find($id);
         $user->update($input);
         \DB::table('model_has_roles')->where('model_id', $id)->delete();
 
         $user->assignRole($request->input('roles'));
+
+       if ($request->has('gphc_number') || $request->hasFile('signature')) {
+            $data = [];
+
+            if ($request->filled('gphc_number')) {
+                $data['gphc_number'] = $request->gphc_number;
+            }
+
+            if ($request->hasFile('signature')) {
+                $data['signature_image'] = $this->imageSave($request);
+            }
+
+            if (!empty($data)) {
+                Prescriber::updateOrCreate(
+                    ['user_id' => $user->id],
+                    $data
+                );
+            }
+        }
+
+
 
         return redirect()->route('users.index')
             ->with('success', 'User updated successfully');
@@ -126,5 +169,38 @@ class UserController extends Controller
         User::find($id)->delete();
         return redirect()->route('users.index')
             ->with('success', 'User deleted successfully');
+    }
+
+    private function imageSave($request)
+    {
+        $fileName = '';
+
+        // Check if file exists in request
+        if (!$request->hasFile('signature')) {
+            return $fileName;
+        }
+
+        $image = $request->file('signature');
+
+        // Generate a unique filename
+        $originalName = $image->getClientOriginalName();
+        $extension = $image->getClientOriginalExtension();
+        $name = pathinfo($originalName, PATHINFO_FILENAME); // Get filename without extension
+        
+        $fileName = $name . '-' . time() . '.' . $extension;
+
+        // Define upload path (inside public folder)
+        $uploadPath = public_path('admin/signature-images');
+
+        // Create directory if it doesn't exist
+        if (!file_exists($uploadPath)) {
+            mkdir($uploadPath, 0755, true); // 0755 = directory permissions
+        }
+
+        // Move the file to the public path
+        $image->move($uploadPath, $fileName);
+
+        // Return the relative path (e.g., 'admin/signature-images/filename.jpg')
+        return  $fileName;
     }
 }
