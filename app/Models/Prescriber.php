@@ -16,7 +16,7 @@ class Prescriber extends Model
         return $this->belongsTo(User::class);
     }
 
-    // Relationship with Prescriptions
+    // Relationship with OrderAction
     public function orderaction(): HasMany
     {
         return $this->hasMany(OrderAction::class);

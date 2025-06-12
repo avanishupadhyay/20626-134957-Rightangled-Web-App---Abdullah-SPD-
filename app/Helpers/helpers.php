@@ -915,3 +915,30 @@ function releaseFulfillmentHold($orderId,$reason)
 }
 
 
+
+
+    if (!function_exists('getPrescriptionData')) {
+	function getPrescriptionData($order_id)
+	{
+		$prescriber_data = [];
+		$prescriber_data = \App\Models\Prescriptions::select('prescriber_id', 'decision_status', 'clinical_reasoning')->where('order_id', $order_id)->first();
+		return $prescriber_data;
+	}
+}
+
+// if (!function_exists('getAuditData')) {
+// 	function getAuditData($order_id)
+// 	{
+// 		$audit_data = [];
+// 		$audit_data = \App\Models\AuditLog::select('action')->where('order_id', $order_id)->OrderBy('id','DESC')->first();
+// 		return $audit_data;
+// 	}
+// }
+
+if (!function_exists('getOrderData')) {
+	function getOrderData($order_id)
+	{	
+
+		return \App\Models\Order::where('order_number', $order_id)->first();
+	}
+}

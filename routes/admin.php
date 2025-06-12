@@ -11,6 +11,8 @@ use App\Http\Controllers\Admin\StoreController;
 use App\Http\Controllers\Admin\OrderController;
 use App\Http\Controllers\Admin\PrescriberOrderController;
 use App\Http\Controllers\Admin\CheckerOrderController;
+use App\Http\Controllers\Admin\ReportController;
+
 
 
 
@@ -44,6 +46,10 @@ Route::middleware(['auth'])->prefix('admin')->group(function () {
 	Route::name('admin.')->group(function () {
 		Route::match(['get', 'post'], '/stores/set_store', [StoreController::class, 'set_store'])->name('stores.set_store');
 		Route::resource('stores', StoreController::class);
+
+		Route::get('/report', [ReportController::class, 'index'])->name('report');
+		Route::get('/reports/export', [ReportController::class, 'export'])->name('reports.export');
+		
 	});
 
 	//order listing

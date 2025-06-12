@@ -22,10 +22,14 @@
                     <div class="sb-nav-link-icon"><i class="fa fa-first-order" aria-hidden="true"></i></div>
                     Prescribers
                 </a>
-  <a class="nav-link {{ request()->routeIs('checker_orders.index', 'checker_orders.view') ? 'active' : '' }}"
+                <a class="nav-link {{ request()->routeIs('checker_orders.index', 'checker_orders.view') ? 'active' : '' }}"
                     href="{{ route('checker_orders.index') }}">
                     <div class="sb-nav-link-icon"><i class="fa fa-first-order" aria-hidden="true"></i></div>
                     Checkers
+                </a>
+
+                <a class="nav-link {{ request()->routeIs('admin.report') ? 'active' : '' }}"
+                    href="{{ url('/admin/report') }}"><i class="fas fa-chart-bar"></i>&nbsp;Report
                 </a>
 
 
