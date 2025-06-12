@@ -1,6 +1,17 @@
 @extends('admin.layouts.app')
 
 @section('content')
+    <style>
+        .table-responsive {
+            width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        td {
+            word-break: break-word;
+        }
+    </style>
     <div class="container">
         <div class="row page-titles mx-0 mb-3">
             <div class="col-sm-6 p-0">
@@ -67,38 +78,34 @@
         </div>
 
         <div class="row">
-            <!-- Column starts -->
             <div class="col-xl-12">
-                <div class="card">
+                <div class="card w-100">
                     <div class="card-header">
                         <h4 class="card-title">Order</h4>
                     </div>
                     <div class="pe-4 ps-4 pt-2 pb-2">
-                        <div class="table-responsive">
-                            <table class="table table-responsive-lg mb-0">
-                                {{-- <thead class="text-secondary"> --}}
-                                <tr>
-                                    <th>#</th>
-                                    <th>Order Number</th>
-                                    <th>Name</th>
-
-                                    <th>Email</th>
-                                    <th>Total Price {{ config('Site.currency') }}</th>
-                                    <th>Financial Status</th>
-                                    <th>Fulfillment Status</th>
-                                    <th>Created At</th>
-                                    <th>Action</th>
-
-                                </tr>
-                                {{-- </thead> --}}
+                        <div class="table-responsive" style="overflow-x:auto;">
+                            <table class="table table-bordered table-hover table-striped align-middle mb-0">
+                                <thead class="text-secondary">
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Order Number</th>
+                                        <th>Name</th>
+                                        <th>Email</th>
+                                        <th>Total Price {{ config('Site.currency') }}</th>
+                                        <th>Financial Status</th>
+                                        <th>Fulfillment Status</th>
+                                        <th>Created At</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
                                 <tbody>
                                     @forelse ($orders as $index => $order)
                                         <tr>
                                             <td>{{ $index + 1 }}</td>
                                             <td>{{ $order->order_number }}</td>
-                                            <td>{{ $order->name }}</td>
-
-                                            <td>{{ $order->email }}</td>
+                                            <td style="max-width: 150px; word-wrap: break-word;">{{ $order->name }}</td>
+                                            <td style="max-width: 200px; word-wrap: break-word;">{{ $order->email }}</td>
                                             <td>{{ number_format($order->total_price, 2) }}</td>
                                             <td>
                                                 @php
@@ -111,35 +118,26 @@
                                                         default => 'secondary',
                                                     };
                                                 @endphp
-
                                                 <span class="badge bg-{{ $badgeClass }}">
                                                     {{ ucfirst(str_replace('_', ' ', $status)) }}
                                                 </span>
                                             </td>
-
                                             <td>{{ ucfirst($order->fulfillment_status) ?? 'NA' }}</td>
-
                                             <td>{{ $order->created_at->format(config('Reading.date_time_format')) }}</td>
-                                            {{-- <td>
-                                               <a class="btn btn-primary btn-sm" href="{{ route('orders.view', $order->id) }}"><i
-                                                    class="fa-solid fa-pen-to-square" style="width: 100px"></i> </a>
-                                            </td> --}}
-                                            <td class="d-flex">
+                                            <td class="d-flex flex-wrap gap-2">
                                                 <a href="{{ route('orders.view', $order->id) }}"
-                                                    class="btn btn-primary btn-sm"><i class="fa-solid fa-pen-to-square"
-                                                        style="width: 100px"></i></a>
-
-                                                {{-- <a href="{{ route('orders.downloadPDF', $order->id) }}"
-                                                    class="btn btn-sm btn-danger ms-2" target="_blank" title="Download PDF">
-                                                    <i class="fas fa-file-pdf"></i>
-                                                </a> --}}
-
+                                                    class="btn btn-primary btn-sm">
+                                                    <i class="fa-solid fa-pen-to-square"></i>
+                                                </a>
+                                                {{-- Uncomment if needed --}}
+                                                {{-- <a href="{{ route('orders.downloadPDF', $order->id) }}" class="btn btn-danger btn-sm" target="_blank">
+                                            <i class="fas fa-file-pdf"></i>
+                                        </a> --}}
                                             </td>
-
                                         </tr>
                                     @empty
                                         <tr>
-                                            <td colspan="8" class="text-center">No orders found.</td>
+                                            <td colspan="9" class="text-center">No orders found.</td>
                                         </tr>
                                     @endforelse
                                 </tbody>
@@ -149,6 +147,7 @@
                 </div>
             </div>
         </div>
+
         <div class="mt-1">
             {!! $orders->appends(request()->query())->links('pagination::bootstrap-5') !!}
         </div>

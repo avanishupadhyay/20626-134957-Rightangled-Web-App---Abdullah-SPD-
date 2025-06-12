@@ -15,6 +15,17 @@ use App\Http\Controllers\Controller;
 class OrderController extends Controller
 {
 
+
+    // public function __construct()
+    // {
+    //     $this->middleware(function ($request, $next) {
+    //         if (!auth()->check() || !auth()->user()->hasRole('Admin')) {
+    //             abort(403, 'Access denied');
+    //         }
+    //         return $next($request);
+    //     })->except('index'); // <- This line skips index()
+    // }
+
     public function index(Request $request)
     {
         $query = Order::query();
@@ -177,15 +188,14 @@ class OrderController extends Controller
     }
 
 
-    public function prescribe(Request $request, $orderId)
+    public function overrideaction(Request $request, $orderId)
     {
         $request->validate([
-            'decision_status' => 'required|in:approved,rejected,on_hold',
+            'decision_status' => 'required|in:approved,rejected,on_hold,release_hold',
             'clinical_reasoning' => 'required_if:decision_status,approved',
             'rejection_reason' => 'required_if:decision_status,rejected',
             'on_hold_reason' => 'required_if:decision_status,on_hold',
-            'patient_s_dob' => 'required_if:decision_status,approved|date',
-            'gphc_number_' => 'required_if:decision_status,approved',
+            'release_hold_reason' => 'required_if:decision_status,release_hold',
         ]);
 
         $decisionStatus = $request->decision_status;
@@ -207,9 +217,37 @@ class OrderController extends Controller
             // Step 2: Take action based on decision
             if ($decisionStatus === 'on_hold') {
                 markFulfillmentOnHold($orderId, $request->on_hold_reason);
+                Order::where('order_number', $orderId)->update([
+                    'fulfillment_status' => 'on_hold',
+                ]);
             } elseif ($decisionStatus === 'rejected') {
                 cancelOrder($orderId, $request->rejection_reason);
+                $cancelReason = $request->rejection_reason;
+                $cancelTime = now();
+
+                // Fetch existing order_data and decode
+                $order = Order::where('order_number', $orderId)->first();
+
+                $orderData = json_decode($order->order_data, true); // convert JSON to array
+
+                // Add cancel reason
+                $orderData['cancel_reason'] = $cancelReason;
+                $orderData['cancelled_at'] = $cancelTime->toDateTimeString();
+
+                // Update the order
+                $order->update([
+                    'fulfillment_status' => '',
+                    'order_data' => json_encode($orderData),
+                    'cancelled_at' => $cancelTime,
+                ]);
+            } elseif ($decisionStatus === 'release_hold') {
+                releaseFulfillmentHold($orderId, $request->release_hold_reason);
+                Order::where('order_number', $orderId)->update([
+                    'fulfillment_status' => '',
+                ]);
             }
+
+
 
             // Step 3: Save to DB
             OrderAction::updateOrCreate(
@@ -222,6 +260,7 @@ class OrderController extends Controller
                     'decision_status' => $decisionStatus,
                     'rejection_reason' => $request->rejection_reason,
                     'on_hold_reason' => $request->on_hold_reason,
+                    'release_hold_reason' => $request->release_hold_reason,
                     'decision_timestamp' => now(),
 
                 ]
@@ -230,7 +269,7 @@ class OrderController extends Controller
             // Step 4: Log
             AuditLog::create([
                 'user_id' => auth()->id(),
-                'action' => 'Prescription ' . $decisionStatus,
+                'action' => $decisionStatus,
                 'order_id' => $orderId,
                 'details' => $request->clinical_reasoning ?? $request->rejection_reason ?? $request->on_hold_reason,
             ]);

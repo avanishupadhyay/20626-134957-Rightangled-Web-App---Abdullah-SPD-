@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Http;
 use Illuminate\Http\Request;
 use App\Models\Order;
+use App\Models\OrderAction;
 
 
 if (!function_exists('pr')) {
@@ -593,6 +594,9 @@ function getOrderMetafields($orderId)
 	$shopDomain = env('SHOP_DOMAIN');
 	$accessToken = env('ACCESS_TOKEN');
 
+	// $shopDomain = 'rightangled-store.myshopify.com';
+	// $accessToken = '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';
+
 	$apiVersion = '2024-10';
 
 	$response = Http::withHeaders([
@@ -624,6 +628,9 @@ function getOrderMetafields($orderId)
 function buildCommonMetafields(Request $request, string $decisionStatus, $pdfUrl = null): array
 {
 	$user = auth()->user();
+	$prescriberData = $user->prescriber;
+	// dd($prescriberData);
+
 
 	$metafields = [
 		[
@@ -864,7 +871,40 @@ function cancelOrder($orderId, $reason)
 // 	];
 // }
 
-function releaseFulfillmentHold($orderId)
+
+function getOrderDecisionStatus($orderId)
+{
+	$order = Order::where('id', $orderId)->first();
+
+	if (!$order) return null;
+
+	// Get latest OrderAction by order_number (used as order_id in OrderAction)
+	$latestAction = OrderAction::where('order_id', $order->order_number)
+		->latest('decision_timestamp')
+		->first();
+
+	$decisionStatus = optional($latestAction)->decision_status;
+
+	$orderData = $order->order_data ?? [];
+	$cancelledAt = null;
+
+	if (
+		isset($orderData['cancelled_at']) &&
+		$orderData['cancelled_at'] !== null &&
+		$orderData['cancelled_at'] !== 'null'
+	) {
+		$cancelledAt = $orderData['cancelled_at'];
+	}
+
+	return [
+		'latest_decision_status' => $decisionStatus,
+		'fulfillment_status'     => $order->fulfillment_status,
+		'is_cancelled'           => $cancelledAt !== null,
+		'cancelled_at'           => $cancelledAt,
+	];
+}
+
+function releaseFulfillmentHold($orderId,$reason)
 {
 	$shopDomain = env('SHOP_DOMAIN');
 	$accessToken = env('ACCESS_TOKEN');

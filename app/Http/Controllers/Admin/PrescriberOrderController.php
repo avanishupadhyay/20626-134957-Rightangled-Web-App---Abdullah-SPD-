@@ -192,41 +192,41 @@ class PrescriberOrderController extends Controller
 
 
 
-    public function downloadPDF($orderId)
-    {
-        $order = Order::findOrFail($orderId);
-        $orderData = json_decode($order->order_data, true);
-        $items = [];
-        $orderMetafields = getOrderMetafields($order->order_number); // Shopify ID is stored as order_number
+    // public function downloadPDF($orderId)
+    // {
+    //     $order = Order::findOrFail($orderId);
+    //     $orderData = json_decode($order->order_data, true);
+    //     $items = [];
+    //     $orderMetafields = getOrderMetafields($order->order_number); // Shopify ID is stored as order_number
 
-        foreach ($orderData['line_items'] as $item) {
-            $productId = $item['product_id'];
-            $title = $item['title'];
-            $quantity = $item['quantity'];
+    //     foreach ($orderData['line_items'] as $item) {
+    //         $productId = $item['product_id'];
+    //         $title = $item['title'];
+    //         $quantity = $item['quantity'];
 
-            $directionOfUse = getProductMetafield($productId); // Shopify API call
+    //         $directionOfUse = getProductMetafield($productId); // Shopify API call
 
-            $items[] = [
-                'title' => $title,
-                'quantity' => $quantity,
-                'direction_of_use' => $directionOfUse,
-            ];
-        }
+    //         $items[] = [
+    //             'title' => $title,
+    //             'quantity' => $quantity,
+    //             'direction_of_use' => $directionOfUse,
+    //         ];
+    //     }
 
-        return Pdf::loadView('admin.orders.prescription_pdf', [
-            'orderData' => $orderData,
-            'items' => $items,
-            'prescriber_name' => 'Abdullah Sabyah',
-            'prescriber_reg' => '2224180',
-            'order' => $order,
-            'prescriber_s_name' => $orderMetafields['prescriber_s_name'] ?? 'N/A',
-            'gphc_number_' => $orderMetafields['gphc_number_'] ?? 'N/A',
-            'patient_s_dob' => $orderMetafields['patient_s_dob'] ?? 'N/A',
-            'approval' => $orderMetafields['approval'],
-            'prescriber_signature' => $orderMetafields['prescriber_s_signature'] ?? null,
+    //     return Pdf::loadView('admin.orders.prescription_pdf', [
+    //         'orderData' => $orderData,
+    //         'items' => $items,
+    //         'prescriber_name' => 'Abdullah Sabyah',
+    //         'prescriber_reg' => '2224180',
+    //         'order' => $order,
+    //         'prescriber_s_name' => $orderMetafields['prescriber_s_name'] ?? 'N/A',
+    //         'gphc_number_' => $orderMetafields['gphc_number_'] ?? 'N/A',
+    //         'patient_s_dob' => $orderMetafields['patient_s_dob'] ?? 'N/A',
+    //         'approval' => $orderMetafields['approval'],
+    //         'prescriber_signature' => $orderMetafields['prescriber_s_signature'] ?? null,
 
-        ])->download("Prescription-Order-{$order->id}.pdf");
-    }
+    //     ])->download("Prescription-Order-{$order->id}.pdf");
+    // }
 
 
 
@@ -284,7 +284,7 @@ class PrescriberOrderController extends Controller
                 $order->update([
                     'fulfillment_status' => '',
                     'order_data' => json_encode($orderData),
-                    'cancelled_at' => $cancelTime,
+                    // 'cancelled_at' => $cancelTime,
                 ]);
             }
 

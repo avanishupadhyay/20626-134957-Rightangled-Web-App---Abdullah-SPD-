@@ -9,7 +9,7 @@ class OrderAction extends Model
 
     protected $table = 'order_actions';
 
-    protected $fillable = ['order_id', 'user_id', 'clinical_reasoning', 'decision_status', 'rejection_reason', 'on_hold_reason', 'decision_timestamp', 'prescribed_pdf'];
+    protected $fillable = ['order_id', 'user_id', 'clinical_reasoning', 'decision_status', 'rejection_reason', 'on_hold_reason', 'decision_timestamp', 'prescribed_pdf','release_hold_reason'];
 
     public function user()
     {
