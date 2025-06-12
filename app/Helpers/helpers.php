@@ -645,17 +645,17 @@ function buildCommonMetafields(Request $request, string $decisionStatus, $pdfUrl
 			'type' => 'single_line_text_field',
 			'value' => $user->name ?? 'admin_user',
 		],
-		// [
-		// 	'namespace' => 'custom',
-		// 	'key' => 'gphc_number_',
-		// 	'type' => 'single_line_text_field',
-		// 	'value' => $request->gphc_number_,
-		// ],
+		[
+			'namespace' => 'custom',
+			'key' => 'gphc_number_',
+			'type' => 'single_line_text_field',
+			'value' => $prescriberData->gphc_number ?? 'marked_by admin',
+		],
 		[
 			'namespace' => 'custom',
 			'key' => 'prescriber_s_signature',
 			'type' => 'single_line_text_field',
-			'value' => $user->signature_image ?? 'Signed by ' . $user->name,
+			'value' => $prescriberData->signature_image ?? 'Signed by ' . $user->name,
 		],
 		[
 			'namespace' => 'custom',
@@ -842,36 +842,6 @@ function cancelOrder($orderId, $reason)
 }
 
 
-// function getOrderDecisionStatus($orderId)
-// {
-// 	$order = Order::with(['prescription', 'checker'])->find($orderId);
-
-// 	if (!$order) return null;
-
-// 	$prescriptionStatus = optional($order->prescription)->decision_status;
-// 	$checkerStatus = optional($order->checker)->decision_status;
-// 	$fulfillmentStatus = $order->fulfillment_status;
-
-// 	// Check if 'cancelled_at' exists and is not null in the JSON
-// 	$orderData = $order->order_data;
-// 	$cancelledAt = null;
-
-// 	if (isset($orderData['cancelled_at']) && $orderData['cancelled_at'] !== null && $orderData['cancelled_at'] !== 'null') {
-// 		$cancelledAt = $orderData['cancelled_at'];
-// 	}
-
-// 	$isCancelled = $cancelledAt !== null;
-
-// 	return [
-// 		'prescription_status' => $prescriptionStatus,
-// 		'checker_status' => $checkerStatus,
-// 		'fulfillment_status' => $fulfillmentStatus,
-// 		'is_cancelled' => $isCancelled,
-// 		'cancelled_at' => $cancelledAt,
-// 	];
-// }
-
-
 function getOrderDecisionStatus($orderId)
 {
 	$order = Order::where('id', $orderId)->first();
@@ -943,3 +913,5 @@ function releaseFulfillmentHold($orderId,$reason)
 
 	return true;
 }
+
+
