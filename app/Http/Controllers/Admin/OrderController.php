@@ -16,15 +16,15 @@ class OrderController extends Controller
 {
 
 
-    // public function __construct()
-    // {
-    //     $this->middleware(function ($request, $next) {
-    //         if (!auth()->check() || !auth()->user()->hasRole('Admin')) {
-    //             abort(403, 'Access denied');
-    //         }
-    //         return $next($request);
-    //     })->except('index'); // <- This line skips index()
-    // }
+    public function __construct()
+    {
+        $this->middleware(function ($request, $next) {
+            if (!auth()->check() || !auth()->user()->hasRole('Admin')) {
+                abort(403, 'Access denied');
+            }
+            return $next($request);
+        }); // <- This line skips index()
+    }
 
     public function index(Request $request)
     {

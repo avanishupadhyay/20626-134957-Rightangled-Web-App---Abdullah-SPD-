@@ -19,18 +19,19 @@
                 </a>
                 <a class="nav-link {{ request()->routeIs('prescriber_orders.index', 'prescriber_orders.view') ? 'active' : '' }}"
                     href="{{ route('prescriber_orders.index') }}">
-                    <div class="sb-nav-link-icon"><i class="fa fa-first-order" aria-hidden="true"></i></div>
+                    <div class="sb-nav-link-icon"><i class="fa fa-stethoscope"></i></div>
                     Prescribers
                 </a>
                 <a class="nav-link {{ request()->routeIs('checker_orders.index', 'checker_orders.view') ? 'active' : '' }}"
                     href="{{ route('checker_orders.index') }}">
-                    <div class="sb-nav-link-icon"><i class="fa fa-first-order" aria-hidden="true"></i></div>
+                    <div class="sb-nav-link-icon"><i class="fa fa-check-square"></i>
+</div>
                     Checkers
                 </a>
 
-                <a class="nav-link {{ request()->routeIs('admin.report') ? 'active' : '' }}"
+                {{-- <a class="nav-link {{ request()->routeIs('admin.report') ? 'active' : '' }}"
                     href="{{ url('/admin/report') }}"><i class="fas fa-chart-bar"></i>&nbsp;Report
-                </a>
+                </a> --}}
 
 
                 <div class="sb-sidenav-menu-heading">Configurations</div>
@@ -83,6 +84,7 @@
                         Users
                     </a>
                 @endrole
+                 @role('Admin')
                 <div class="sb-sidenav-menu-heading">Modules</div>
                 <a class="nav-link {{ request()->routeIs('orders.index') ? 'active' : '' }}"
                     href="{{ route('orders.index') }}">
@@ -90,6 +92,7 @@
                     </div>
                     Orders
                 </a>
+                @endrole
             </div>
     </nav>
 </div>

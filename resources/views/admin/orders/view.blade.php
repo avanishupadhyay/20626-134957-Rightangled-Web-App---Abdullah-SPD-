@@ -72,8 +72,8 @@
                 <div class="card mb-4 equal-height-card">
                     <div class="card-header">
                         <strong>Fulfillment Status:</strong>
-                        <span class="badge bg-{{ $orderData['fulfillment_status'] ? 'success' : 'secondary' }}">
-                            {{ ucfirst($orderData['fulfillment_status'] ?? 'Unfulfilled') }}
+                         <span class="badge bg-{{ $orderData['fulfillment_status'] ? 'success' : 'secondary' }}">
+                            {{ ucfirst($order['fulfillment_status'] ?? 'Unfulfilled') }}
                         </span>
                     </div>
                     <div class="card-body">
@@ -139,66 +139,35 @@
                 </div>
             </div>
         </div>
-
-
-        <div class="row">
+ <div class="row">
             <div class="col-md-6">
-                <div class="card mb-4 equal-height-card">
+                <div class="card mb-4" style="height: 400px;">
                     <div class="card-header"><strong>Shipping Address</strong></div>
-                    <div class="card-body">
+                    <div class="card-body" style="height: calc(100% - 56px); overflow-y: auto;">
                         <p><strong>Name:</strong> {{ $orderData['shipping_address']['name'] ?? 'N/A' }}</p>
-
-                        <p> <strong>Address1:</strong> {{ $orderData['shipping_address']['address1'] ?? '' }}</p>
+                        <p><strong>Address1:</strong> {{ $orderData['shipping_address']['address1'] ?? '' }}</p>
                         <p><strong>City:</strong> {{ $orderData['shipping_address']['city'] ?? '' }}</p>
                         <p><strong>Province:</strong> {{ $orderData['shipping_address']['province'] ?? '' }}</p>
                         <p><strong>Zip:</strong> {{ $orderData['shipping_address']['zip'] ?? '' }}</p>
-                        <p><strong>Country:</strong> {{ $orderData['shipping_address']['country'] ?? '' }}</p?>
-
+                        <p><strong>Country:</strong> {{ $orderData['shipping_address']['country'] ?? '' }}</p>
                         <p><strong>Phone:</strong> {{ $orderData['shipping_address']['phone'] ?? 'N/A' }}</p>
                     </div>
                 </div>
             </div>
+
             @php
                 $hasData = collect($orderMetafields)->filter(fn($v) => !empty($v))->isNotEmpty();
             @endphp
-            {{-- <div class="col-md-6">
 
-                <div class="card equal-height-card">
-                    <div class="card-header"><strong>Order Metafields</strong></div>
-                    <div class="card-body">
-                        @if ($hasData)
-                            @foreach ($orderMetafields as $key => $value)
-                                @continue(empty($value)) 
-
-                                <div class="mb-2">
-                                    <strong>{{ ucwords(str_replace(['_', '-'], ' ', $key)) }}:</strong>
-
-                                    @if (is_bool($value))
-                                        {{ $value ? 'Yes' : 'No' }}
-                                    @elseif (Str::startsWith($value, 'gid://shopify/MediaImage/'))
-                                        <p><em>(Image GID: {{ $value }})</em></p>
-                                    @else
-                                        {{ $value }}
-                                    @endif
-                                </div>
-                            @endforeach
-                        @else
-                            <p class="text-muted">No data found.</p>
-                        @endif
-                    </div>
-                </div>
-            </div> --}}
             <div class="col-md-6">
-                <div class="card equal-height-card">
+                <div class="card mb-4" style="height: 400px;">
                     <div class="card-header"><strong>Order Metafields</strong></div>
-                    <div class="card-body">
+                    <div class="card-body" style="height: calc(100% - 56px); overflow-y: auto;">
                         @if ($hasData)
                             @foreach ($orderMetafields as $key => $value)
-                                @continue(empty($value)) {{-- Skip empty values --}}
-
+                                @continue(empty($value))
                                 <div class="mb-2">
                                     <strong>{{ ucwords(str_replace(['_', '-'], ' ', $key)) }}:</strong>
-
                                     @if (is_bool($value))
                                         {{ $value ? 'Yes' : 'No' }}
                                     @elseif (Str::startsWith($value, 'gid://shopify/MediaImage/'))
@@ -217,45 +186,9 @@
                     </div>
                 </div>
             </div>
-
         </div>
 
-        {{-- ✅ 4. Customer Info --}}
-        <div class="card mb-4">
-            <div class="card-header"><strong>Customer Information</strong></div>
-            <div class="card-body">
-                <p><strong>Name:</strong> {{ $orderData['customer']['first_name'] ?? '' }}
-                    {{ $orderData['customer']['last_name'] ?? '' }}</p>
-                <p><strong>Email:</strong> {{ $orderData['customer']['email'] ?? ($orderData['email'] ?? 'N/A') }}</p>
-                <p><strong>Phone:</strong> {{ $orderData['customer']['phone'] ?? 'N/A' }}</p>
-                <p><strong>Note:</strong> {{ $orderData['customer']['note'] ?? 'N/A' }}</p>
-
-                <hr>
-
-                <p><strong>Default Address:</strong><br>
-                    {{ $orderData['customer']['default_address']['address1'] ?? '' }},
-                    {{ $orderData['customer']['default_address']['city'] ?? '' }},
-                    {{ $orderData['customer']['default_address']['province'] ?? '' }},
-                    {{ $orderData['customer']['default_address']['zip'] ?? '' }},
-                    {{ $orderData['customer']['default_address']['country'] ?? '' }}
-                </p>
-                <p><strong>Phone (Address):</strong> {{ $orderData['customer']['default_address']['phone'] ?? 'N/A' }}</p>
-
-                <hr>
-
-                <p><strong>Email Marketing Consent:</strong>
-                    {{ ucfirst($orderData['customer']['email_marketing_consent']['state'] ?? 'N/A') }}
-                    (Opt-in level: {{ $orderData['customer']['email_marketing_consent']['opt_in_level'] ?? 'N/A' }})
-                </p>
-
-                <p><strong>SMS Marketing Consent:</strong>
-                    {{ ucfirst($orderData['customer']['sms_marketing_consent']['state'] ?? 'N/A') }}
-                    (Opt-in level: {{ $orderData['customer']['sms_marketing_consent']['opt_in_level'] ?? 'N/A' }})
-                </p>
-
-                <p><strong>Tags:</strong> {{ $orderData['customer']['tags'] ?? 'N/A' }}</p>
-            </div>
-        </div>
+    
 
 
 

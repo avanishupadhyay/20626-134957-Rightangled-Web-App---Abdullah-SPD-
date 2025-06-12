@@ -137,43 +137,42 @@
             </div>
         </div>
 
-
         <div class="row">
             <div class="col-md-6">
-                <div class="card mb-4 equal-height-card">
+                <div class="card mb-4" style="height: 400px;">
                     <div class="card-header"><strong>Shipping Address</strong></div>
-                    <div class="card-body">
+                    <div class="card-body" style="height: calc(100% - 56px); overflow-y: auto;">
                         <p><strong>Name:</strong> {{ $orderData['shipping_address']['name'] ?? 'N/A' }}</p>
-
-                        <p> <strong>Address1:</strong> {{ $orderData['shipping_address']['address1'] ?? '' }}</p>
+                        <p><strong>Address1:</strong> {{ $orderData['shipping_address']['address1'] ?? '' }}</p>
                         <p><strong>City:</strong> {{ $orderData['shipping_address']['city'] ?? '' }}</p>
                         <p><strong>Province:</strong> {{ $orderData['shipping_address']['province'] ?? '' }}</p>
                         <p><strong>Zip:</strong> {{ $orderData['shipping_address']['zip'] ?? '' }}</p>
-                        <p><strong>Country:</strong> {{ $orderData['shipping_address']['country'] ?? '' }}</p?>
-
+                        <p><strong>Country:</strong> {{ $orderData['shipping_address']['country'] ?? '' }}</p>
                         <p><strong>Phone:</strong> {{ $orderData['shipping_address']['phone'] ?? 'N/A' }}</p>
                     </div>
                 </div>
             </div>
+
             @php
                 $hasData = collect($orderMetafields)->filter(fn($v) => !empty($v))->isNotEmpty();
             @endphp
-            <div class="col-md-6">
 
-                <div class="card equal-height-card">
+            <div class="col-md-6">
+                <div class="card mb-4" style="height: 400px;">
                     <div class="card-header"><strong>Order Metafields</strong></div>
-                    <div class="card-body">
+                    <div class="card-body" style="height: calc(100% - 56px); overflow-y: auto;">
                         @if ($hasData)
                             @foreach ($orderMetafields as $key => $value)
-                                @continue(empty($value)) {{-- Skip empty values --}}
-
+                                @continue(empty($value))
                                 <div class="mb-2">
                                     <strong>{{ ucwords(str_replace(['_', '-'], ' ', $key)) }}:</strong>
-
                                     @if (is_bool($value))
                                         {{ $value ? 'Yes' : 'No' }}
                                     @elseif (Str::startsWith($value, 'gid://shopify/MediaImage/'))
                                         <p><em>(Image GID: {{ $value }})</em></p>
+                                    @elseif (filter_var($value, FILTER_VALIDATE_URL))
+                                        <a href="{{ $value }}" target="_blank"
+                                            rel="noopener noreferrer">{{ $value }}</a>
                                     @else
                                         {{ $value }}
                                     @endif
@@ -187,7 +186,7 @@
             </div>
         </div>
 
-        {{-- ✅ 4. Customer Info --}}
+
         <div class="card mb-4">
             <div class="card-header"><strong>Customer Information</strong></div>
             <div class="card-body">
