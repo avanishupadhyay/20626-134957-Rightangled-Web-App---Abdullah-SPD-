@@ -571,10 +571,37 @@ function getCountryISDByCode($country_code)
 // }
 // helpers.php
 
-function getProductMetafield($productId)
+function getShopifyCredentialsByOrderId($orderId)
+{
+	$order = \App\Models\Order::with('store')->where('order_number', $orderId)->first();
+
+	if (!$order || !$order->store) {
+		throw new \Exception('Store not found for the given order ID.');
+	}
+
+	return [
+		'shopDomain'   => $order->store->domain, // e.g., "your-shop.myshopify.com"
+		'accessToken'  => $order->store->token,
+	];
+
+	// Fallback:
+	// return [
+	//     'shopDomain'   => env('SHOP_DOMAIN'),
+	//     'accessToken'  => env('ACCESS_TOKEN'),
+	// ];
+}
+
+
+function getProductMetafield($productId, $storeId = null)
 {
 	$shopDomain = env('SHOP_DOMAIN');
 	$accessToken = env('ACCESS_TOKEN');
+	//   $store = \App\Models\Store::find($storeId);
+	//     if (!$store) return null;
+
+	//     $shopDomain = $store->domain;
+	//     $accessToken = $store->token;
+
 
 	$response = Http::withHeaders([
 		'X-Shopify-Access-Token' => $accessToken,
@@ -588,14 +615,16 @@ function getProductMetafield($productId)
 
 	return null;
 }
+
+
+
 function getOrderMetafields($orderId)
 {
 
 	$shopDomain = env('SHOP_DOMAIN');
 	$accessToken = env('ACCESS_TOKEN');
+	// ['shopDomain' => $shopDomain, 'accessToken' => $accessToken] = getShopifyCredentialsByOrderId($orderId);
 
-	// $shopDomain = 'rightangled-store.myshopify.com';
-	// $accessToken = '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';
 
 	$apiVersion = '2024-10';
 
@@ -629,8 +658,6 @@ function buildCommonMetafields(Request $request, string $decisionStatus, $pdfUrl
 {
 	$user = auth()->user();
 	$prescriberData = $user->prescriber;
-	// dd($prescriberData);
-
 
 	$metafields = [
 		[
@@ -783,8 +810,10 @@ function buildCommonMetafieldsChecker(Request $request, string $decisionStatus):
 
 function markFulfillmentOnHold($orderId, $reason)
 {
-	$shopDomain = env('SHOP_DOMAIN');
-	$accessToken = env('ACCESS_TOKEN');
+	// $shopDomain = env('SHOP_DOMAIN');
+	// $accessToken = env('ACCESS_TOKEN');
+	['shopDomain' => $shopDomain, 'accessToken' => $accessToken] = getShopifyCredentialsByOrderId($orderId);
+
 	// Step 1: Get the order to fetch fulfillment_order ID
 	$response = Http::withHeaders([
 		'X-Shopify-Access-Token' => $accessToken,
@@ -818,10 +847,14 @@ function markFulfillmentOnHold($orderId, $reason)
 
 	return true;
 }
+
+
 function cancelOrder($orderId, $reason)
 {
 	$shopDomain = env('SHOP_DOMAIN');
 	$accessToken = env('ACCESS_TOKEN');
+	// ['shopDomain' => $shopDomain, 'accessToken' => $accessToken] = getShopifyCredentialsByOrderId($orderId);
+
 
 	$response = Http::withHeaders([
 		'X-Shopify-Access-Token' => $accessToken,
@@ -855,7 +888,11 @@ function getOrderDecisionStatus($orderId)
 
 	$decisionStatus = optional($latestAction)->decision_status;
 
-	$orderData = $order->order_data ?? [];
+	// ✅ Decode order_data if it's a string
+	$orderData = is_array($order->order_data)
+		? $order->order_data
+		: json_decode($order->order_data, true);
+
 	$cancelledAt = null;
 
 	if (
@@ -874,10 +911,13 @@ function getOrderDecisionStatus($orderId)
 	];
 }
 
-function releaseFulfillmentHold($orderId,$reason)
+
+function releaseFulfillmentHold($orderId, $reason)
 {
 	$shopDomain = env('SHOP_DOMAIN');
 	$accessToken = env('ACCESS_TOKEN');
+	// ['shopDomain' => $shopDomain, 'accessToken' => $accessToken] = getShopifyCredentialsByOrderId($orderId);
+
 	// Step 1: Get fulfillment orders for the order
 	$response = Http::withHeaders([
 		'X-Shopify-Access-Token' => $accessToken,
@@ -917,7 +957,7 @@ function releaseFulfillmentHold($orderId,$reason)
 
 
 
-    if (!function_exists('getPrescriptionData')) {
+if (!function_exists('getPrescriptionData')) {
 	function getPrescriptionData($order_id)
 	{
 		$prescriber_data = [];
@@ -937,7 +977,7 @@ function releaseFulfillmentHold($orderId,$reason)
 
 if (!function_exists('getOrderData')) {
 	function getOrderData($order_id)
-	{	
+	{
 
 		return \App\Models\Order::where('order_number', $order_id)->first();
 	}
