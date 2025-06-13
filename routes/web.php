@@ -5,6 +5,8 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ShopifyController;
 use App\Http\Controllers\ShopifyInstallerController;
 use App\Http\Middleware\CustomCors;
+use App\Http\Controllers\Admin\DashboardController; 
+
 
 require __DIR__.'/auth.php';
 require __DIR__.'/admin.php';
@@ -54,9 +56,10 @@ Route::get('sync-shopify-orders', function() {
 
 
 Route::prefix('admin')->name('admin.')->group(function () {
-    Route::get('/dashboard', function () {
-        return view('admin.dashboard');
-    })->middleware(['auth', 'verified'])->name('dashboard');
+    // Route::get('/dashboard', function () {
+    //     return view('admin.dashboard');
+    // })->middleware(['auth', 'verified'])->name('dashboard');
+    Route::get('/dashboard', [DashboardController::class, 'index'])->middleware(['auth', 'verified'])->name('dashboard');
 
 
 	
