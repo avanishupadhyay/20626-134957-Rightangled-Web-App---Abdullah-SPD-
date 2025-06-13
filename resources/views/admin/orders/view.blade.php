@@ -15,12 +15,17 @@
     </style>
     @php
         $statuses = getOrderDecisionStatus($order->id);
+        // dd($statuses);
     @endphp
     <div class="container">
         <div class="row page-titles mx-0 mb-3">
             <div class="col-sm-6 p-0">
                 <div class="welcome-text">
-                    <h4>Order {{ $orderData['name'] ?? 'Order' }}</h4>
+                    <h4>Order {{ $orderData['name'] ?? 'Order' }}
+                         @if (!empty($orderData['cancelled_at']))
+                            <span class="badge bg-danger ms-2">Cancelled</span>
+                        @endif
+                    </h4>
                 </div>
             </div>
             <div class="col-sm-6 p-0 justify-content-sm-end mt-2 mt-sm-0 d-flex">
@@ -72,7 +77,7 @@
                 <div class="card mb-4 equal-height-card">
                     <div class="card-header">
                         <strong>Fulfillment Status:</strong>
-                         <span class="badge bg-{{ $orderData['fulfillment_status'] ? 'success' : 'secondary' }}">
+                        <span class="badge bg-{{ $orderData['fulfillment_status'] ? 'success' : 'secondary' }}">
                             {{ ucfirst($order['fulfillment_status'] ?? 'Unfulfilled') }}
                         </span>
                     </div>
@@ -89,8 +94,9 @@
                                     <strong>Product:</strong> {{ $item['title'] }} ({{ $item['variant_title'] ?? '' }})
                                 </div>
                                 <div class="col-md-6 text-end">
-                                    <strong>£{{ number_format($item['price'], 2) }}</strong> × {{ $item['quantity'] }}
-                                    = <strong>£{{ number_format($item['price'] * $item['quantity'], 2) }}</strong>
+                                    <strong>£{{ number_format($item['price'], 2) }}</strong> ×
+                                    {{ $item['current_quantity'] }}
+                                    = <strong>£{{ number_format($item['price'] * $item['current_quantity'], 2) }}</strong>
                                 </div>
                             </div>
                         @endforeach
@@ -99,7 +105,7 @@
             </div>
 
             {{-- Right Card --}}
-            <div class="col-md-6">
+            {{-- <div class="col-md-6">
                 <div class="card mb-4 equal-height-card">
                     <div class="card-header"><strong>{{ ucfirst($order->financial_status) }}</strong></div>
                     <div class="card-body">
@@ -137,9 +143,91 @@
                         </div>
                     </div>
                 </div>
-            </div>
+            </div> --}}
+            @php
+    $itemCount = 0;
+    foreach ($orderData['line_items'] as $item) {
+        if ($item['current_quantity'] > 0) {
+            $itemCount += $item['current_quantity'];
+        }
+    }
+
+    $subtotal = $orderData['current_subtotal_price'] ?? 0;
+    $discount = $orderData['current_total_discounts'] ?? 0;
+    $shipping = $orderData['current_shipping_price_set']['shop_money']['amount'] ?? 0;
+    $tax = $orderData['current_total_tax'] ?? 0;
+    $total = $orderData['current_total_price'] ?? 0;
+
+    $balance = $orderData['total_outstanding'] ?? 0;
+    $paidAmount = $total - $balance;
+
+    $isPartiallyPaid = strtolower($orderData['financial_status'] ?? '') === 'partially_paid';
+@endphp
+
+<div class="col-md-6">
+    <div class="card mb-4 equal-height-card">
+        <div class="card-header">
+            <strong>{{ ucfirst($orderData['financial_status']) }}</strong>
         </div>
- <div class="row">
+        <div class="card-body">
+
+            <div class="row mb-2">
+                <div class="col-md-6">Subtotal ({{ $itemCount }} item{{ $itemCount !== 1 ? 's' : '' }})</div>
+                <div class="col-md-6 text-end">
+                    ₹{{ number_format($subtotal, 2) }}
+                </div>
+            </div>
+
+            @if($discount > 0)
+                <div class="row mb-2">
+                    <div class="col-md-6">Discount</div>
+                    <div class="col-md-6 text-end text-danger">
+                        -₹{{ number_format($discount, 2) }}
+                    </div>
+                </div>
+            @endif
+
+            <div class="row mb-2">
+                <div class="col-md-6">Shipping</div>
+                <div class="col-md-6 text-end">
+                    ₹{{ number_format($shipping, 2) }}
+                </div>
+            </div>
+
+            @if($tax > 0)
+                <div class="row mb-2">
+                    <div class="col-md-6">Tax</div>
+                    <div class="col-md-6 text-end">
+                        ₹{{ number_format($tax, 2) }}
+                    </div>
+                </div>
+            @endif
+
+            <div class="row">
+                <div class="col-md-6 fw-bold">Total</div>
+                <div class="col-md-6 text-end fw-bold">
+                    ₹{{ number_format($total, 2) }}
+                </div>
+            </div>
+
+            <hr>
+
+            <div class="row fw-bold">
+                <div class="col-md-6">Paid</div>
+                <div class="col-md-6 text-end">
+                    ₹{{ number_format($paidAmount, 2) }}
+                </div>
+            </div>
+
+            
+
+        </div>
+    </div>
+</div>
+
+         
+        </div>
+        <div class="row">
             <div class="col-md-6">
                 <div class="card mb-4" style="height: 400px;">
                     <div class="card-header"><strong>Shipping Address</strong></div>
@@ -188,7 +276,7 @@
             </div>
         </div>
 
-    
+
 
 
 

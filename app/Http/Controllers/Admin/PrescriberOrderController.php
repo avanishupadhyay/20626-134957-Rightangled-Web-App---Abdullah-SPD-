@@ -178,6 +178,8 @@ class PrescriberOrderController extends Controller
 
         $shopDomain = env('SHOP_DOMAIN');
         $accessToken = env('ACCESS_TOKEN');
+        // ['shopDomain' => $shopDomain, 'accessToken' => $accessToken] = getShopifyCredentialsByOrderId($orderId);
+
         DB::beginTransaction();
         try {
             // Step 1: Push metafields to Shopify
