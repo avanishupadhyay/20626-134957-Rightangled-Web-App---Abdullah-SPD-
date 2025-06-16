@@ -83,7 +83,7 @@
         {{-- Left Side: Logo --}}
 
         <div class="logo-container">
-            <img src="{{ asset('public/storage/configuration-images/' . config('Site.logo')) }}" alt="Rightangled Logo">
+            <img src="{{ public_path('storage/configuration-images/' . config('Site.logo')) }}" alt="Rightangled Logo">
         </div>
 
         {{-- Right Side: Prescriber Info --}}
@@ -97,7 +97,7 @@
             <p><strong>Prescriber</strong> {{ $prescriber_s_name }}</p>
             <p><strong>Prescriber’s Reg Number:</strong> {{ $prescriber_reg }}</p>
 
-            {{-- <p><strong>GPhC Number:</strong> {{ $gphc_number }}</p> --}}
+            <p><strong>GPhC Number:</strong> {{ $gphc_number }}</p>
 
 
 
@@ -150,8 +150,17 @@
         </table>
     </div>
 
-    <p><strong>Prescriber’s Signature:</strong> (Dynamic)</p>
-
+    {{-- <p style="display: flex;align-items: center;">
+        <strong>Prescriber’s Signature:</strong> 
+        <img src="{{ $prescriber_signature }}" alt="Signature" style="width: 150px; height:80px; object-fit: contain;"  />
+    </p> --}}
+    <p style="margin: 0; padding: 0;">
+        <span style="font-weight: bold; vertical-align: middle; display: inline-block; margin-right: 10px;">
+            Prescriber’s Signature:
+        </span>
+        <img src="{{ $prescriber_signature }}" alt="Signature"
+            style="vertical-align: middle; width: 150px; height: 80px; object-fit: contain;" />
+    </p>
 
     <p class="note">
         <strong>The Above Named Patient is Under Our Care For Ongoing Treatment</strong><br>

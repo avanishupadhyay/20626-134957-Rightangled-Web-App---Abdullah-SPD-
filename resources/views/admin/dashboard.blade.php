@@ -17,8 +17,10 @@
         <div class="row">
 
             @php
-                $startDate = request('start_date') ?? \Carbon\Carbon::now()->startOfMonth()->format('Y-m-d');
-                $endDate = request('end_date') ?? \Carbon\Carbon::now()->format('Y-m-d');
+                // $startDate = request('start_date') ?? \Carbon\Carbon::now()->startOfMonth()->format('Y-m-d');
+                // $endDate = request('end_date') ?? \Carbon\Carbon::now()->format('Y-m-d');
+                $startDate = request('start_date');
+                $endDate = request('end_date');
                 $selectedPreset = request('preset');
             @endphp
 
@@ -38,7 +40,7 @@
                         @endforeach
                     </select>
 
-                    <input type="text" id="date-range" class="form-control" readonly />
+                    <input type="text" id="date-range" class="form-control" placeholder="Select Date" readonly />
                     <input type="hidden" name="start_date" id="start-date" value="{{ $startDate }}" />
                     <input type="hidden" name="end_date" id="end-date" value="{{ $endDate }}" />
                     <button type="submit" class="btn btn-primary">
@@ -198,7 +200,10 @@
         });
 
         // Set the default selected date on page load
-        picker.setDateRange(initialStart, initialEnd);
+        // picker.setDateRange(initialStart, initialEnd);
+        if (initialStart && initialEnd) {
+            picker.setDateRange(initialStart, initialEnd);
+        }
         document.getElementById('preset-select').addEventListener('change', function() {
             const selected = this.value;
             if (!selected) return;
