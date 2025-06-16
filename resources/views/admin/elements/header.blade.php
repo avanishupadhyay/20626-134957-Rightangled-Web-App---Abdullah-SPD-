@@ -28,6 +28,12 @@
 </div>
                     Checkers
                 </a>
+                <a class="nav-link {{ request()->routeIs('dispenser_orders.index', 'dispenser_orders.view') ? 'active' : '' }}"
+                    href="{{ route('dispenser_orders.index') }}">
+                    <div class="sb-nav-link-icon"><i class="fas fa-shipping-fast"></i>
+</div>
+                    Dispenser
+                </a>
 
                 {{-- <a class="nav-link {{ request()->routeIs('admin.report') ? 'active' : '' }}"
                     href="{{ url('/admin/report') }}"><i class="fas fa-chart-bar"></i>&nbsp;Report

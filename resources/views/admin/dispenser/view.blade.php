@@ -13,10 +13,7 @@
             overflow-y: auto;
         }
     </style>
-    @php
-        $statuses = getOrderDecisionStatus($order->id);
-        // dd($statuses);
-    @endphp
+
     <div class="container">
         <div class="row page-titles mx-0 mb-3">
             <div class="col-sm-6 p-0">
@@ -31,46 +28,11 @@
             <div class="col-sm-6 p-0 justify-content-sm-end mt-2 mt-sm-0 d-flex">
                 <ol class="breadcrumb">
                     <li class="breadcrumb-item"><a href="{{ route('admin.dashboard') }}">Dashboard</a></li>
-                    <li class="breadcrumb-item"><a href="{{ route('orders.index') }}">Orders</a></li>
-                    <li class="breadcrumb-item active">Edit</li>
+                    <li class="breadcrumb-item"><a href="{{ route('dispenser_orders.index') }}">Dispensers</a></li>
+                    <li class="breadcrumb-item active">View Details</li>
                 </ol>
             </div>
-        </div>
-
-        <!-- Buttons -->
-        {{-- <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#approveModal">Approve</button>
-        <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#rejectModal">Reject</button>
-        <button class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#onHoldModal">On Hold</button>
-        <button class="btn btn-info" data-bs-toggle="modal" data-bs-target="#releaseHoldModal">Release Hold</button> --}}
-
-
-
-        <div class="m-3">
-            @if (!$statuses['is_cancelled'])
-                @if ($statuses['fulfillment_status'] === 'on_hold')
-                    <button class="btn btn-info" data-bs-toggle="modal" data-bs-target="#releaseHoldModal">Release
-                        Hold</button>
-                @else
-                    @switch($statuses['latest_decision_status'])
-                        @case('approved')
-                            <button class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#onHoldModal">On Hold</button>
-                            <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#rejectModal">Reject</button>
-                        @break
-
-                        @case('rejected')
-                            <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#approveModal">Approve</button>
-                            <button class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#onHoldModal">On Hold</button>
-                        @break
-
-                        @default
-                            <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#approveModal">Approve</button>
-                            <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#rejectModal">Reject</button>
-                            <button class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#onHoldModal">On Hold</button>
-                    @endswitch
-                @endif
-            @endif
-        </div>
-
+        </div>  
         <div class="row">
             {{-- Left Card --}}
             <div class="col-md-6">
@@ -94,9 +56,8 @@
                                     <strong>Product:</strong> {{ $item['title'] }} ({{ $item['variant_title'] ?? '' }})
                                 </div>
                                 <div class="col-md-6 text-end">
-                                    <strong>£{{ number_format($item['price'], 2) }}</strong> ×
-                                    {{ $item['current_quantity'] }}
-                                    = <strong>£{{ number_format($item['price'] * $item['current_quantity'], 2) }}</strong>
+                                    <strong>£{{ number_format($item['price'], 2) }}</strong> × {{ $item['quantity'] }}
+                                    = <strong>£{{ number_format($item['price'] * $item['quantity'], 2) }}</strong>
                                 </div>
                             </div>
                         @endforeach
@@ -105,7 +66,7 @@
             </div>
 
             {{-- Right Card --}}
-            {{-- <div class="col-md-6">
+            <div class="col-md-6">
                 <div class="card mb-4 equal-height-card">
                     <div class="card-header"><strong>{{ ucfirst($order->financial_status) }}</strong></div>
                     <div class="card-body">
@@ -143,91 +104,10 @@
                         </div>
                     </div>
                 </div>
-            </div> --}}
-            @php
-                $itemCount = 0;
-                foreach ($orderData['line_items'] as $item) {
-                    if ($item['current_quantity'] > 0) {
-                        $itemCount += $item['current_quantity'];
-                    }
-                }
-
-                $subtotal = $orderData['current_subtotal_price'] ?? 0;
-                $discount = $orderData['current_total_discounts'] ?? 0;
-                $shipping = $orderData['current_shipping_price_set']['shop_money']['amount'] ?? 0;
-                $tax = $orderData['current_total_tax'] ?? 0;
-                $total = $orderData['current_total_price'] ?? 0;
-
-                $balance = $orderData['total_outstanding'] ?? 0;
-                $paidAmount = $total - $balance;
-
-                $isPartiallyPaid = strtolower($orderData['financial_status'] ?? '') === 'partially_paid';
-            @endphp
-
-            <div class="col-md-6">
-                <div class="card mb-4 equal-height-card">
-                    <div class="card-header">
-                        <strong>{{ ucfirst($orderData['financial_status']) }}</strong>
-                    </div>
-                    <div class="card-body">
-
-                        <div class="row mb-2">
-                            <div class="col-md-6">Subtotal ({{ $itemCount }} item{{ $itemCount !== 1 ? 's' : '' }})
-                            </div>
-                            <div class="col-md-6 text-end">
-                                ₹{{ number_format($subtotal, 2) }}
-                            </div>
-                        </div>
-
-                        @if ($discount > 0)
-                            <div class="row mb-2">
-                                <div class="col-md-6">Discount</div>
-                                <div class="col-md-6 text-end text-danger">
-                                    -₹{{ number_format($discount, 2) }}
-                                </div>
-                            </div>
-                        @endif
-
-                        <div class="row mb-2">
-                            <div class="col-md-6">Shipping</div>
-                            <div class="col-md-6 text-end">
-                                ₹{{ number_format($shipping, 2) }}
-                            </div>
-                        </div>
-
-                        @if ($tax > 0)
-                            <div class="row mb-2">
-                                <div class="col-md-6">Tax</div>
-                                <div class="col-md-6 text-end">
-                                    ₹{{ number_format($tax, 2) }}
-                                </div>
-                            </div>
-                        @endif
-
-                        <div class="row">
-                            <div class="col-md-6 fw-bold">Total</div>
-                            <div class="col-md-6 text-end fw-bold">
-                                ₹{{ number_format($total, 2) }}
-                            </div>
-                        </div>
-
-                        <hr>
-
-                        <div class="row fw-bold">
-                            <div class="col-md-6">Paid</div>
-                            <div class="col-md-6 text-end">
-                                ₹{{ number_format($paidAmount, 2) }}
-                            </div>
-                        </div>
-
-
-
-                    </div>
-                </div>
             </div>
-
-
         </div>
+
+
         <div class="row">
             <div class="col-md-6">
                 <div class="card mb-4" style="height: 400px;">
@@ -276,8 +156,6 @@
                 </div>
             </div>
         </div>
-
-
         <div class="card mb-4">
             <div class="card-header"><strong>Customer Information</strong></div>
             <div class="card-body">
@@ -313,8 +191,6 @@
                 <p><strong>Tags:</strong> {{ $orderData['customer']['tags'] ?? 'N/A' }}</p>
             </div>
         </div>
-
-
 
 
         <div class="card mt-4">
@@ -355,7 +231,7 @@
                             </div>
                         @endforeach
                     @else
-                        <p>No consultation data found.</p>
+                        {{-- <p>No consultation data found.</p> --}}
                     @endif
                 @endforeach
 
@@ -367,101 +243,6 @@
     </div>
 
 
-
-    <!-- Approve Modal -->
-    <!-- Approve Modal -->
-    <div class="modal fade" id="approveModal" tabindex="-1">
-        <div class="modal-dialog">
-            <form method="POST" action="{{ route('orders.prescribe', $order->order_number) }}">
-                @csrf
-                <input type="hidden" name="decision_status" value="approved">
-
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title">Approve Prescription</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                    </div>
-
-                    <div class="modal-body">
-                        <div class="mb-3">
-                            <label class="form-label">Clinical Reasoning</label>
-                            <textarea name="clinical_reasoning" class="form-control" required>{{ old('clinical_reasoning') }}</textarea>
-                        </div>
-                    </div>
-
-                    <div class="modal-footer">
-                        <button class="btn btn-success">Submit Approval</button>
-                    </div>
-                </div>
-            </form>
-        </div>
-    </div>
-
-
-    <!-- Reject Modal -->
-    <div class="modal fade" id="rejectModal" tabindex="-1">
-        <div class="modal-dialog">
-            <form method="POST" action="{{ route('orders.prescribe', $order->order_number) }}">
-                @csrf
-                <input type="hidden" name="decision_status" value="rejected">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title">Reject Prescription</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body">
-                        <textarea name="rejection_reason" class="form-control" placeholder="Rejection reason" required></textarea>
-                    </div>
-                    <div class="modal-footer">
-                        <button class="btn btn-danger">Submit</button>
-                    </div>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- On Hold Modal -->
-    <div class="modal fade" id="onHoldModal" tabindex="-1">
-        <div class="modal-dialog">
-            <form method="POST" action="{{ route('orders.prescribe', $order->order_number) }}">
-                @csrf
-                <input type="hidden" name="decision_status" value="on_hold">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title">Put On Hold</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body">
-                        <textarea name="on_hold_reason" class="form-control" placeholder="Reason for putting on hold" required></textarea>
-                    </div>
-                    <div class="modal-footer">
-                        <button class="btn btn-warning">Submit</button>
-                    </div>
-                </div>
-            </form>
-        </div>
-    </div>
-
-
-    <div class="modal fade" id="releaseHoldModal" tabindex="-1">
-        <div class="modal-dialog">
-            <form method="POST" action="{{ route('orders.prescribe', $order->order_number) }}">
-                @csrf
-                <input type="hidden" name="decision_status" value="release_hold">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title">Release Hold</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body">
-                        <textarea name="release_hold_reason" class="form-control" placeholder="Reason for releasing hold" required></textarea>
-                    </div>
-                    <div class="modal-footer">
-                        <button class="btn btn-warning">Submit</button>
-                    </div>
-                </div>
-            </form>
-        </div>
-    </div>
+   
 
 @endsection
