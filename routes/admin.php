@@ -11,6 +11,7 @@ use App\Http\Controllers\Admin\StoreController;
 use App\Http\Controllers\Admin\OrderController;
 use App\Http\Controllers\Admin\PrescriberOrderController;
 use App\Http\Controllers\Admin\CheckerOrderController;
+use App\Http\Controllers\Admin\DispenserOrderController;
 use App\Http\Controllers\Admin\ReportController;
 
 
@@ -69,5 +70,14 @@ Route::post('Prescriber/orders/{orderId}/prescribe', [PrescriberOrderController:
 Route::get('Checker/orders', [CheckerOrderController::class, 'index'])->name('checker_orders.index');
 Route::get('Checker/orders/{id}/view', [CheckerOrderController::class, 'view'])->name('checker_orders.view');
 Route::post('Checker/orders/{orderId}/check', [CheckerOrderController::class, 'check'])->name('orders.checker');
+
+//Dispenser route
+Route::get('Dispenser/orders', [DispenserOrderController::class, 'index'])->name('dispenser_orders.index');
+Route::get('Dispenser/orders/{id}/view', [DispenserOrderController::class, 'view'])->name('dispenser_orders.view');
+Route::post('Dispenser/orders/dispense', [DispenserOrderController::class, 'printDispenseBatch'])->name('orders.dispensed');
+Route::get('/Qrcodedata', [DispenserOrderController::class, 'showQrData']);
+Route::get('/Dispenser/batches', [DispenserOrderController::class, 'listBatches'])->name('dispenser.batches.list');
+Route::get('/dispenser/batches/{batch}/download', [DispenserOrderController::class, 'downloadBatchPdf'])->name('dispenser.batches.download');
+
 
 });

@@ -108,6 +108,8 @@ class PrescriberOrderController extends Controller
         return view('admin.prescriber.index', compact('orders', 'statuses'));
     }
 
+    
+
 
     public function view($id)
     {
