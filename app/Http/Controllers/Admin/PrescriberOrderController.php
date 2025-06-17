@@ -238,7 +238,7 @@ class PrescriberOrderController extends Controller
         // $pdfUrl = $this->generateAndStorePDF($orderId);
         $pdfPath = $this->generateAndStorePDF($orderId);
         $pdfUrl = rtrim(config('app.url'), '/') . '/' . ltrim($pdfPath, '/');
-        $metafields = buildCommonMetafields($request, $decisionStatus, $pdfUrl);
+        $metafields = buildCommonMetafields($request, $decisionStatus,$orderId, $pdfUrl);
         // dd($metafields);
 
         $shopDomain = env('SHOP_DOMAIN');
