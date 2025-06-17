@@ -242,6 +242,7 @@ class PrescriberOrderController extends Controller
         $pdfUrl = rtrim(config('app.url'), '/') . '/' . ltrim($pdfPath, '/');
         $metafields = buildCommonMetafields($request, $decisionStatus,$orderId, $pdfUrl);
         // dd($metafields);
+        $roleName = auth()->user()->getRoleNames()->first(); // Returns string or null
 
         $shopDomain = env('SHOP_DOMAIN');
         $accessToken = env('ACCESS_TOKEN');
@@ -299,6 +300,7 @@ class PrescriberOrderController extends Controller
                     'on_hold_reason' => $request->on_hold_reason,
                     'decision_timestamp' => now(),
                     'prescribed_pdf' => $pdfPath,
+                    'role'=>$roleName
 
                 ]
             );
