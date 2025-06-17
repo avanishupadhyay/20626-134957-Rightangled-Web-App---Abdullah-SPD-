@@ -203,6 +203,7 @@ class OrderController extends Controller
         $shopDomain = env('SHOP_DOMAIN');
         $accessToken = env('ACCESS_TOKEN');
         // ['shopDomain' => $shopDomain, 'accessToken' => $accessToken] = getShopifyCredentialsByOrderId($orderId);
+        $roleName = auth()->user()->getRoleNames()->first(); // Returns string or null
 
         DB::beginTransaction();
         try {
@@ -264,6 +265,7 @@ class OrderController extends Controller
                     'on_hold_reason' => $request->on_hold_reason,
                     'release_hold_reason' => $request->release_hold_reason,
                     'decision_timestamp' => now(),
+                    'role'=>$roleName
 
                 ]
             );
