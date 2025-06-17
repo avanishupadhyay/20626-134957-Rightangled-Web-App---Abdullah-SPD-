@@ -178,6 +178,41 @@
                 </div>
             </div>
         </div>
+        <div class="card mb-4">
+            <div class="card-header"><strong>Customer Information</strong></div>
+            <div class="card-body">
+                <p><strong>Name:</strong> {{ $orderData['customer']['first_name'] ?? '' }}
+                    {{ $orderData['customer']['last_name'] ?? '' }}</p>
+                <p><strong>Email:</strong> {{ $orderData['customer']['email'] ?? ($orderData['email'] ?? 'N/A') }}</p>
+                <p><strong>Phone:</strong> {{ $orderData['customer']['phone'] ?? 'N/A' }}</p>
+                <p><strong>Note:</strong> {{ $orderData['customer']['note'] ?? 'N/A' }}</p>
+
+                <hr>
+
+                <p><strong>Default Address:</strong><br>
+                    {{ $orderData['customer']['default_address']['address1'] ?? '' }},
+                    {{ $orderData['customer']['default_address']['city'] ?? '' }},
+                    {{ $orderData['customer']['default_address']['province'] ?? '' }},
+                    {{ $orderData['customer']['default_address']['zip'] ?? '' }},
+                    {{ $orderData['customer']['default_address']['country'] ?? '' }}
+                </p>
+                <p><strong>Phone (Address):</strong> {{ $orderData['customer']['default_address']['phone'] ?? 'N/A' }}</p>
+
+                <hr>
+
+                <p><strong>Email Marketing Consent:</strong>
+                    {{ ucfirst($orderData['customer']['email_marketing_consent']['state'] ?? 'N/A') }}
+                    (Opt-in level: {{ $orderData['customer']['email_marketing_consent']['opt_in_level'] ?? 'N/A' }})
+                </p>
+
+                <p><strong>SMS Marketing Consent:</strong>
+                    {{ ucfirst($orderData['customer']['sms_marketing_consent']['state'] ?? 'N/A') }}
+                    (Opt-in level: {{ $orderData['customer']['sms_marketing_consent']['opt_in_level'] ?? 'N/A' }})
+                </p>
+
+                <p><strong>Tags:</strong> {{ $orderData['customer']['tags'] ?? 'N/A' }}</p>
+            </div>
+        </div>
 
 
         <div class="card mt-4">

@@ -22,7 +22,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //URL::forceScheme('https');
+        if (app()->environment('staging', 'production')) {
+            URL::forceScheme('https');
+        }
         Paginator::useBootstrapFive(); // Use Bootstrap 5
 
         $this->configHandler();
@@ -35,14 +37,12 @@ class AppServiceProvider extends ServiceProvider
     {
         try {
             \DB::connection()->getPdo();
-            
-            if(\Schema::hasTable('configurations'))
-            {
+
+            if (\Schema::hasTable('configurations')) {
                 $configuration = new Configuration();
                 $configuration->init();
             }
-
-        } catch (\Exception $e){
+        } catch (\Exception $e) {
             \Log::info('Configuration is not loaded.');
         }
     }
