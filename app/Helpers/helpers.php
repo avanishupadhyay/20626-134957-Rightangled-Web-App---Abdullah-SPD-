@@ -633,7 +633,8 @@ function buildCommonMetafields(Request $request, string $decisionStatus,$orderId
 
 	$resourceGid = 'gid://shopify/Order/'.$orderId;
 	// $file_id = uploadImageAndSaveMetafield(public_path('admin/signature-images/'.$prescriberData->signature_image));
-	$file_id = uploadImageAndSaveMetafield('https://rightangled.24livehost.com/storage/configuration-images/logo-1748949654.png');
+	$imageUrl = asset('admin/signature-images/' . $prescriberData->signature_image);
+	$file_id = uploadImageAndSaveMetafield($imageUrl);
 
 	$metafields = [
 		[
@@ -1091,4 +1092,3 @@ if (!function_exists('getOrderData')) {
 	}
 
 
-	
