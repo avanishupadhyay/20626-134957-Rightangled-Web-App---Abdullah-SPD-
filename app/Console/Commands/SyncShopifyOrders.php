@@ -35,66 +35,66 @@ class SyncShopifyOrders extends Command
         $shopDomain = env('SHOP_DOMAIN');
         $accessToken = env('ACCESS_TOKEN');
 
-        // $response = Http::withHeaders([
-        //     'X-Shopify-Access-Token' => $accessToken,
-        // ])->get("https://{$shopDomain}/admin/api/{$apiVersion}/orders.json", [
-        //     'status' => 'any', // open, closed, cancelled, or any
-        //     'limit' => 250,
-        // ]);
-        // if ($response->successful()) {
-        //     $orders = $response->json()['orders'];
-        //     // dd($orders);
-        //     foreach ($orders as $order) {
-        //         Order::updateOrCreate(
-        //             ['order_number' => $order['id']],
-        //             [
-        //                 'order_number' => $order['id'],
-        //                 'name' => $order['name'],
-        //                 'email' => $order['email'],
-        //                 'total_price' => $order['total_price'],
-        //                 'financial_status' => $order['financial_status'],
-        //                 'fulfillment_status' => $order['fulfillment_status'],
-        //                 'order_data' => json_encode($order),
-        //                 'created_at' => isset($order['created_at']) ? Carbon::parse($order['created_at']) : now(),
-        //                 'updated_at' => now(),
-        //             ]
-        //         );
-        //     }
-        //     $this->info("Synced " . count($orders) . " orders from Shopify.");
-        // } else {
-        //     $this->error("Failed to fetch orders: " . $response->body());
-        // }
-
-        $stores = Store::where('status', 1)->get();
-
-        foreach ($stores as $store) {
-            $response = Http::withHeaders([
-                'X-Shopify-Access-Token' => $store->app_admin_access_token,
-            ])->get("https://{$store->domain}/admin/api/{$apiVersion}/orders.json", [
-                'status' => 'any',
-                'limit' => 250,
-            ]);
-
-            if ($response->successful()) {
-                $orders = $response->json()['orders'];
-                foreach ($orders as $order) {
-                    Order::updateOrCreate(
-                        ['order_number' => $order['id']],
-                        [
-                            'order_number' => $order['id'],
-                            'name' => $order['name'],
-                            'email' => $order['email'],
-                            'total_price' => $order['total_price'],
-                            'financial_status' => $order['financial_status'],
-                            'fulfillment_status' => $order['fulfillment_status'],
-                            'order_data' => json_encode($order),
-                            'store_id' => $store->id,
-                            'created_at' => isset($order['created_at']) ? Carbon::parse($order['created_at']) : now(),
-                            'updated_at' => now(),
-                        ]
-                    );
-                }
+        $response = Http::withHeaders([
+            'X-Shopify-Access-Token' => $accessToken,
+        ])->get("https://{$shopDomain}/admin/api/{$apiVersion}/orders.json", [
+            'status' => 'any', // open, closed, cancelled, or any
+            'limit' => 250,
+        ]);
+        if ($response->successful()) {
+            $orders = $response->json()['orders'];
+            // dd($orders);
+            foreach ($orders as $order) {
+                Order::updateOrCreate(
+                    ['order_number' => $order['id']],
+                    [
+                        'order_number' => $order['id'],
+                        'name' => $order['name'],
+                        'email' => $order['email'],
+                        'total_price' => $order['total_price'],
+                        'financial_status' => $order['financial_status'],
+                        'fulfillment_status' => $order['fulfillment_status'],
+                        'order_data' => json_encode($order),
+                        'created_at' => isset($order['created_at']) ? Carbon::parse($order['created_at']) : now(),
+                        'updated_at' => now(),
+                    ]
+                );
             }
+            $this->info("Synced " . count($orders) . " orders from Shopify.");
+        } else {
+            $this->error("Failed to fetch orders: " . $response->body());
         }
+
+        // $stores = Store::where('status', 1)->get();
+
+        // foreach ($stores as $store) {
+        //     $response = Http::withHeaders([
+        //         'X-Shopify-Access-Token' => $store->app_admin_access_token,
+        //     ])->get("https://{$store->domain}/admin/api/{$apiVersion}/orders.json", [
+        //         'status' => 'any',
+        //         'limit' => 250,
+        //     ]);
+
+        //     if ($response->successful()) {
+        //         $orders = $response->json()['orders'];
+        //         foreach ($orders as $order) {
+        //             Order::updateOrCreate(
+        //                 ['order_number' => $order['id']],
+        //                 [
+        //                     'order_number' => $order['id'],
+        //                     'name' => $order['name'],
+        //                     'email' => $order['email'],
+        //                     'total_price' => $order['total_price'],
+        //                     'financial_status' => $order['financial_status'],
+        //                     'fulfillment_status' => $order['fulfillment_status'],
+        //                     'order_data' => json_encode($order),
+        //                     'store_id' => $store->id,
+        //                     'created_at' => isset($order['created_at']) ? Carbon::parse($order['created_at']) : now(),
+        //                     'updated_at' => now(),
+        //                 ]
+        //             );
+        //         }
+        //     }
+        // }
     }
 }
