@@ -199,7 +199,7 @@ class OrderController extends Controller
         ]);
 
         $decisionStatus = $request->decision_status;
-        $metafields = buildCommonMetafields($request, $decisionStatus);
+        $metafields = buildCommonMetafields($request, $decisionStatus,$orderId);
         $shopDomain = env('SHOP_DOMAIN');
         $accessToken = env('ACCESS_TOKEN');
         // ['shopDomain' => $shopDomain, 'accessToken' => $accessToken] = getShopifyCredentialsByOrderId($orderId);

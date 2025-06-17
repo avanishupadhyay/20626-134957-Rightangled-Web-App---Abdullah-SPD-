@@ -169,7 +169,18 @@
                                     @if (is_bool($value))
                                         {{ $value ? 'Yes' : 'No' }}
                                     @elseif (Str::startsWith($value, 'gid://shopify/MediaImage/'))
-                                        <p><em>(Image GID: {{ $value }})</em></p>
+
+                                            @php
+                                                $imageUrl = getShopifyImageUrl($value);
+                                            @endphp
+
+                                            @if ($imageUrl)
+                                                {{-- <p><strong>Prescriber’s Signature:</strong></p> --}}
+                                                <img src="{{ $imageUrl }}" alt="Signature" style="max-height: 100px;">
+                                            @else
+                                                <p><em>(Image not found)</em></p>
+                                            @endif
+                                        {{-- <p><em>(Image GID: {{ $value }})</em></p> --}}
                                     @elseif (filter_var($value, FILTER_VALIDATE_URL))
                                         <a href="{{ $value }}" target="_blank"
                                             rel="noopener noreferrer">{{ $value }}</a>

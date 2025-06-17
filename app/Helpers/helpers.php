@@ -654,10 +654,15 @@ function getOrderMetafields($orderId)
 	return [];
 }
 
-function buildCommonMetafields(Request $request, string $decisionStatus, $pdfUrl = null): array
+function buildCommonMetafields(Request $request, string $decisionStatus,$orderId, $pdfUrl = null): array
 {
 	$user = auth()->user();
 	$prescriberData = $user->prescriber;
+
+	$resourceGid = 'gid://shopify/Order/'.$orderId;
+	// $file_id = uploadImageAndSaveMetafield(public_path('admin/signature-images/'.$prescriberData->signature_image));
+	$imageUrl = asset('admin/signature-images/' . $prescriberData->signature_image);
+	$file_id = uploadImageAndSaveMetafield($imageUrl);
 
 	$metafields = [
 		[
@@ -678,11 +683,18 @@ function buildCommonMetafields(Request $request, string $decisionStatus, $pdfUrl
 			'type' => 'single_line_text_field',
 			'value' => $prescriberData->gphc_number ?? 'marked_by admin',
 		],
+		// [
+		// 	'namespace' => 'custom',
+		// 	'key' => 'prescriber_s_signature',
+		// 	'type' => 'single_line_text_field',
+		// 	'value' => $prescriberData->signature_image ?? 'Signed by ' . $user->name,
+		// ],
 		[
+			'ownerId' => $resourceGid,
 			'namespace' => 'custom',
-			'key' => 'prescriber_s_signature',
-			'type' => 'single_line_text_field',
-			'value' => $prescriberData->signature_image ?? 'Signed by ' . $user->name,
+			'key' => 'prescriber_s_signatures',
+			'type' => 'file_reference',
+			'value' => $file_id,
 		],
 		[
 			'namespace' => 'custom',
@@ -982,3 +994,142 @@ if (!function_exists('getOrderData')) {
 		return \App\Models\Order::where('order_number', $order_id)->first();
 	}
 }
+
+
+	// $imageUrl = 'https://rightangled.24livehost.com/storage/configuration-images/logo-1748949654.png'; // Must be public
+	// $orderIdGid = 'gid://shopify/Order/5794153988154';
+	// $response = $this->uploadImageAndSaveMetafield($imageUrl, $orderIdGid);
+	// dd($response);
+
+ function uploadImageAndSaveMetafield($publicImageUrl)
+    {
+        $shop = env('SHOP_DOMAIN'); // e.g., your-store.myshopify.com
+        $token = env('ACCESS_TOKEN');
+
+        // Step 1: Upload image to Shopify Files via GraphQL
+        $uploadQuery = <<<'GRAPHQL'
+            mutation fileCreate($files: [FileCreateInput!]!) {
+            fileCreate(files: $files) {
+                files {
+                id
+                alt
+                createdAt
+                ... on MediaImage {
+                    image {
+                    url
+                    }
+                }
+                }
+                userErrors {
+                field
+                message
+                }
+            }
+            }
+            GRAPHQL;
+
+        $uploadResponse = Http::withHeaders([
+            'X-Shopify-Access-Token' => $token,
+            'Content-Type' => 'application/json',
+        ])->post("https://{$shop}/admin/api/2025-04/graphql.json", [
+            'query' => $uploadQuery,
+            'variables' => [
+                'files' => [
+                    [
+                        'alt' => 'Uploaded image',
+                        'contentType' => 'IMAGE',
+                        'originalSource' => $publicImageUrl,
+                    ]
+                ]
+            ],
+        ])->json();
+
+        $fileData = $uploadResponse['data']['fileCreate']['files'][0] ?? null;
+
+        if (!$fileData || !isset($fileData['id'])) {
+            return [
+                'status' => 'error',
+                'message' => 'Image upload failed',
+                'response' => $uploadResponse,
+            ];
+        }
+
+        // $fileGid = $fileData['id'];
+        return $fileData['id'];
+
+        // Step 2: Save file GID as metafield on given resource
+        // $metafieldQuery = <<<'GRAPHQL'
+        //     mutation metafieldsSet($metafields: [MetafieldsSetInput!]!) {
+        //     metafieldsSet(metafields: $metafields) {
+        //         metafields {
+        //         id
+        //         namespace
+        //         key
+        //         type
+        //         value
+        //         }
+        //         userErrors {
+        //         field
+        //         message
+        //         }
+        //     }
+        //     }
+        //     GRAPHQL;
+
+        // $metafieldVariables = [
+        //     'metafields' => [
+        //         [
+        //             'ownerId' => $resourceGid, // e.g., Order GID
+        //             'namespace' => 'custom',
+        //             'key' => 'prescriber_s_signatures',
+        //             'type' => 'file_reference',
+        //             'value' => $fileGid,
+        //         ]
+        //     ]
+        // ];
+
+        // $metafieldResponse = Http::withHeaders([
+        //     'X-Shopify-Access-Token' => $token,
+        //     'Content-Type' => 'application/json',
+        // ])->post("https://{$shop}/admin/api/2025-04/graphql.json", [
+        //     'query' => $metafieldQuery,
+        //     'variables' => $metafieldVariables,
+        // ])->json();
+
+        // return [
+        //     'status' => 'success',
+        //     'fileGid' => $fileGid,
+        //     'uploadResult' => $uploadResponse,
+        //     'metafieldResult' => $metafieldResponse,
+        // ];
+    }
+
+	function getShopifyImageUrl($gid)
+	{
+		$endpoint = 'https://' . env('SHOP_DOMAIN') . '/admin/api/2024-01/graphql.json';
+		$accessToken = env('ACCESS_TOKEN');
+
+		$query = <<<GQL
+		{
+		node(id: "$gid") {
+			... on MediaImage {
+			image {
+				url
+			}
+			}
+		}
+		}
+		GQL;
+
+		$response = Http::withHeaders([
+			'X-Shopify-Access-Token' => $accessToken,
+			'Content-Type' => 'application/json',
+		])->post($endpoint, [
+			'query' => $query
+		]);
+
+		$data = $response->json();
+
+		return $data['data']['node']['image']['url'] ?? null;
+	}
+

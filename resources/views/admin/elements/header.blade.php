@@ -35,9 +35,9 @@
                     Dispenser
                 </a>
 
-                {{-- <a class="nav-link {{ request()->routeIs('admin.report') ? 'active' : '' }}"
+                <a class="nav-link {{ request()->routeIs('admin.report') ? 'active' : '' }}"
                     href="{{ url('/admin/report') }}"><i class="fas fa-chart-bar"></i>&nbsp;Report
-                </a> --}}
+                </a>
 
 
                 <div class="sb-sidenav-menu-heading">Configurations</div>

@@ -11,7 +11,8 @@ use App\Models\OrderAction;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Storage;
-
+use Illuminate\Support\Facades\Log;
+use GuzzleHttp\Client;
 
 
 class PrescriberOrderController extends Controller
@@ -26,9 +27,71 @@ class PrescriberOrderController extends Controller
             return $next($request);
         })->except('index'); // <- This line skips index()
 
-
     }
 
+
+    //     function fetchRealIDVerificationStatus(string $checkId): ?array
+    // {
+    //     $apiUrl   = env('REAL_ID_API_URL') . "/checks/{$checkId}";
+    //     $apiToken = env('REAL_ID_API_TOKEN');
+
+    //     $response = Http::withHeaders([
+    //         'Authorization' => "Bearer {$apiToken}",
+    //         'Accept'        => 'application/json',
+    //     ])->get($apiUrl);
+
+    //     if ($response->successful()) {
+    //        $data = $response->json();
+
+    //     Log::info('✅ Real ID check sent successfully.', $data);
+    //         return $data; // Or handle accordingly
+    //     }
+
+    //     Log::error('Failed to fetch Real ID status', [
+    //         'status' => $response->status(),
+    //         'body'   => $response->body(),
+    //     ]);
+
+    //     return null;
+    // }
+
+    //  $apiUrl   = env('REAL_ID_API_URL') . '/checks'; // Should end up like: https://real-id.getverdict.com/api/v1/checks
+    //             $apiToken = env('REAL_ID_API_TOKEN');
+
+    //             $payload = [
+    //                         "customer" => [
+    //                             "first_name" => "John",
+    //                             "last_name" => "Smith",
+    //                             "email" => "deepak.dotsquares.11@gmail.com", // test email
+    //                             "phone" => "+918955497512",
+    //                             "shopify_admin_graphql_id" => "gid://shopify/Customer/1234567890",
+    //                         ],
+    //                         "order" => [
+    //                             "shopify_admin_graphql_id" => "gid://shopify/Order/1234567890",
+    //                             "name" => "#1234",
+    //                         ],
+    //                     ];
+
+    //             $response = Http::withHeaders([
+    //                 'Authorization' => "Bearer {$apiToken}",
+    //                 'Accept'        => 'application/json',
+    //                 'Content-Type'  => 'application/json',
+    //             ])->post($apiUrl, $payload);
+
+    //             if ($response->successful()) {
+    //                 $data = $response->json();
+    //                 // pr($data);die;
+    //                 pr($this->fetchRealIDVerificationStatus($data['check']['id']));
+    //             }
+
+    //             Log::error('Real ID check creation failed', [
+    //                 'status' => $response->status(),
+    //                 'body'   => $response->body(),
+    //             ]);
+
+
+    //         // }
+    //         die;
 
     public function index(Request $request)
     {
@@ -86,7 +149,10 @@ class PrescriberOrderController extends Controller
                     break;
 
                 case 'repeat':
-                    $query->where('order_data', 'like', '%Seal Subscription%');
+                    $query->where(function ($q) {
+                        $q->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(order_data, '$.source_name')) = 'subscription_contract'")
+                            ->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(order_data, '$.tags')) LIKE '%Subscription Recurring Order%'");
+                    });
                     break;
 
                 case 'international':
@@ -101,7 +167,6 @@ class PrescriberOrderController extends Controller
 
         // Get paginated result
         $orders = $query->latest()->paginate(config('Reading.nodes_per_page'));
-
         // Get distinct statuses
         $statuses = Order::select('financial_status')->distinct()->pluck('financial_status');
 
@@ -175,7 +240,7 @@ class PrescriberOrderController extends Controller
         // $pdfUrl = $this->generateAndStorePDF($orderId);
         $pdfPath = $this->generateAndStorePDF($orderId);
         $pdfUrl = rtrim(config('app.url'), '/') . '/' . ltrim($pdfPath, '/');
-        $metafields = buildCommonMetafields($request, $decisionStatus, $pdfUrl);
+        $metafields = buildCommonMetafields($request, $decisionStatus,$orderId, $pdfUrl);
         // dd($metafields);
 
         $shopDomain = env('SHOP_DOMAIN');
@@ -263,6 +328,10 @@ class PrescriberOrderController extends Controller
         $orderData = json_decode($order->order_data, true);
         $items = [];
         $orderMetafields = getOrderMetafields($order->order_number);
+        $user = auth()->user();
+        $prescriberData = $user->prescriber;
+
+        $image_path = public_path('admin/signature-images/' . $prescriberData->signature_image);
 
         foreach ($orderData['line_items'] as $item) {
             $productId = $item['product_id'];
@@ -276,7 +345,6 @@ class PrescriberOrderController extends Controller
                 'direction_of_use' => $directionOfUse,
             ];
         }
-
         $pdf = Pdf::loadView('admin.orders.prescription_pdf', [
             'orderData' => $orderData,
             'items' => $items,
@@ -284,18 +352,64 @@ class PrescriberOrderController extends Controller
             'prescriber_reg' => '2224180',
             'order' => $order,
             'prescriber_s_name' => $orderMetafields['prescriber_s_name'] ?? 'N/A',
-            'gphc_number_' => $orderMetafields['gphc_number_'] ?? 'N/A',
+            'gphc_number' => $prescriberData->gphc_number ?? 'N/A',
             'patient_s_dob' => $orderMetafields['patient_s_dob'] ?? 'N/A',
             'approval' => $orderMetafields['approval'],
-            'prescriber_signature' => $orderMetafields['prescriber_s_signature'] ?? null,
+            'prescriber_signature' => $image_path ?? null,
         ]);
 
         $fileName = "Prescription-Order-{$order->order_number}.pdf";
         $filePath = "prescriptions/{$fileName}";
 
-
         Storage::disk('public')->put($filePath, $pdf->output());
 
         return Storage::url($filePath); // returns public path (requires `php artisan storage:link`)
     }
+
+    // public function uploadImageToShopifyViaGraphQL($publicImageUrl)
+    // {
+    //     $shop = env('SHOP_DOMAIN'); // your-store.myshopify.com
+    //     $token = env('ACCESS_TOKEN');
+
+    //     $query = <<<'GRAPHQL'
+    //         mutation fileCreate($files: [FileCreateInput!]!) {
+    //         fileCreate(files: $files) {
+    //             files {
+    //             alt
+    //             createdAt
+    //             ... on MediaImage {
+    //                 image {
+    //                 url
+    //                 }
+    //             }
+    //             }
+    //             userErrors {
+    //             field
+    //             message
+    //             }
+    //         }
+    //         }
+    //         GRAPHQL;
+
+    //     $variables = [
+    //         'files' => [
+    //             [
+    //                 'alt' => 'Uploaded image',
+    //                 'contentType' => 'IMAGE',
+    //                 'originalSource' => $publicImageUrl,
+    //             ]
+    //         ]
+    //     ];
+
+    //     $response = Http::withHeaders([
+    //         'X-Shopify-Access-Token' => $token,
+    //         'Content-Type' => 'application/json',
+    //     ])->post("https://{$shop}/admin/api/2025-04/graphql.json", [
+    //         'query' => $query,
+    //         'variables' => $variables
+    //     ]);
+
+    //     return $response->json();
+    // }
+
 }
