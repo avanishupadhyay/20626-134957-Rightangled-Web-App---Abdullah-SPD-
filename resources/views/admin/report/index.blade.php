@@ -26,6 +26,10 @@
     .btn.btn-secondary {
         width: auto;
     }
+    .table-responsive {
+    overflow-x: auto;
+    width: 100%;
+}
 </style>
 @section('content')
     <div class="container-fluid">
@@ -174,117 +178,64 @@
             </div>
         </div> --}}
         <hr>
-        <div class="card">
-            <div class="card-body overflow-scroll">
-                <h5>Detailed Report Data</h5>
-                {{-- <table class="table table-bordered table-responsive">
-                    <thead>
-                        <tr>
-                            <th>Timestamp</th>
-                            <th>Prescription ID</th>
-                            <th>SKU</th>
-                            <th>Store</th>
-                            <th>User</th>
-                            <th>Action</th>
-                            <th>Clinical Notes Snippet</th>
-                            <th>Compliance Status</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach ($orders as $key => $value)
-                            @php
-                                $order_data = json_decode($value['order_data'], true);
-                                $sku = [];
-                                $sku_txt = '';
-                                if (isset($order_data['line_items']) && is_array($order_data['line_items'])) {
-                                    foreach ($order_data['line_items'] as $skey => $svalue) {
-                                        if (isset($svalue['sku'])) {
-                                            $sku[] = $svalue['sku'];
-                                        }
-                                    }
-                                    $sku_txt = implode(',', $sku);
-                                }
-                                $prescription_data = getPrescriptionData($value['order_number']);
-                                $audit_data = getAuditData($value['order_number']);
-                                $prescription_id = null;
-                                $action = null;
-                                $clinical_reasoning = null;
-
-                                if (!empty($prescription_data)) {
-                                    $prescription_id = $prescription_data['prescriber_id'] ?? null;
-                                    $clinical_reasoning = $prescription_data['clinical_reasoning'] ?? null;
-                                }
-
-                                if (!empty($audit_data)) {
-                                    $action = $audit_data['action'] ?? null;
-                                }
-
-                            @endphp
+        <div class="card w-100">
+            <div class="card-header">
+                <h4 class="card-title mb-0">Detailed Report Data</h4>
+            </div>
+            <div class="card-body p-3 overflow-scroll">
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover table-striped align-middle mb-0">
+                        <thead>
                             <tr>
-                                <td>{{ \Carbon\Carbon::parse($order_data['created_at'])->format('Y-m-d H:i') }}</td>
-                                <td>{{ $prescription_id }}</td>
-                                <td>{{ $sku_txt }}</td>
-                                <td> - </td>
-                                <td>{{ $order_data['customer']['first_name'] . ' ' . $order_data['customer']['last_name'] }}
-                                </td>
-                                <td>{{ $action }}</td>
-                                <td>{{ $clinical_reasoning }}</td>
-                                <td>Compliance Status</td>
+                                <th>Order ID</th>
+                                <th>Action</th>
+                                <th>Role</th>
+                                <th>SKU</th>
+                                <th>Clinical Notes Snippet</th>
+                                <th>Rejection Reason</th>
+                                <th>On Hold Reason</th>
                             </tr>
-                        @endforeach
-                    </tbody>
-                </table> --}}
-                <table class="table table-bordered table-responsive">
-                    <thead>
-                        <tr>
-                            <th>Order ID</th>
-                            <th>Action</th>
-                            <th>Role</th>
-                            <th>SKU</th>
-                            <th>Clinical Notes Snippet</th>
-                            <th>Rejection Reason</th>
-                            <th>On Hold Reason</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach ($orders as $key => $value)
-                            @php
+                        </thead>
+                        <tbody>
+                            @foreach ($orders as $key => $value)
+                                @php
 
-                                $order_values = getOrderData($value['order_id']);
-                             
-                                $sku_txt = '';
-                                $sku = [];
+                                    $order_values = getOrderData($value['order_id']);
+                                
+                                    $sku_txt = '';
+                                    $sku = [];
 
-                                $order_data = json_decode($order_values['order_data'], true);
-                                if (isset($order_data['line_items']) && is_array($order_data['line_items'])) {
-                                    foreach ($order_data['line_items'] as $skey => $svalue) {
-                                        if (isset($svalue['sku'])) {
-                                            $sku[] = $svalue['sku'];
+                                    $order_data = json_decode($order_values['order_data'], true);
+                                    if (isset($order_data['line_items']) && is_array($order_data['line_items'])) {
+                                        foreach ($order_data['line_items'] as $skey => $svalue) {
+                                            if (isset($svalue['sku'])) {
+                                                $sku[] = $svalue['sku'];
+                                            }
                                         }
+                                        $sku_txt = implode(',', $sku);
                                     }
-                                    $sku_txt = implode(',', $sku);
-                                }
 
-                                $status = '';
-                                if($value['decision_status'] == "on_hold") {
-                                    $status = 'On Hold';     
-                                }else{
-                                    $status = ucfirst($value['decision_status']);   
-                                }
+                                    $status = '';
+                                    if($value['decision_status'] == "on_hold") {
+                                        $status = 'On Hold';     
+                                    }else{
+                                        $status = ucfirst($value['decision_status']);   
+                                    }
 
-                            @endphp
-                            <tr>
-                                <td>{{ $value['order_id'] }}</td>
-                                <td>{{ $status }}</td>
-                                <td>{{ $value['role'] }}</td>
-                                <td>{{ $sku_txt }}</td>
-                                <td>{{ ($value['clinical_reasoning'] ?? '-') }}</td>
-                                <td>{{ ($value['rejection_reason '] ?? '-') }}</td>
-                                <td>{{ ($value['on_hold_reason'] ?? '-') }}</td>
-                            </tr>
-                        @endforeach
-                    </tbody>
-                </table>
+                                @endphp
+                                <tr>
+                                    <td>{{ $value['order_id'] }}</td>
+                                    <td>{{ $status }}</td>
+                                    <td>{{ $value['role'] }}</td>
+                                    <td>{{ $sku_txt }}</td>
+                                    <td>{{ ($value['clinical_reasoning'] ?? '-') }}</td>
+                                    <td>{{ ($value['rejection_reason '] ?? '-') }}</td>
+                                    <td>{{ ($value['on_hold_reason'] ?? '-') }}</td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                 </div>
                 <div>
                     {{ $orders->links() }}
                 </div>

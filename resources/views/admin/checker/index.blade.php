@@ -23,6 +23,42 @@
         </div>
 
         <div class="row mb-5">
+            <div class="col-md-3">
+                <div class="card">
+                    <div class="card-body">
+                        <span>Total Pending</span><br>
+                        <h3>{{ $counts['total_pending'] ?? '' }}</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card">
+                    <div class="card-body">
+                        <span>Approved</span><br>
+                        <h3>{{ $counts['total_approved'] ?? '' }}</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card">
+                    <div class="card-body">
+                        <span>On Hold</span><br>
+                        <h3>{{ $counts['total_on_hold'] ?? '' }}</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card">
+                    <div class="card-body">
+                        <span>Rejected</span><br>
+                        <h3>{{ $counts['total_rejected'] ?? '' }}</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+        <div class="row mb-5">
             <!-- Column starts -->
             <div class="col-xl-12">
                 <div class="card">
@@ -124,11 +160,13 @@
                                             <td>{{ $order->orderaction?->decision_timestamp?->format(config('Reading.date_time_format')) ?? 'N/A' }}
                                             </td>
                                             <td>{{ $order->created_at->format(config('Reading.date_time_format')) }}</td>
-                                            <td class="d-flex">
-                                                <a href="{{ route('checker_orders.view', $order->id) }}"
-                                                    class="btn btn-primary btn-sm">
-                                                    <i class="fa-solid fa-pen-to-square"></i>
-                                                </a>
+                                            <td>
+                                                <div class="d-flex">
+                                                    <a href="{{ route('checker_orders.view', $order->id) }}"
+                                                        class="btn btn-primary btn-sm">
+                                                        <i class="fa-solid fa-pen-to-square"></i>
+                                                    </a>
+                                                </div>
                                             </td>
                                         </tr>
                                     @empty

@@ -11,6 +11,7 @@ use App\Models\OrderAction;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Storage;
+use Carbon\Carbon;
 
 class CheckerOrderController extends Controller
 {
@@ -77,7 +78,75 @@ class CheckerOrderController extends Controller
         // Get distinct statuses
         $statuses = Order::select('financial_status')->distinct()->pluck('financial_status');
 
-        return view('admin.checker.index', compact('orders', 'statuses'));
+        // Initialize
+        $startDate = null;
+        $endDate = null;
+        $applyDateFilter = false;
+
+        // Handle date range
+        $dateRange = $request->input('date_range');
+        if ($dateRange && str_contains($dateRange, 'to')) {
+            [$startDateRaw, $endDateRaw] = array_map('trim', explode('to', $dateRange));
+
+            try {
+                $startDate = Carbon::parse($startDateRaw)->startOfDay();
+                $endDate = Carbon::parse($endDateRaw)->endOfDay();
+                $applyDateFilter = true;
+            } catch (\Exception $e) {
+                // Leave $applyDateFilter as false
+            }
+        }
+
+        // Total Pending Orders (from orders table)
+        $totalPendingQuery =Order::with('orderaction')
+            ->whereNull('fulfillment_status')
+            // Add the B2B filter directly here
+            ->whereRaw("JSON_EXTRACT(order_data, '$.company.id') IS NOT NULL")
+            ->whereRaw("JSON_EXTRACT(order_data, '$.company.location_id') IS NOT NULL")
+            ->where(function ($q) {
+                $q->whereRaw("JSON_EXTRACT(order_data, '$.cancelled_at') IS NULL")
+                    ->orWhereRaw("JSON_UNQUOTE(JSON_EXTRACT(order_data, '$.cancelled_at')) = 'null'");
+            })->whereDoesntHave('orderaction', function ($q) {
+                $q->where('decision_status', 'approved');
+            });
+
+        if ($applyDateFilter) {
+            $totalPendingQuery->whereBetween('created_at', [$startDate, $endDate]);
+        }
+        $totalPending = $totalPendingQuery->count();
+
+        // Shared query for actions
+       $actionsQuery = OrderAction::join('orders', 'order_actions.order_id', '=', 'orders.order_number')
+                        ->where('order_actions.role', 'Checker')
+                        ->whereRaw("JSON_EXTRACT(order_data, '$.company.id') IS NOT NULL")
+                        ->whereRaw("JSON_EXTRACT(order_data, '$.company.location_id') IS NOT NULL")
+                        ->where(function ($q) {
+                            $q->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(orders.order_data, '$.cancelled_at')) IS NULL")
+                            ->orWhereRaw("JSON_UNQUOTE(JSON_EXTRACT(orders.order_data, '$.cancelled_at')) = 'null'");
+                        });
+                        // ->where(function ($q) {
+                        //     $q->whereNull('order_actions.decision_status')
+                        //     ->orWhere('order_actions.decision_status', '!=', 'approved');
+                        // });
+
+        if ($applyDateFilter) {
+            $actionsQuery->whereBetween('order_actions.created_at', [$startDate, $endDate]);
+        }
+
+        // Counts by decision_status
+        $totalApproved = (clone $actionsQuery)->where('decision_status', 'approved')->count();
+        $totalOnHold   = (clone $actionsQuery)->where('decision_status', 'on_hold')->count();
+        $totalRejected = (clone $actionsQuery)->where('decision_status', 'rejected')->count();
+
+        // Final result
+        $counts = [
+            'total_pending'  => $totalPending,
+            'total_approved' => $totalApproved,
+            'total_on_hold'  => $totalOnHold,
+            'total_rejected' => $totalRejected,
+        ];
+
+        return view('admin.checker.index', compact('orders', 'statuses','counts'));
     }
 
     public function view($id)

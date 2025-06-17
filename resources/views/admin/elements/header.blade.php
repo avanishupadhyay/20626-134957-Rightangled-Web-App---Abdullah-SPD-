@@ -73,6 +73,11 @@
                         </nav>
                     </div>
 
+                    <a class="nav-link {{ request()->routeIs('admin.email-templates.index') ? 'active' : '' }}"
+                    href="{{ url('/admin/email-templates') }}"><i class="fa fa-envelope"></i>&nbsp;email-templates
+                    </a>
+                    
+
                 @endif
 
                 {{-- <div class="sb-sidenav-menu-heading">Manage </div> --}}

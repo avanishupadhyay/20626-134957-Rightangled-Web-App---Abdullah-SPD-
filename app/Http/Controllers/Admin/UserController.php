@@ -12,6 +12,10 @@ use Hash;
 use Illuminate\Support\Arr;
 use Illuminate\View\View;
 use Illuminate\Http\RedirectResponse;
+use App\Mail\SendMail;
+use Illuminate\Support\Facades\Mail;
+use App\Models\EmailTemplate;
+use Illuminate\Support\Facades\Blade;
 
 class UserController extends Controller
 {
@@ -78,7 +82,6 @@ class UserController extends Controller
             'email' => $request->email,
             'password' => Hash::make($request->password),
         ]);
-
         // Assign roles to the user
         $user->assignRole($request->input('roles'));
 
@@ -93,7 +96,32 @@ class UserController extends Controller
             'gphc_number' => $request->gphc_number ?? '',
             'signature_image' => $signatureImage,
         ]);
-        
+       
+        $template = EmailTemplate::where('identifier', 'register_mail')->first();
+
+        $data = [
+            'name' => $user->name,
+            'email' => $user->email,
+            'signature_image' => asset('admin/signature-images/' . $signatureImage),
+            'gphc_number' => $request->gphc_number,
+            'role'=> $request->roles[0] ?? '',
+            // add more keys as needed
+        ];
+
+        // Replace all {key} with actual values
+        $parsedSubject = preg_replace_callback('/\{(\w+)\}/', function ($matches) use ($data) {
+            return $data[$matches[1]] ?? ''; // Return empty string if key not found
+        }, $template->subject ?? '');
+
+        $parsedBody = preg_replace_callback('/\{(\w+)\}/', function ($matches) use ($data) {
+            return $data[$matches[1]] ?? ''; // Return empty string if key not found
+        }, $template->body ?? '');
+
+        Mail::to($user->email)->send(new SendMail([
+            'subject' => $parsedSubject,
+            'body' => $parsedBody,
+        ]));
+
         return redirect()->route('users.index')
             ->with('success', 'User created successfully');
     }
