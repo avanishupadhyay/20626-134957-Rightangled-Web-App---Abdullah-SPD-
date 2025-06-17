@@ -822,9 +822,9 @@ function buildCommonMetafieldsChecker(Request $request, string $decisionStatus):
 
 function markFulfillmentOnHold($orderId, $reason)
 {
-	// $shopDomain = env('SHOP_DOMAIN');
-	// $accessToken = env('ACCESS_TOKEN');
-	['shopDomain' => $shopDomain, 'accessToken' => $accessToken] = getShopifyCredentialsByOrderId($orderId);
+	$shopDomain = env('SHOP_DOMAIN');
+	$accessToken = env('ACCESS_TOKEN');
+	// ['shopDomain' => $shopDomain, 'accessToken' => $accessToken] = getShopifyCredentialsByOrderId($orderId);
 
 	// Step 1: Get the order to fetch fulfillment_order ID
 	$response = Http::withHeaders([
