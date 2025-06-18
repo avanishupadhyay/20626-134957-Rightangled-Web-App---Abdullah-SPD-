@@ -9,31 +9,43 @@
             font-weight: 600;
         }
     </style>
-    <div class="card p-4">
-
-        <h2>Create Email Template</h2><br>
-        <form method="POST" action="{{ route('admin.email-templates.store') }}">
-            @csrf
-            <div>
-                <label>Subject</label>
-                <input type="text" name="subject" class="form-control" value="{{ $template['subject'] ?? '' }}" required>
-            </div>
-            <br>
-            <div>
-                <label>Body</label>
-                <textarea name="body" id="editor" class="form-control" rows="10">{!! $template['body'] ?? '' !!}</textarea>
+    <div class="card">
+        <div class="card-header">
+            <h3>{{ !empty($template) ? 'Edit' : 'Create' }} Email Template</h3>
+        </div>
+        <div class="card-body">
+            {{-- <form method="POST" action="{{ route('admin.email-templates.store') }}"> --}}
+              
+               <form method="POST" action="{{ !empty($template) ? route('admin.email-templates.update',['key' => $template['identifier']]) : route('admin.email-templates.store') }}">
+                @csrf
+                <div>
+                    <label>Key</label>
+                    <input type="text" name="identifier" class="form-control" value="{{ $template['identifier'] ?? '' }}" required>
+                    @error('identifier') <span class="text-danger">{{ $message }}</span> @enderror
+                </div><br>
+                <div>
+                    <label>Subject</label>
+                    <input type="text" name="subject" class="form-control" value="{{ $template['subject'] ?? '' }}" required>
+                    @error('subject') <span class="text-danger">{{ $message }}</span> @enderror
+                </div>
                 <br>
-                <p style="font-weight: 600">Available Shortcodes:
-                    <code>{name}</code>,
-                    <code>{email}</code>,
-                    <code>{gphc_number}</code>,
-                    <code>{signature_image}</code>,
-                    <code>{role}</code>
-                </p>
-            </div>
+                <div>   
+                    <label>Body</label>
+                    <textarea name="body" id="editor" class="form-control" rows="10">{!! $template['body'] ?? '' !!}</textarea>
+                     @error('body') <span class="text-danger">{{ $message }}</span> @enderror
+                    <br>
+                    <p style="font-weight: 600">Available Shortcodes:
+                        <code>{name}</code>,
+                        <code>{email}</code>,
+                        <code>{gphc_number}</code>,
+                        <code>{signature_image}</code>,
+                        <code>{role}</code>
+                    </p>
+                </div>
 
-            <button type="submit" class="btn btn-primary mt-2">Save</button>
-        </form>
+                <button type="submit" class="btn btn-primary mt-2">Save</button>
+            </form>
+        </div>
     </div>
     <script src="https://cdn.ckeditor.com/ckeditor5/39.0.1/classic/ckeditor.js"></script>
     <script>

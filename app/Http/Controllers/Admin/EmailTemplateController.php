@@ -11,44 +11,63 @@ class EmailTemplateController extends Controller
 {
     public function index()
     {
-        $template = EmailTemplate::where('identifier', 'register_mail')->first()->toArray();
+        $template = EmailTemplate::all()->toArray();
+        return view('admin.email_templates.list', compact('template'));
+    }
+
+    public function create($key = "")
+    {
+        $template = '';
+        if (isset($key) && !empty($key)) {
+            $template = EmailTemplate::where('identifier', $key)->first()->toArray();
+        }
+
         return view('admin.email_templates.create', compact('template'));
     }
 
-    public function create()
+    public function store(Request $request)
     {
-        return view('admin.email_templates.create');
-    }
-
-   public function store(Request $request)
-{
-    $request->validate([
-        'subject' => 'required',
-        'body' => 'required',
-    ]);
-
-    // Use a unique key to identify the template, e.g., "register_mail"
-    $key = 'register_mail';
-
-    // Check if template exists
-    $template = EmailTemplate::where('identifier', $key)->first();
-
-    if ($template) {
-        // Update existing template
-        $template->update([
-            'subject' => $request->subject,
-            'body' => $request->body,
+        $request->validate([
+            'identifier' => 'required|unique:email_templates,identifier',
+            'subject' => 'required',
+            'body' => 'required',
         ]);
-    } else {
-        // Create new template
+
         EmailTemplate::create([
-            'identifier' => $key,
+            'identifier' => $request->identifier,
             'subject' => $request->subject,
             'body' => $request->body,
         ]);
+
+
+        return redirect()->route('admin.email-templates.index')->with('success', 'Template saved.');
     }
 
-    return redirect()->route('admin.email-templates.index')->with('success', 'Template saved.');
-}
+    public function update(Request $request, $key = "")
+    {
+        $request->validate([
+            'identifier' => 'required',
+            'subject' => 'required',
+            'body' => 'required',
+        ]);
 
+        $template = EmailTemplate::where('identifier', $key)->firstOrFail();
+
+        // Check if the new identifier already exists for another template
+        $existing = EmailTemplate::where('identifier', $request->identifier)
+            ->where('id', '!=', $template->id)
+            ->first();
+
+        if ($existing) {
+            return redirect()->back()->withErrors(['identifier' => 'Key already exists.'])->withInput();
+        }
+
+        $template->update([
+            'identifier' => $request->identifier,
+            'subject' => $request->subject,
+            'body' => $request->body,
+        ]);
+
+        return redirect()->route('admin.email-templates.index')->with('success', 'Template Updated Succesfully.');
+    }
 }
