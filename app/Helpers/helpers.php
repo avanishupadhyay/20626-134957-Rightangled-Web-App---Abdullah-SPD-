@@ -654,14 +654,19 @@ function getOrderMetafields($orderId)
 	return [];
 }
 
-function buildCommonMetafields(Request $request, string $decisionStatus,$orderId, $pdfUrl = null): array
+function buildCommonMetafields(Request $request, string $decisionStatus, $orderId, $pdfUrl = null): array
 {
 	$user = auth()->user();
 	$prescriberData = $user->prescriber;
 
-	$resourceGid = 'gid://shopify/Order/'.$orderId;
+	$resourceGid = 'gid://shopify/Order/' . $orderId;
 	// $file_id = uploadImageAndSaveMetafield(public_path('admin/signature-images/'.$prescriberData->signature_image));
-	$imageUrl = asset('admin/signature-images/' . $prescriberData->signature_image);
+	// $imageUrl = asset('admin/signature-images/' . $prescriberData->signature_image);
+	if (empty($prescriberData->signature_image)) {
+		$imageUrl = asset('admin/signature-images/signature.png');
+	} else {
+		$imageUrl = asset('admin/signature-images/' . $prescriberData->signature_image);
+	}
 	$file_id = uploadImageAndSaveMetafield($imageUrl);
 
 	$metafields = [
@@ -820,41 +825,77 @@ function buildCommonMetafieldsChecker(Request $request, string $decisionStatus):
 	return $metafields;
 }
 
+// function markFulfillmentOnHold($orderId, $reason)
+// {
+// 	$shopDomain = env('SHOP_DOMAIN');
+// 	$accessToken = env('ACCESS_TOKEN');
+// 	// ['shopDomain' => $shopDomain, 'accessToken' => $accessToken] = getShopifyCredentialsByOrderId($orderId);
+// 	// Step 1: Get the order to fetch fulfillment_order ID
+// 	$response = Http::withHeaders([
+// 		'X-Shopify-Access-Token' => $accessToken,
+// 	])->get("https://{$shopDomain}/admin/api/2023-10/orders/{$orderId}/fulfillment_orders.json");
+
+// 	$fulfillmentOrders = $response->json('fulfillment_orders');
+// 	if (empty($fulfillmentOrders)) {
+// 		return response()->json(['error' => 'No fulfillment orders found.'], 404);
+// 	}
+// 	$fulfillmentOrderId = $fulfillmentOrders[0]['id'];
+// 	// Step 2: Create fulfillment hold (mark as on-hold)
+// 	$holdResponse = Http::withHeaders([
+// 		'X-Shopify-Access-Token' => $accessToken,
+// 		'Content-Type' => 'application/json',
+// 	])->post("https://{$shopDomain}/admin/api/2023-10/fulfillment_orders/{$fulfillmentOrderId}/hold.json", [
+// 		'fulfillment_hold' => [
+// 			'reason' => 'other', // ✅ valid reason
+// 			'reason_notes' => $reason ?? 'Order placed on hold during review.',
+// 		],
+// 	]);
+// 	if ($holdResponse->failed()) {
+// 		return response()->json([
+// 			'error' => 'Failed to put fulfillment on hold',
+// 			'details' => $holdResponse->json()
+// 		], 500);
+// 	}
+
+// 	return true;
+// }
+
+
 function markFulfillmentOnHold($orderId, $reason)
 {
 	$shopDomain = env('SHOP_DOMAIN');
 	$accessToken = env('ACCESS_TOKEN');
-	// ['shopDomain' => $shopDomain, 'accessToken' => $accessToken] = getShopifyCredentialsByOrderId($orderId);
 
-	// Step 1: Get the order to fetch fulfillment_order ID
+	// Step 1: Get all fulfillment orders
 	$response = Http::withHeaders([
 		'X-Shopify-Access-Token' => $accessToken,
 	])->get("https://{$shopDomain}/admin/api/2023-10/orders/{$orderId}/fulfillment_orders.json");
 
 	$fulfillmentOrders = $response->json('fulfillment_orders');
-
 	if (empty($fulfillmentOrders)) {
 		return response()->json(['error' => 'No fulfillment orders found.'], 404);
 	}
 
-	$fulfillmentOrderId = $fulfillmentOrders[0]['id'];
+	// Step 2: Loop through each fulfillment order and put it on hold
+	foreach ($fulfillmentOrders as $fulfillmentOrder) {
+		$fulfillmentOrderId = $fulfillmentOrder['id'];
 
+		$holdResponse = Http::withHeaders([
+			'X-Shopify-Access-Token' => $accessToken,
+			'Content-Type' => 'application/json',
+		])->post("https://{$shopDomain}/admin/api/2023-10/fulfillment_orders/{$fulfillmentOrderId}/hold.json", [
+			'fulfillment_hold' => [
+				'reason' => 'other',
+				'reason_notes' => $reason ?? 'Order placed on hold during review.',
+			],
+		]);
 
-	// Step 2: Create fulfillment hold (mark as on-hold)
-	$holdResponse = Http::withHeaders([
-		'X-Shopify-Access-Token' => $accessToken,
-		'Content-Type' => 'application/json',
-	])->post("https://{$shopDomain}/admin/api/2023-10/fulfillment_orders/{$fulfillmentOrderId}/hold.json", [
-		'fulfillment_hold' => [
-			'reason' => 'other', // ✅ valid reason
-			'reason_notes' => $reason ?? 'Order placed on hold during review.',
-		],
-	]);
-	if ($holdResponse->failed()) {
-		return response()->json([
-			'error' => 'Failed to put fulfillment on hold',
-			'details' => $holdResponse->json()
-		], 500);
+		if ($holdResponse->failed()) {
+			return response()->json([
+				'error' => 'Failed to put fulfillment on hold for fulfillment order ' . $fulfillmentOrderId,
+				'details' => $holdResponse->json()
+			], 500);
+		}
 	}
 
 	return true;
@@ -996,18 +1037,18 @@ if (!function_exists('getOrderData')) {
 }
 
 
-	// $imageUrl = 'https://rightangled.24livehost.com/storage/configuration-images/logo-1748949654.png'; // Must be public
-	// $orderIdGid = 'gid://shopify/Order/5794153988154';
-	// $response = $this->uploadImageAndSaveMetafield($imageUrl, $orderIdGid);
-	// dd($response);
+// $imageUrl = 'https://rightangled.24livehost.com/storage/configuration-images/logo-1748949654.png'; // Must be public
+// $orderIdGid = 'gid://shopify/Order/5794153988154';
+// $response = $this->uploadImageAndSaveMetafield($imageUrl, $orderIdGid);
+// dd($response);
 
- function uploadImageAndSaveMetafield($publicImageUrl)
-    {
-        $shop = env('SHOP_DOMAIN'); // e.g., your-store.myshopify.com
-        $token = env('ACCESS_TOKEN');
+function uploadImageAndSaveMetafield($publicImageUrl)
+{
+	$shop = env('SHOP_DOMAIN'); // e.g., your-store.myshopify.com
+	$token = env('ACCESS_TOKEN');
 
-        // Step 1: Upload image to Shopify Files via GraphQL
-        $uploadQuery = <<<'GRAPHQL'
+	// Step 1: Upload image to Shopify Files via GraphQL
+	$uploadQuery = <<<'GRAPHQL'
             mutation fileCreate($files: [FileCreateInput!]!) {
             fileCreate(files: $files) {
                 files {
@@ -1028,88 +1069,88 @@ if (!function_exists('getOrderData')) {
             }
             GRAPHQL;
 
-        $uploadResponse = Http::withHeaders([
-            'X-Shopify-Access-Token' => $token,
-            'Content-Type' => 'application/json',
-        ])->post("https://{$shop}/admin/api/2025-04/graphql.json", [
-            'query' => $uploadQuery,
-            'variables' => [
-                'files' => [
-                    [
-                        'alt' => 'Uploaded image',
-                        'contentType' => 'IMAGE',
-                        'originalSource' => $publicImageUrl,
-                    ]
-                ]
-            ],
-        ])->json();
+	$uploadResponse = Http::withHeaders([
+		'X-Shopify-Access-Token' => $token,
+		'Content-Type' => 'application/json',
+	])->post("https://{$shop}/admin/api/2025-04/graphql.json", [
+		'query' => $uploadQuery,
+		'variables' => [
+			'files' => [
+				[
+					'alt' => 'Uploaded image',
+					'contentType' => 'IMAGE',
+					'originalSource' => $publicImageUrl,
+				]
+			]
+		],
+	])->json();
 
-        $fileData = $uploadResponse['data']['fileCreate']['files'][0] ?? null;
+	$fileData = $uploadResponse['data']['fileCreate']['files'][0] ?? null;
 
-        if (!$fileData || !isset($fileData['id'])) {
-            return [
-                'status' => 'error',
-                'message' => 'Image upload failed',
-                'response' => $uploadResponse,
-            ];
-        }
+	if (!$fileData || !isset($fileData['id'])) {
+		return [
+			'status' => 'error',
+			'message' => 'Image upload failed',
+			'response' => $uploadResponse,
+		];
+	}
 
-        // $fileGid = $fileData['id'];
-        return $fileData['id'];
+	// $fileGid = $fileData['id'];
+	return $fileData['id'];
 
-        // Step 2: Save file GID as metafield on given resource
-        // $metafieldQuery = <<<'GRAPHQL'
-        //     mutation metafieldsSet($metafields: [MetafieldsSetInput!]!) {
-        //     metafieldsSet(metafields: $metafields) {
-        //         metafields {
-        //         id
-        //         namespace
-        //         key
-        //         type
-        //         value
-        //         }
-        //         userErrors {
-        //         field
-        //         message
-        //         }
-        //     }
-        //     }
-        //     GRAPHQL;
+	// Step 2: Save file GID as metafield on given resource
+	// $metafieldQuery = <<<'GRAPHQL'
+	//     mutation metafieldsSet($metafields: [MetafieldsSetInput!]!) {
+	//     metafieldsSet(metafields: $metafields) {
+	//         metafields {
+	//         id
+	//         namespace
+	//         key
+	//         type
+	//         value
+	//         }
+	//         userErrors {
+	//         field
+	//         message
+	//         }
+	//     }
+	//     }
+	//     GRAPHQL;
 
-        // $metafieldVariables = [
-        //     'metafields' => [
-        //         [
-        //             'ownerId' => $resourceGid, // e.g., Order GID
-        //             'namespace' => 'custom',
-        //             'key' => 'prescriber_s_signatures',
-        //             'type' => 'file_reference',
-        //             'value' => $fileGid,
-        //         ]
-        //     ]
-        // ];
+	// $metafieldVariables = [
+	//     'metafields' => [
+	//         [
+	//             'ownerId' => $resourceGid, // e.g., Order GID
+	//             'namespace' => 'custom',
+	//             'key' => 'prescriber_s_signatures',
+	//             'type' => 'file_reference',
+	//             'value' => $fileGid,
+	//         ]
+	//     ]
+	// ];
 
-        // $metafieldResponse = Http::withHeaders([
-        //     'X-Shopify-Access-Token' => $token,
-        //     'Content-Type' => 'application/json',
-        // ])->post("https://{$shop}/admin/api/2025-04/graphql.json", [
-        //     'query' => $metafieldQuery,
-        //     'variables' => $metafieldVariables,
-        // ])->json();
+	// $metafieldResponse = Http::withHeaders([
+	//     'X-Shopify-Access-Token' => $token,
+	//     'Content-Type' => 'application/json',
+	// ])->post("https://{$shop}/admin/api/2025-04/graphql.json", [
+	//     'query' => $metafieldQuery,
+	//     'variables' => $metafieldVariables,
+	// ])->json();
 
-        // return [
-        //     'status' => 'success',
-        //     'fileGid' => $fileGid,
-        //     'uploadResult' => $uploadResponse,
-        //     'metafieldResult' => $metafieldResponse,
-        // ];
-    }
+	// return [
+	//     'status' => 'success',
+	//     'fileGid' => $fileGid,
+	//     'uploadResult' => $uploadResponse,
+	//     'metafieldResult' => $metafieldResponse,
+	// ];
+}
 
-	function getShopifyImageUrl($gid)
-	{
-		$endpoint = 'https://' . env('SHOP_DOMAIN') . '/admin/api/2024-01/graphql.json';
-		$accessToken = env('ACCESS_TOKEN');
+function getShopifyImageUrl($gid)
+{
+	$endpoint = 'https://' . env('SHOP_DOMAIN') . '/admin/api/2024-01/graphql.json';
+	$accessToken = env('ACCESS_TOKEN');
 
-		$query = <<<GQL
+	$query = <<<GQL
 		{
 		node(id: "$gid") {
 			... on MediaImage {
@@ -1121,15 +1162,14 @@ if (!function_exists('getOrderData')) {
 		}
 		GQL;
 
-		$response = Http::withHeaders([
-			'X-Shopify-Access-Token' => $accessToken,
-			'Content-Type' => 'application/json',
-		])->post($endpoint, [
-			'query' => $query
-		]);
+	$response = Http::withHeaders([
+		'X-Shopify-Access-Token' => $accessToken,
+		'Content-Type' => 'application/json',
+	])->post($endpoint, [
+		'query' => $query
+	]);
 
-		$data = $response->json();
+	$data = $response->json();
 
-		return $data['data']['node']['image']['url'] ?? null;
-	}
-
+	return $data['data']['node']['image']['url'] ?? null;
+}

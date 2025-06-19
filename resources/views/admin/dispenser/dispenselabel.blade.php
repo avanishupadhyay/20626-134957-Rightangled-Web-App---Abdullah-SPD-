@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <title>Dispense Batch PDF</title>
@@ -27,7 +28,8 @@
             margin-top: 8px;
         }
 
-        .product-table th, .product-table td {
+        .product-table th,
+        .product-table td {
             border: 1px solid #000;
             padding: 5px;
             text-align: left;
@@ -42,65 +44,140 @@
         }
     </style>
 </head>
+
 <body>
+    {{-- 1. Dispensing Labels Section --}}
+    @foreach ($processedOrders as $order)
+        <div class="order-block">
+            <h4>Dispensing Label</h4>
+            <p><strong>Order Number:</strong> {{ $order->order_number }}</p>
+            <p><strong>Prescription Date:</strong> {{ $order->order_data['created_at'] ?? 'N/A' }}</p>
+            <p><strong>Customer:</strong> {{ $order->order_data['customer']['first_name'] ?? '' }}
+                {{ $order->order_data['customer']['last_name'] ?? '' }}</p>
+            <p><strong>DOB:</strong> {{ $order->order_data['customer']['dob'] ?? 'N/A' }}</p>
+            <p><strong>Prescriber:</strong> {{ $order->order_data['prescriber_name'] ?? 'N/A' }}</p>
 
-@foreach ($processedOrders as $order)
-    <div class="order-block">
-        {{-- Order Header --}}
-        <h4>Dispensing Label</h4>
-        <p><strong>Order Number:</strong> {{ $order->order_number }}</p>
-        <p><strong>Prescription Date:</strong> {{ $order->order_data['created_at'] ?? 'N/A' }}</p>
-        <p><strong>Customer:</strong> {{ $order->order_data['customer']['first_name'] ?? '' }} {{ $order->order_data['customer']['last_name'] ?? '' }}</p>
-        <p><strong>DOB:</strong> {{ $order->order_data['customer']['dob'] ?? 'N/A' }}</p>
-        <p><strong>Prescriber:</strong> {{ $order->order_data['prescriber_name'] ?? 'N/A' }}</p>
-
-        {{-- Line Items --}}
-        <div class="section">
-            <table class="product-table">
-                <thead>
-                    <tr>
-                        <th>Product</th>
-                        <th>Direction of Use</th>
-                        <th>Qty</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach ($order->line_items as $item)
+            {{-- Line Items --}}
+            <div class="section">
+                <table class="product-table">
+                    <thead>
                         <tr>
-                            <td>{{ $item['title'] ?? 'N/A' }}</td>
-                            <td>{{ $item['direction_of_use'] ?? 'Not available' }}</td>
-                            <td>x {{ $item['quantity'] ?? 0 }}</td>
+                            <th>Product</th>
+                            <th>Direction of Use</th>
+                            <th>Qty</th>
                         </tr>
-                    @endforeach
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                        @foreach ($order->line_items as $item)
+                            <tr>
+                                <td>{{ $item['title'] ?? 'N/A' }}</td>
+                                <td>{{ $item['direction_of_use'] ?? 'Not available' }}</td>
+                                <td>x {{ $item['quantity'] ?? 0 }}</td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
         </div>
 
-        {{-- Shipping Section --}}
-        <div class="section">
-            <h4>Shipping / Packing Slip</h4>
-            @php
-                $shipping = strtolower($order->order_data['shipping_lines'][0]['title'] ?? '');
-            @endphp
+        {{-- Page break between labels --}}
+        <div class="page-break"></div>
+    @endforeach
 
-            @if (str_contains($shipping, 'local'))
-                <p><strong>Local Pickup / Delivery</strong></p>
-                <p><strong>Address:</strong>
-                    {{ $order->order_data['shipping_address']['address1'] ?? '' }},
-                    {{ $order->order_data['shipping_address']['city'] ?? '' }},
-                    {{ $order->order_data['shipping_address']['zip'] ?? '' }}
-                </p>
-            @else
-                <p>Shipping Label Placeholder (Royal Mail / DHL)</p>
-            @endif
+    {{-- 2. Packaging Slips Section --}}
+    @php
+        $groupedOrders = $processedOrders->groupBy('slip_type');
+    @endphp
+
+    {{-- Shared Packaging Slip for HQ --}}
+    @if ($groupedOrders->has('hq'))
+        <div class="order-block">
+            <h4>Packaging Slip</h4>
+            <p><strong>RIGHTANGLED Orders</strong></p>
+            <p>{{ now()->format('d F Y') }}</p>
+
+
+            {{-- SHIP TO --}}
+            <p><strong>SHIP TO</strong></p>
+            <p>No shipping address</p>
+
+            {{-- BILL TO --}}
+            @foreach ($groupedOrders['hq'] as $order)
+                {{-- BILL TO --}}
+                <p><strong>BILL TO</strong></p>
+                <p>{{ $order->bill_to['name'] ?? '' }}</p>
+                <p>{{ $order->bill_to['address1'] ?? '' }}</p>
+                <p>{{ $order->bill_to['city'] ?? '' }} {{ $order->bill_to['province'] ?? '' }}
+                    {{ $order->bill_to['zip'] ?? '' }}</p>
+                <p>{{ $order->bill_to['country'] ?? '' }}</p>
+
+                {{-- ITEMS --}}
+                <p><strong>ITEMS QUANTITY</strong></p>
+                @foreach ($order->line_items as $item)
+                    <p>{{ $item['title'] ?? 'N/A' }} — {{ $item['quantity'] ?? 0 }} Tablets</p>
+                @endforeach
+                <hr>
+            @endforeach
+
+
+            <p><strong>NOTES</strong></p>
+            <p>Customer already completed ID verification</p>
+
+            <p>Thank you for shopping with us!</p>
+            <p><strong>Rightangled</strong><br>
+                32 Road, London W6 0LT, United Kingdom<br>
+                info@rightangled.com<br>
+                rightangled.com</p>
         </div>
-    </div>
-
-    {{-- Page break between orders --}}
-    @if (!$loop->last)
         <div class="page-break"></div>
     @endif
-@endforeach
 
+    {{-- Separate Packaging Slips for Local Delivery --}}
+    @if ($groupedOrders->has('local'))
+        @foreach ($groupedOrders['local'] as $order)
+            <div class="order-block">
+                <h4>Packaging Slip</h4>
+                <p><strong>RIGHTANGLED Order #{{ $order->name ?? $order->order_number }}</strong></p>
+                <p>{{ \Carbon\Carbon::parse($order->created_at)->format('d F Y') }}</p>
+
+                {{-- SHIP TO --}}
+                <p><strong>SHIP TO</strong></p>
+                <p>{{ $order->ship_to['name'] ?? '' }}</p>
+                <p>{{ $order->ship_to['address1'] ?? '' }}</p>
+                <p>{{ $order->ship_to['city'] ?? '' }} {{ $order->ship_to['province'] ?? '' }}
+                    {{ $order->ship_to['zip'] ?? '' }}</p>
+                <p>{{ $order->ship_to['country'] ?? '' }}</p>
+
+                {{-- BILL TO --}}
+                <p><strong>BILL TO</strong></p>
+                <p>{{ $order->bill_to['name'] ?? '' }}</p>
+                <p>{{ $order->bill_to['address1'] ?? '' }}</p>
+                <p>{{ $order->bill_to['city'] ?? '' }} {{ $order->bill_to['province'] ?? '' }}
+                    {{ $order->bill_to['zip'] ?? '' }}</p>
+                <p>{{ $order->bill_to['country'] ?? '' }}</p>
+
+                {{-- Items --}}
+                <p><strong>ITEMS QUANTITY</strong></p>
+                @foreach ($order->line_items as $item)
+                    <p>{{ $item['title'] ?? 'N/A' }}</p>
+                    <p>{{ $item['quantity'] ?? 0 }} Tablets</p>
+                @endforeach
+
+                {{-- Notes and Footer --}}
+                <p><strong>NOTES</strong></p>
+                <p>Customer already completed ID verification</p>
+
+                <p>Thank you for shopping with us!</p>
+                <p><strong>Rightangled</strong><br>
+                    32 Road, London W6 0LT, United Kingdom<br>
+                    info@rightangled.com<br>
+                    rightangled.com</p>
+            </div>
+            @if (!$loop->last)
+                <div class="page-break"></div>
+            @endif
+        @endforeach
+    @endif
 </body>
+
 </html>
