@@ -13,6 +13,7 @@ use App\Http\Controllers\Admin\PrescriberOrderController;
 use App\Http\Controllers\Admin\CheckerOrderController;
 use App\Http\Controllers\Admin\DispenserOrderController;
 use App\Http\Controllers\Admin\ReportController;
+use App\Http\Controllers\Admin\EmailTemplateController;
 
 
 
@@ -50,6 +51,16 @@ Route::middleware(['auth'])->prefix('admin')->group(function () {
 
 		Route::get('/report', [ReportController::class, 'index'])->name('report');
 		Route::get('/reports/export', [ReportController::class, 'export'])->name('reports.export');
+
+		Route::get('email-templates', [EmailTemplateController::class, 'index'])->name('email-templates.index');
+		Route::get('email-templates/create', [EmailTemplateController::class, 'create'])->name('email-templates.create');
+		Route::get('email-templates/edit/{key}', [EmailTemplateController::class, 'create'])->name('email-templates.edit');
+		Route::post('email-templates', [EmailTemplateController::class, 'store'])->name('email-templates.store');
+		Route::post('email-templates/update/{key}', [EmailTemplateController::class, 'update'])->name('email-templates.update');
+		Route::post('email-templates/delete', [EmailTemplateController::class, 'delete'])->name('email-templates.delete');
+		
+
+		
 		
 	});
 

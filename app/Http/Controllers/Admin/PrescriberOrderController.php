@@ -13,7 +13,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
 use GuzzleHttp\Client;
-
+use Carbon\Carbon;
 
 class PrescriberOrderController extends Controller
 {
@@ -170,10 +170,70 @@ class PrescriberOrderController extends Controller
         // Get distinct statuses
         $statuses = Order::select('financial_status')->distinct()->pluck('financial_status');
 
-        return view('admin.prescriber.index', compact('orders', 'statuses'));
+
+        // Initialize
+        $startDate = null;
+        $endDate = null;
+        $applyDateFilter = false;
+
+        // Handle date range
+        $dateRange = $request->input('date_range');
+        if ($dateRange && str_contains($dateRange, 'to')) {
+            [$startDateRaw, $endDateRaw] = array_map('trim', explode('to', $dateRange));
+
+            try {
+                $startDate = Carbon::parse($startDateRaw)->startOfDay();
+                $endDate = Carbon::parse($endDateRaw)->endOfDay();
+                $applyDateFilter = true;
+            } catch (\Exception $e) {
+                // Leave $applyDateFilter as false
+            }
+        }
+
+        // Total Pending Orders (from orders table)
+        $totalPendingQuery = Order::whereNull('fulfillment_status')
+            ->where(function ($q) {
+                $q->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(order_data, '$.cancelled_at')) IS NULL")
+                    ->orWhereRaw("JSON_UNQUOTE(JSON_EXTRACT(order_data, '$.cancelled_at')) = 'null'");
+            })
+            ->whereDoesntHave('orderaction', function ($q) {
+                $q->where('decision_status', 'approved');
+            });
+
+        if ($applyDateFilter) {
+            $totalPendingQuery->whereBetween('created_at', [$startDate, $endDate]);
+        }
+        $totalPending = $totalPendingQuery->count();
+
+        // Shared query for actions
+        $actionsQuery = OrderAction::join('orders', 'order_actions.order_id', '=', 'orders.order_number')
+            ->where('order_actions.role', 'Prescriber')
+            ->where(function ($q) {
+                $q->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(orders.order_data, '$.cancelled_at')) IS NULL")
+                    ->orWhereRaw("JSON_UNQUOTE(JSON_EXTRACT(orders.order_data, '$.cancelled_at')) = 'null'");
+            });
+
+        if ($applyDateFilter) {
+            $actionsQuery->whereBetween('order_actions.created_at', [$startDate, $endDate]);
+        }
+
+        // Counts by decision_status
+        $totalApproved = (clone $actionsQuery)->where('decision_status', 'approved')->count();
+        $totalOnHold   = (clone $actionsQuery)->where('decision_status', 'on_hold')->count();
+        $totalRejected = (clone $actionsQuery)->where('decision_status', 'rejected')->count();
+
+        // Final result
+        $counts = [
+            'total_pending'  => $totalPending,
+            'total_approved' => $totalApproved,
+            'total_on_hold'  => $totalOnHold,
+            'total_rejected' => $totalRejected,
+        ];
+
+        return view('admin.prescriber.index', compact('orders', 'statuses', 'counts'));
     }
 
-    
+
 
 
     public function view($id)
@@ -240,8 +300,7 @@ class PrescriberOrderController extends Controller
         // $pdfUrl = $this->generateAndStorePDF($orderId);
         $pdfPath = $this->generateAndStorePDF($orderId);
         $pdfUrl = rtrim(config('app.url'), '/') . '/' . ltrim($pdfPath, '/');
-        $metafields = buildCommonMetafields($request, $decisionStatus,$orderId, $pdfUrl);
-        // dd($metafields);
+        $metafields = buildCommonMetafields($request, $decisionStatus, $orderId, $pdfUrl);
         $roleName = auth()->user()->getRoleNames()->first(); // Returns string or null
 
         $shopDomain = env('SHOP_DOMAIN');
@@ -259,7 +318,7 @@ class PrescriberOrderController extends Controller
                     'metafield' => $field
                 ]);
             }
-
+           
             // Step 2: Take action based on decision
             if ($decisionStatus === 'on_hold') {
                 markFulfillmentOnHold($orderId, $request->on_hold_reason);
@@ -287,7 +346,7 @@ class PrescriberOrderController extends Controller
                     // 'cancelled_at' => $cancelTime,
                 ]);
             }
-
+      
             OrderAction::updateOrCreate(
                 [
                     'order_id' => $orderId,
@@ -301,17 +360,17 @@ class PrescriberOrderController extends Controller
                     'decision_timestamp' => now(),
                     'prescribed_pdf' => $pdfPath,
                     'role'=>$roleName
-
                 ]
             );
-
+        
 
             // Step 4: Log
             AuditLog::create([
                 'user_id' => auth()->id(),
                 'action' => $decisionStatus,
                 'order_id' => $orderId,
-                'details' => $request->clinical_reasoning ?? $request->rejection_reason ?? $request->on_hold_reason,
+                // 'details' => $request->clinical_reasoning ?? $request->rejection_reason ?? $request->on_hold_reason,
+                'details' =>  'Order prescribed by ' . auth()->user()->name . ' on ' . now()->format('d/m/Y') . ' at ' . now()->format('H:i') .'. Reason: "'.$request->clinical_reasoning ?? $request->rejection_reason ?? $request->on_hold_reason.'"' ,
             ]);
 
             DB::commit();
@@ -333,7 +392,10 @@ class PrescriberOrderController extends Controller
         $user = auth()->user();
         $prescriberData = $user->prescriber;
 
-        $image_path = public_path('admin/signature-images/' . $prescriberData->signature_image);
+        $filePath = "signature-images/{$prescriberData->signature_image}";
+		// $image_path = rtrim(config('app.url'), '/') . '/' . ltrim(Storage::url($filePath), '/');
+      
+        $image_path = public_path(Storage::url($filePath));
 
         foreach ($orderData['line_items'] as $item) {
             $productId = $item['product_id'];
@@ -350,7 +412,7 @@ class PrescriberOrderController extends Controller
         $pdf = Pdf::loadView('admin.orders.prescription_pdf', [
             'orderData' => $orderData,
             'items' => $items,
-            'prescriber_name' => 'Abdullah Sabyah',
+            // 'prescriber_name' => 'Abdullah Sabyah',
             'prescriber_reg' => '2224180',
             'order' => $order,
             'prescriber_s_name' => $orderMetafields['prescriber_s_name'] ?? 'N/A',

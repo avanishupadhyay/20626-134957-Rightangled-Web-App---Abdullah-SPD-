@@ -34,62 +34,57 @@
                     </div>
                     Dispenser
                 </a>
-
-                <a class="nav-link {{ request()->routeIs('admin.report') ? 'active' : '' }}"
-                    href="{{ url('/admin/report') }}"><i class="fas fa-chart-bar"></i>&nbsp;Report
-                </a>
                 @role('Admin')
-                    <a class="nav-link {{ request()->routeIs('orders.index') ? 'active' : '' }}"
+                    <a class="nav-link {{ request()->routeIs('admin.report') ? 'active' : '' }}"
+                        href="{{ url('/admin/report') }}"><i class="fas fa-chart-bar"></i>&nbsp;Report
+                    </a>
+
+                <div class="sb-sidenav-menu-heading">Modules</div>
+                <a class="nav-link {{ request()->routeIs('orders.index') ? 'active' : '' }}"
                         href="{{ route('orders.index') }}">
                         <div class="sb-nav-link-icon"><i class="fa fa-first-order" aria-hidden="true"></i>
                         </div>
                         Orders
-                    </a>
-                @endrole
-
-                <div class="sb-sidenav-menu-heading">Configurations</div>
-
-
-
-                @php
-                    $configuration_menu = getConfigurationMenu();
-                    $collapsed = 'collapsed';
-                    $prefix = '';
-                    if (request()->routeIs('admin.configurations.admin_prefix')) {
-                        $collapsed = '';
-                        $prefix = \Illuminate\Support\Facades\Request::segment(4);
-                    }
-                @endphp
-
-                @if (!empty($configuration_menu))
-
-                    <a class="nav-link {{ $collapsed }}" href="#" data-bs-toggle="collapse"
-                        data-bs-target="#Configurations" aria-expanded="false" aria-controls="collapseLayouts">
-                        <div class="sb-nav-link-icon"><i class="fa-solid fa-gear"></i></div>
-                        Global Configurations
-                        <div class="sb-sidenav-collapse-arrow"><i class="fas fa-angle-down"></i></div>
-                    </a>
-                    <div class="collapse {{ request()->routeIs('admin.configurations.admin_prefix') ? 'show' : '' }}"
-                        id="Configurations" aria-labelledby="headingOne" data-bs-parent="#sidenavAccordion">
-                        <nav class="sb-sidenav-menu-nested nav">
-                            @forelse($configuration_menu as $config_menu)
-                                <a class="nav-link {{ $prefix == $config_menu ? 'active' : '' }}"
-                                    href="{{ route('admin.configurations.admin_prefix', $config_menu) }}">{{ $config_menu }}</a>
-                            @empty
-                            @endforelse
-                        </nav>
-                    </div>
-
-                @endif
-
-                {{-- <div class="sb-sidenav-menu-heading">Manage </div> --}}
-                <a class="nav-link {{ request()->routeIs('admin.stores.index') ? 'active' : '' }}"
-                    href="{{ route('admin.stores.index') }}">
-                    <div class="sb-nav-link-icon"><i class="fa-solid fa-gear"></i></div>
-                    Store
                 </a>
+                    <div class="sb-sidenav-menu-heading">Configurations</div>
+                    @php
+                        $configuration_menu = getConfigurationMenu();
+                        $collapsed = 'collapsed';
+                        $prefix = '';
+                        if (request()->routeIs('admin.configurations.admin_prefix')) {
+                            $collapsed = '';
+                            $prefix = \Illuminate\Support\Facades\Request::segment(4);
+                        }
+                    @endphp
 
-                @role('Admin')
+                    @if (!empty($configuration_menu))
+                        <a class="nav-link {{ $collapsed }}" href="#" data-bs-toggle="collapse"
+                            data-bs-target="#Configurations" aria-expanded="false" aria-controls="collapseLayouts">
+                            <div class="sb-nav-link-icon"><i class="fa-solid fa-gear"></i></div>
+                            Global Configurations
+                            <div class="sb-sidenav-collapse-arrow"><i class="fas fa-angle-down"></i></div>
+                        </a>
+                        <div class="collapse {{ request()->routeIs('admin.configurations.admin_prefix') ? 'show' : '' }}"
+                            id="Configurations" aria-labelledby="headingOne" data-bs-parent="#sidenavAccordion">
+                            <nav class="sb-sidenav-menu-nested nav">
+                                @forelse($configuration_menu as $config_menu)
+                                    <a class="nav-link {{ $prefix == $config_menu ? 'active' : '' }}"
+                                        href="{{ route('admin.configurations.admin_prefix', $config_menu) }}">{{ $config_menu }}</a>
+                                @empty
+                                @endforelse
+                            </nav>
+                        </div>
+                    @endif
+
+                    {{-- <div class="sb-sidenav-menu-heading">Manage </div> --}}
+                    <a class="nav-link {{ request()->routeIs('admin.stores.index') ? 'active' : '' }}"
+                        href="{{ route('admin.stores.index') }}">
+                        <div class="sb-nav-link-icon"><i class="fa-solid fa-gear"></i></div>
+                        Store
+                    </a>
+                    <a class="nav-link {{ request()->routeIs('admin.email-templates.index') ? 'active' : '' }}"
+                        href="{{ url('/admin/email-templates') }}"><i class="fa fa-envelope"></i>&nbsp;email-templates
+                    </a>
                     <div class="sb-sidenav-menu-heading">Manage Users</div>
                     <a class="nav-link {{ request()->routeIs('users.index') ? 'active' : '' }}"
                         href="{{ route('users.index') }}">
@@ -97,7 +92,7 @@
                         Users
                     </a>
                 @endrole
-
             </div>
+        </div>
     </nav>
 </div>

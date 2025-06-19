@@ -41,20 +41,31 @@ class ReportController extends Controller
             $query->whereJsonContains('order_data->line_items', [['sku' => $request->sku]]);
         }
 
-        if ($request->filled('from') && $request->filled('to')) {
-            $from = $request->from . 'T00:00:00+01:00';
-            $to = $request->to . 'T23:59:59+01:00';
-            $query->whereRaw("
-                JSON_UNQUOTE(JSON_EXTRACT(order_data, '$.created_at')) BETWEEN ? AND ?
-            ", [$from, $to]);
-        }
+        // if ($request->filled('from') && $request->filled('to')) {
+        //     $from = $request->from . 'T00:00:00+01:00';
+        //     $to = $request->to . 'T23:59:59+01:00';
+        //     $query->whereRaw("
+        //         JSON_UNQUOTE(JSON_EXTRACT(order_data, '$.created_at')) BETWEEN ? AND ?
+        //     ", [$from, $to]);
+        // }
+        $start = $request->start_date;
+        $end = $request->end_date;
+            if ($start && $end) {
+                $query->whereBetween('order_actions.created_at', [$start . ' 00:00:00', $end . ' 23:59:59']);
+            }
 
         $orders = $query->paginate(config('Reading.nodes_per_page'));
-       
-        $orderActions = OrderAction::with('user.roles')
+        
+        $query = OrderAction::with('user.roles')
             ->when(!empty($request->metrics), function ($query) use ($request) {
                 $query->where('decision_status', $request->metrics);
-            })->get();
+            });
+
+            if ($start && $end) {
+                $query->whereBetween('created_at', [$start . ' 00:00:00', $end . ' 23:59:59']);
+            }
+
+        $orderActions = $query->get();
 
         $roleWiseCounts = [];
 
@@ -72,40 +83,6 @@ class ReportController extends Controller
                 }
             }
         }
-        // pr($roleWiseCounts);die;
-
-
-        // Filter: SKU
-        // if ($request->filled('sku')) {
-        //     $query->whereJsonContains('order_data->line_items', [['sku' => $request->sku]]);
-        // }
-
-        // Filter: User (customer first name)
-        // if ($request->filled('user')) {
-        //     $query->where('order_data->customer->first_name', $request->user);
-        // }
-
-        // Filter: Role – assuming orders are linked to users who have roles
-        // if ($request->filled('role')) {
-        //     $query->whereHas('user.roles', function ($q) use ($request) {
-        //         $q->where('name', $request->role);
-        //     });
-        // }
-
-        // Filter: Date range (example)
-        //  if ($request->filled('from') && $request->filled('to')) {
-        //     $from = $request->from . 'T00:00:00+01:00';
-        //     $to = $request->to . 'T23:59:59+01:00';
-
-        //     $query->whereRaw("
-        //         JSON_UNQUOTE(JSON_EXTRACT(order_data, '$.created_at')) BETWEEN ? AND ?
-        //     ", [$from, $to]);
-        // }
-        // You can handle metrics/report_type filters similarly...
-
-        // Get paginated filtered results
-        // $orders = $query->paginate(config('Reading.nodes_per_page'))
-        //                 ->appends($request->except('page')); // preserve filters in pagination
 
         // Get roles, stores, and users for filters
         $roles = \Spatie\Permission\Models\Role::pluck('name', 'name');
@@ -117,23 +94,6 @@ class ReportController extends Controller
 
         return view('admin.report.index', compact('orders', 'roles', 'store', 'users', 'roleWiseCounts'));
     }
-
-    // function index()
-    // {
-
-    //     $orders = Order::paginate(config('Reading.nodes_per_page'));
-    //     $roles = \Spatie\Permission\Models\Role::pluck('name', 'name');
-    //     $store = Store::select('id', 'name')->get()->toArray();
-
-    //     $users = [];
-
-    //       foreach($orders as $key=>$value){
-    //         $order_data = json_decode($value['order_data'],true);
-    //         $users[] = isset($order_data['customer']['first_name']) ? $order_data['customer']['first_name'] : '';
-    //       }
-
-    //     return view('admin.report.index', compact('orders', 'roles', 'store', 'users'));
-    // }
 
     public function export(Request $request)
     {
@@ -160,13 +120,18 @@ class ReportController extends Controller
             $query->whereJsonContains('order_data->line_items', [['sku' => $request->sku]]);
         }
 
-        if ($request->filled('from') && $request->filled('to')) {
-            $from = $request->from . 'T00:00:00+01:00';
-            $to = $request->to . 'T23:59:59+01:00';
-            $query->whereRaw("
-                JSON_UNQUOTE(JSON_EXTRACT(order_data, '$.created_at')) BETWEEN ? AND ?
-            ", [$from, $to]);
-        }
+        // if ($request->filled('from') && $request->filled('to')) {
+        //     $from = $request->from . 'T00:00:00+01:00';
+        //     $to = $request->to . 'T23:59:59+01:00';
+        //     $query->whereRaw("
+        //         JSON_UNQUOTE(JSON_EXTRACT(order_data, '$.created_at')) BETWEEN ? AND ?
+        //     ", [$from, $to]);
+        // }
+        $start = $request->start_date;
+        $end = $request->end_date;
+            if ($start && $end) {
+                $query->whereBetween('order_actions.created_at', [$start . ' 00:00:00', $end . ' 23:59:59']);
+            }
 
         $orders = $query->get();
 
