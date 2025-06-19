@@ -197,12 +197,12 @@ class OrderController extends Controller
             'on_hold_reason' => 'required_if:decision_status,on_hold',
             'release_hold_reason' => 'required_if:decision_status,release_hold',
         ]);
-
         $decisionStatus = $request->decision_status;
         $metafields = buildCommonMetafields($request, $decisionStatus,$orderId);
         $shopDomain = env('SHOP_DOMAIN');
         $accessToken = env('ACCESS_TOKEN');
         // ['shopDomain' => $shopDomain, 'accessToken' => $accessToken] = getShopifyCredentialsByOrderId($orderId);
+        $roleName = auth()->user()->getRoleNames()->first(); // Returns string or null
 
         DB::beginTransaction();
         try {
@@ -218,8 +218,9 @@ class OrderController extends Controller
 
             // Step 2: Take action based on decision
             if ($decisionStatus === 'on_hold') {
+             
                 markFulfillmentOnHold($orderId, $request->on_hold_reason);
-                Order::where('order_number', $orderId)->update([
+                $data=Order::where('order_number', $orderId)->update([
                     'fulfillment_status' => 'on_hold',
                 ]);
             } elseif ($decisionStatus === 'rejected') {
@@ -264,6 +265,7 @@ class OrderController extends Controller
                     'on_hold_reason' => $request->on_hold_reason,
                     'release_hold_reason' => $request->release_hold_reason,
                     'decision_timestamp' => now(),
+                    'role'=>$roleName
 
                 ]
             );

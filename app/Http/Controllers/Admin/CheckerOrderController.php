@@ -216,6 +216,8 @@ class CheckerOrderController extends Controller
 
         $shopDomain = env('SHOP_DOMAIN');
         $accessToken = env('ACCESS_TOKEN');
+        $roleName = auth()->user()->getRoleNames()->first(); // Returns string or null
+
         // ['shopDomain' => $shopDomain, 'accessToken' => $accessToken] = getShopifyCredentialsByOrderId($orderId);
 
         DB::beginTransaction();
@@ -270,7 +272,7 @@ class CheckerOrderController extends Controller
                     'rejection_reason' => $request->rejection_reason,
                     'on_hold_reason' => $request->on_hold_reason,
                     'decision_timestamp' => now(),
-                    'role' => auth()->user()->getRoleNames()->first(),
+                    'role'=> $roleName
                 ]
             );
 

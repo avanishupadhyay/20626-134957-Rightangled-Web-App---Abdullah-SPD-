@@ -301,7 +301,8 @@ class PrescriberOrderController extends Controller
         $pdfPath = $this->generateAndStorePDF($orderId);
         $pdfUrl = rtrim(config('app.url'), '/') . '/' . ltrim($pdfPath, '/');
         $metafields = buildCommonMetafields($request, $decisionStatus, $orderId, $pdfUrl);
-     
+        $roleName = auth()->user()->getRoleNames()->first(); // Returns string or null
+
         $shopDomain = env('SHOP_DOMAIN');
         $accessToken = env('ACCESS_TOKEN');
         // ['shopDomain' => $shopDomain, 'accessToken' => $accessToken] = getShopifyCredentialsByOrderId($orderId);
@@ -358,8 +359,7 @@ class PrescriberOrderController extends Controller
                     'on_hold_reason' => $request->on_hold_reason,
                     'decision_timestamp' => now(),
                     'prescribed_pdf' => $pdfPath,
-                    'role' => auth()->user()->getRoleNames()->first(),
-
+                    'role'=>$roleName
                 ]
             );
         

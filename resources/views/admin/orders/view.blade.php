@@ -44,7 +44,6 @@
         <button class="btn btn-info" data-bs-toggle="modal" data-bs-target="#releaseHoldModal">Release Hold</button> --}}
 
 
-
         <div class="m-3">
             @if (!$statuses['is_cancelled'])
                 @if ($statuses['fulfillment_status'] === 'on_hold')

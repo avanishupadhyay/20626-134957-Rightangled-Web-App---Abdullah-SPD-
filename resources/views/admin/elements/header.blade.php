@@ -38,9 +38,14 @@
                     <a class="nav-link {{ request()->routeIs('admin.report') ? 'active' : '' }}"
                         href="{{ url('/admin/report') }}"><i class="fas fa-chart-bar"></i>&nbsp;Report
                     </a>
-                @endrole
 
-                @role('Admin')
+                <div class="sb-sidenav-menu-heading">Modules</div>
+                <a class="nav-link {{ request()->routeIs('orders.index') ? 'active' : '' }}"
+                        href="{{ route('orders.index') }}">
+                        <div class="sb-nav-link-icon"><i class="fa fa-first-order" aria-hidden="true"></i>
+                        </div>
+                        Orders
+                </a>
                     <div class="sb-sidenav-menu-heading">Configurations</div>
                     @php
                         $configuration_menu = getConfigurationMenu();
@@ -86,14 +91,8 @@
                         <div class="sb-nav-link-icon"><i class="fas fa-user"></i></div>
                         Users
                     </a>
-                    <div class="sb-sidenav-menu-heading">Modules</div>
-                    <a class="nav-link {{ request()->routeIs('orders.index') ? 'active' : '' }}"
-                        href="{{ route('orders.index') }}">
-                        <div class="sb-nav-link-icon"><i class="fa fa-first-order" aria-hidden="true"></i>
-                        </div>
-                        Orders
-                    </a>
                 @endrole
             </div>
+        </div>
     </nav>
 </div>
