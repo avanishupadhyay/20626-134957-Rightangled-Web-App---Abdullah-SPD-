@@ -20,18 +20,20 @@
                 @csrf
                 <div>
                     <label>Key</label>
-                    <input type="text" name="identifier" class="form-control" value="{{ $template['identifier'] ?? '' }}" required>
+                    {{-- <input type="text" name="identifier" class="form-control" value="{{ $template['identifier'] ?? '' }}" required> --}}
+                    <input type="text" name="identifier" class="form-control" value="{{ old('identifier', $template['identifier'] ?? '') }}" required>
                     @error('identifier') <span class="text-danger">{{ $message }}</span> @enderror
                 </div><br>
                 <div>
                     <label>Subject</label>
-                    <input type="text" name="subject" class="form-control" value="{{ $template['subject'] ?? '' }}" required>
+                    {{-- <input type="text" name="subject" class="form-control" value="{{ $template['subject'] ?? '' }}" required> --}}
+                    <input type="text" name="subject" class="form-control" value="{{ old('subject', $template['subject'] ?? '') }}" required>
                     @error('subject') <span class="text-danger">{{ $message }}</span> @enderror
                 </div>
                 <br>
                 <div>   
                     <label>Body</label>
-                    <textarea name="body" id="editor" class="form-control" rows="10">{!! $template['body'] ?? '' !!}</textarea>
+                    <textarea name="body" id="editor" class="form-control" rows="10">{!! old('body',$template['body'] ?? '') !!}</textarea>
                      @error('body') <span class="text-danger">{{ $message }}</span> @enderror
                     <br>
                     <p style="font-weight: 600">Available Shortcodes:

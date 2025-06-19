@@ -4,7 +4,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Http\Request;
 use App\Models\Order;
 use App\Models\OrderAction;
-
+use Illuminate\Support\Facades\Storage;
 
 if (!function_exists('pr')) {
 
@@ -660,12 +660,18 @@ function buildCommonMetafields(Request $request, string $decisionStatus,$orderId
 	$prescriberData = $user->prescriber;
 
 	$resourceGid = 'gid://shopify/Order/'.$orderId;
-	// $file_id = uploadImageAndSaveMetafield(public_path('admin/signature-images/'.$prescriberData->signature_image));
-	$imageUrl = asset('admin/signature-images/' . $prescriberData->signature_image);
+	if(empty($prescriberData->signature_image)){
+		$imageUrl = asset('admin/signature-images/signature.png');
+	}else{
+		$filePath = "signature-images/{$prescriberData->signature_image}";
+		$imageUrl = rtrim(config('app.url'), '/') . '/' . ltrim(Storage::url($filePath), '/');
+		// $imageUrl = asset('admin/signature-images/' . $prescriberData->signature_image);
+	}
 	$file_id = uploadImageAndSaveMetafield($imageUrl);
 
 	$metafields = [
 		[
+			'ownerId' => $resourceGid,
 			'namespace' => 'custom',
 			'key' => 'prescriber_id',
 			'type' => 'number_integer',
@@ -694,7 +700,7 @@ function buildCommonMetafields(Request $request, string $decisionStatus,$orderId
 			'namespace' => 'custom',
 			'key' => 'prescriber_s_signatures',
 			'type' => 'file_reference',
-			'value' => $file_id,
+			'value' => $file_id ?? '',
 		],
 		[
 			'namespace' => 'custom',
@@ -733,7 +739,7 @@ function buildCommonMetafields(Request $request, string $decisionStatus,$orderId
 		$metafields[] = [
 			'namespace' => 'custom',
 			'key' => 'prescriber_pdf',
-			'type' => 'single_line_text_field',
+			'type' => 'url',
 			'value' => $pdfUrl,
 		];
 	} elseif ($decisionStatus === 'rejected') {
@@ -824,7 +830,7 @@ function markFulfillmentOnHold($orderId, $reason)
 {
 	// $shopDomain = env('SHOP_DOMAIN');
 	// $accessToken = env('ACCESS_TOKEN');
-	['shopDomain' => $shopDomain, 'accessToken' => $accessToken] = getShopifyCredentialsByOrderId($orderId);
+	// ['shopDomain' => $shopDomain, 'accessToken' => $accessToken] = getShopifyCredentialsByOrderId($orderId);
 
 	// Step 1: Get the order to fetch fulfillment_order ID
 	$response = Http::withHeaders([
@@ -1055,7 +1061,7 @@ if (!function_exists('getOrderData')) {
         }
 
         // $fileGid = $fileData['id'];
-        return $fileData['id'];
+        return $fileData['id'] ?? '';
 
         // Step 2: Save file GID as metafield on given resource
         // $metafieldQuery = <<<'GRAPHQL'

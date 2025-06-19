@@ -70,4 +70,20 @@ class EmailTemplateController extends Controller
 
         return redirect()->route('admin.email-templates.index')->with('success', 'Template Updated Succesfully.');
     }
+
+    public function delete(Request $request){
+        $request->validate([
+            'identifier' => 'required|string'
+        ]);
+
+        $template = EmailTemplate::where('identifier', $request->identifier)->first();
+
+        if (!$template) {
+            return redirect()->back()->with('error', 'Email template not found.');
+        }
+
+        $template->delete();
+
+        return redirect()->back()->with('success', 'Email template deleted successfully.');
+    }
 }

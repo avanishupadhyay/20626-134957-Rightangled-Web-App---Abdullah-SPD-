@@ -270,6 +270,7 @@ class CheckerOrderController extends Controller
                     'rejection_reason' => $request->rejection_reason,
                     'on_hold_reason' => $request->on_hold_reason,
                     'decision_timestamp' => now(),
+                    'role' => auth()->user()->getRoleNames()->first(),
                 ]
             );
 
@@ -279,7 +280,8 @@ class CheckerOrderController extends Controller
                 'user_id' => auth()->id(),
                 'action' => $decisionStatus,
                 'order_id' => $orderId,
-                'details' => $request->clinical_reasoning ?? $request->rejection_reason ?? $request->on_hold_reason,
+                // 'details' => $request->clinical_reasoning ?? $request->rejection_reason ?? $request->on_hold_reason,
+                'details' => 'Order checked by ' . auth()->user()->name . ' on ' . now()->format('d/m/Y') . ' at ' . now()->format('H:i'),
             ]);
 
             DB::commit();

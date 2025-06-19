@@ -301,8 +301,7 @@ class PrescriberOrderController extends Controller
         $pdfPath = $this->generateAndStorePDF($orderId);
         $pdfUrl = rtrim(config('app.url'), '/') . '/' . ltrim($pdfPath, '/');
         $metafields = buildCommonMetafields($request, $decisionStatus, $orderId, $pdfUrl);
-        // dd($metafields);
-
+     
         $shopDomain = env('SHOP_DOMAIN');
         $accessToken = env('ACCESS_TOKEN');
         // ['shopDomain' => $shopDomain, 'accessToken' => $accessToken] = getShopifyCredentialsByOrderId($orderId);
@@ -318,7 +317,7 @@ class PrescriberOrderController extends Controller
                     'metafield' => $field
                 ]);
             }
-
+           
             // Step 2: Take action based on decision
             if ($decisionStatus === 'on_hold') {
                 markFulfillmentOnHold($orderId, $request->on_hold_reason);
@@ -346,7 +345,7 @@ class PrescriberOrderController extends Controller
                     // 'cancelled_at' => $cancelTime,
                 ]);
             }
-
+      
             OrderAction::updateOrCreate(
                 [
                     'order_id' => $orderId,
@@ -359,17 +358,19 @@ class PrescriberOrderController extends Controller
                     'on_hold_reason' => $request->on_hold_reason,
                     'decision_timestamp' => now(),
                     'prescribed_pdf' => $pdfPath,
+                    'role' => auth()->user()->getRoleNames()->first(),
 
                 ]
             );
-
+        
 
             // Step 4: Log
             AuditLog::create([
                 'user_id' => auth()->id(),
                 'action' => $decisionStatus,
                 'order_id' => $orderId,
-                'details' => $request->clinical_reasoning ?? $request->rejection_reason ?? $request->on_hold_reason,
+                // 'details' => $request->clinical_reasoning ?? $request->rejection_reason ?? $request->on_hold_reason,
+                'details' =>  'Order prescribed by ' . auth()->user()->name . ' on ' . now()->format('d/m/Y') . ' at ' . now()->format('H:i') .'. Reason: "'.$request->clinical_reasoning ?? $request->rejection_reason ?? $request->on_hold_reason.'"' ,
             ]);
 
             DB::commit();
@@ -391,7 +392,10 @@ class PrescriberOrderController extends Controller
         $user = auth()->user();
         $prescriberData = $user->prescriber;
 
-        $image_path = public_path('admin/signature-images/' . $prescriberData->signature_image);
+        $filePath = "signature-images/{$prescriberData->signature_image}";
+		// $image_path = rtrim(config('app.url'), '/') . '/' . ltrim(Storage::url($filePath), '/');
+      
+        $image_path = public_path(Storage::url($filePath));
 
         foreach ($orderData['line_items'] as $item) {
             $productId = $item['product_id'];
@@ -408,7 +412,7 @@ class PrescriberOrderController extends Controller
         $pdf = Pdf::loadView('admin.orders.prescription_pdf', [
             'orderData' => $orderData,
             'items' => $items,
-            'prescriber_name' => 'Abdullah Sabyah',
+            // 'prescriber_name' => 'Abdullah Sabyah',
             'prescriber_reg' => '2224180',
             'order' => $order,
             'prescriber_s_name' => $orderMetafields['prescriber_s_name'] ?? 'N/A',

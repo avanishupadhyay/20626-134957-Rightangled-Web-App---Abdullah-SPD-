@@ -9,7 +9,7 @@
     </style>
     <div class="card">
         <div class="card-header">
-            <div class="d-flex justify-content-between align-items-center"  style="width: -webkit-fill-available;">
+            <div class="d-flex justify-content-between align-items-center" style="width: -webkit-fill-available;">
                 <h4>Email Templates</h4>
                 <a href="{{ route('admin.email-templates.create') }}" class="btn btn-primary">Add Template</a>
             </div>
@@ -35,7 +35,15 @@
                                 <td>
                                     <div class="d-flex gap-2 justify-content-center">
                                         {{-- <a href=""><i class="fa fa-eye"></i></a> --}}
-                                        <a href="{{ route('admin.email-templates.edit', ['key' => $value['identifier']]) }}"><i class="fa fa-edit"></i></a>
+                                        <a href="{{ route('admin.email-templates.edit', ['key' => $value['identifier']]) }}"
+                                            class="btn btn-primary"><i class="fa fa-edit"></i></a>
+                                        <form method="POST" action="{{ route('admin.email-templates.delete') }}" class="email-template-delete-form">
+                                            @csrf
+                                            <input type="hidden" value="{{ $value['identifier'] }}" name="identifier">
+                                            <button type="submit" class="btn btn-danger">
+                                                <i class="fa fa-trash"></i>
+                                            </button>
+                                        </form>
                                     </div>
                                 </td>
                             </tr>
@@ -46,4 +54,31 @@
             </div>
         </div>
     </div>
+@endsection
+@section('custom_js_scripts')
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const deleteForms = document.querySelectorAll('form.email-template-delete-form');
+
+            deleteForms.forEach(form => {
+                form.addEventListener('submit', function(e) {
+                    e.preventDefault(); // Prevent actual submission
+
+                    Swal.fire({
+                        title: 'Are you sure?',
+                        text: "You won't be able to revert this!",
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonColor: '#d33',
+                        cancelButtonColor: '#3085d6',
+                        confirmButtonText: 'Yes, delete it!'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            form.submit(); // Submit the form if confirmed
+                        }
+                    });
+                });
+            });
+        });
+    </script>
 @endsection

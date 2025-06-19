@@ -41,6 +41,40 @@
                 </a>
             </div>
         </div><br>
+          {{-- <div class="row"> --}}
+
+            @php
+                $startDate = request('start_date');
+                $endDate = request('end_date');
+                $selectedPreset = request('preset');
+            @endphp
+
+            {{-- <div class="d-flex align-items-center gap-2">
+
+
+                <form id="date-filter-form" method="GET" action="{{ route('admin.report') }}"
+                    style="display: flex; gap: 10px; align-items: center;">
+
+                    <select id="preset-select" name="preset" class="form-select"
+                        style="width: 200px; border: 1px solid #ccc; border-radius: 4px;">
+                        <option value="">-- Select Preset --</option>
+                        @foreach (['Today', 'Yesterday', 'Last 7 days', 'Last 30 days', 'Last 6 months', 'Last 12 months', 'Month-to-date (MTD)', 'Year-to-date (YTD)', 'Lifetime'] as $preset)
+                            <option value="{{ $preset }}" {{ $selectedPreset == $preset ? 'selected' : '' }}>
+                                {{ $preset }}
+                            </option>
+                        @endforeach
+                    </select>
+
+                    <input type="text" id="date-range" class="form-control" placeholder="Select Date" readonly />
+                    <input type="hidden" name="start_date" id="start-date" value="{{ $startDate }}" />
+                    <input type="hidden" name="end_date" id="end-date" value="{{ $endDate }}" />
+                    <button type="submit" class="btn btn-primary">
+                        Apply
+                    </button>
+                    <a href="{{ route('admin.report') }}" class="btn btn-secondary">clear</a>
+                </form>
+            </div> --}}
+        {{-- </div><br> --}}
         <div class="row d-flex justify-content-between">
             <div class="col-md-3">
                 <div class="card p-3">
@@ -104,8 +138,19 @@
                         {{-- <input type="date" class="form-control" name="from" value="{{ request('from') }}">
 
                             <input type="date" class="form-control" name="to" value="{{ request('to') }}"> --}}
-
-                        <input type="text" id="date_range" class="form-control" placeholder="Select Date Range" readonly>
+                    <select id="preset-select" name="preset" class="form-select"
+                        style="width: 200px; border: 1px solid #ccc; border-radius: 4px;">
+                        <option value="">-- Select Preset --</option>
+                        @foreach (['Today', 'Yesterday', 'Last 7 days', 'Last 30 days', 'Last 6 months', 'Last 12 months', 'Month-to-date (MTD)', 'Year-to-date (YTD)', 'Lifetime'] as $preset)
+                            <option value="{{ $preset }}" {{ $selectedPreset == $preset ? 'selected' : '' }}>
+                                {{ $preset }}
+                            </option>
+                        @endforeach
+                    </select>
+                        <input type="text" id="date-range" class="form-control" placeholder="Select Date" readonly />
+                        <input type="hidden" name="start_date" id="start-date" value="{{ $startDate }}" />
+                        <input type="hidden" name="end_date" id="end-date" value="{{ $endDate }}" />
+                        {{-- <input type="text" id="date_range" class="form-control" placeholder="Select Date Range" readonly> --}}
                         <!-- Hidden inputs to submit with form -->
                         <input type="hidden" name="from" id="from_date" value="{{ request('from') }}">
                         <input type="hidden" name="to" id="to_date" value="{{ request('to') }}">
@@ -276,6 +321,82 @@
                 $('#from_date').val('');
                 $('#to_date').val('');
             });
+        });
+    </script>
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/litepicker/dist/css/litepicker.css" />
+    <script src="https://cdn.jsdelivr.net/npm/litepicker/dist/bundle.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
+
+    <script>
+        // Set initial dates from Blade variables
+        const initialStart = "{{ $startDate }}";
+        const initialEnd = "{{ $endDate }}";
+
+        const picker = new Litepicker({
+            element: document.getElementById('date-range'),
+            singleMode: false,
+            format: 'YYYY-MM-DD',
+            autoApply: true,
+            setup: (picker) => {
+                picker.on('selected', (start, end) => {
+                    document.getElementById('start-date').value = start.format('YYYY-MM-DD');
+                    document.getElementById('end-date').value = end.format('YYYY-MM-DD');
+                });
+            }
+        });
+
+        // Set the default selected date on page load
+        // picker.setDateRange(initialStart, initialEnd);
+        if (initialStart && initialEnd) {
+            picker.setDateRange(initialStart, initialEnd);
+        }
+        document.getElementById('preset-select').addEventListener('change', function() {
+            const selected = this.value;
+            if (!selected) return;
+
+            const now = dayjs();
+            let start, end;
+
+            switch (selected) {
+                case 'Today':
+                    start = end = now;
+                    break;
+                case 'Yesterday':
+                    start = end = now.subtract(1, 'day');
+                    break;
+                case 'Last 7 days':
+                    start = now.subtract(6, 'day');
+                    end = now;
+                    break;
+                case 'Last 30 days':
+                    start = now.subtract(29, 'day');
+                    end = now;
+                    break;
+                case 'Last 6 months':
+                    start = now.subtract(6, 'month').startOf('month');
+                    end = now;
+                    break;
+                case 'Last 12 months':
+                    start = now.subtract(12, 'month').startOf('month');
+                    end = now;
+                    break;
+                case 'Month-to-date (MTD)':
+                    start = now.startOf('month');
+                    end = now;
+                    break;
+                case 'Year-to-date (YTD)':
+                    start = now.startOf('year');
+                    end = now;
+                    break;
+                case 'Lifetime':
+                    start = dayjs('2000-01-01');
+                    end = now;
+                    break;
+            }
+
+            picker.setDateRange(start.toDate(), end.toDate());
+            document.getElementById('start-date').value = start.format('YYYY-MM-DD');
+            document.getElementById('end-date').value = end.format('YYYY-MM-DD');
         });
     </script>
 @endsection

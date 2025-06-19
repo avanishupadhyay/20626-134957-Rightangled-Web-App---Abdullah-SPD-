@@ -57,6 +57,7 @@ Route::middleware(['auth'])->prefix('admin')->group(function () {
 		Route::get('email-templates/edit/{key}', [EmailTemplateController::class, 'create'])->name('email-templates.edit');
 		Route::post('email-templates', [EmailTemplateController::class, 'store'])->name('email-templates.store');
 		Route::post('email-templates/update/{key}', [EmailTemplateController::class, 'update'])->name('email-templates.update');
+		Route::post('email-templates/delete', [EmailTemplateController::class, 'delete'])->name('email-templates.delete');
 		
 
 		

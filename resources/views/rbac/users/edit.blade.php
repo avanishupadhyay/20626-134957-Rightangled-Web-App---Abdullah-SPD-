@@ -92,7 +92,11 @@
 
                                                 <div class="current-signature mt-3">
                                                     <p>Current Signature:</p>
-                                                    <img src="{{ asset('admin/signature-images/' . $prescriber->signature_image) }}"
+                                                    @php 
+                                                    $filePath = "signature-images/{$prescriber->signature_image}";
+		                                            $imageUrl = rtrim(config('app.url'), '/') . '/' . ltrim(Storage::url($filePath), '/');
+                                                    @endphp 
+                                                    <img src="{{ $imageUrl ?? '' }}"
                                                         alt="Current Signature"
                                                         style="max-height: 150px; border: 1px solid #ddd;">
                                                 </div>

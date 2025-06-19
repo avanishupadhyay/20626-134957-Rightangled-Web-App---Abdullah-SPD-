@@ -16,6 +16,7 @@ use App\Mail\SendMail;
 use Illuminate\Support\Facades\Mail;
 use App\Models\EmailTemplate;
 use Illuminate\Support\Facades\Blade;
+use Illuminate\Support\Facades\Storage;
 
 class UserController extends Controller
 {
@@ -218,15 +219,25 @@ class UserController extends Controller
         $fileName = $name . '-' . time() . '.' . $extension;
 
         // Define upload path (inside public folder)
-        $uploadPath = public_path('admin/signature-images');
+        // $uploadPath = public_path('admin/signature-images');
+
+        $directory = 'signature-images';
+        $uploadPath = Storage::disk('public')->path($directory);
+        if (!Storage::disk('public')->exists($directory)) {
+            Storage::disk('public')->makeDirectory($directory);
+        }
+        
+        Storage::disk('public')->putFileAs($directory, $request->file('signature'), $fileName);
+        
+        $filePath = "signature-images/{$fileName}";
 
         // Create directory if it doesn't exist
-        if (!file_exists($uploadPath)) {
-            mkdir($uploadPath, 0755, true); // 0755 = directory permissions
-        }
+        // if (!file_exists($uploadPath)) {
+        //     mkdir($uploadPath, 0755, true); // 0755 = directory permissions
+        // }
 
-        // Move the file to the public path
-        $image->move($uploadPath, $fileName);
+        // // Move the file to the public path
+        // $image->move($uploadPath, $fileName);
 
         // Return the relative path (e.g., 'admin/signature-images/filename.jpg')
         return  $fileName;
