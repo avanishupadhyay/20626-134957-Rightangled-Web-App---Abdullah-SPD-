@@ -179,7 +179,13 @@ class ShopifyController extends Controller
     {
         $orderData = $request->all();
         $shopDomain = $request->header('X-Shopify-Shop-Domain');
+        Log::info("Webhook Order Update Data:", $orderData);
+        $existingOrder = \App\Models\Order::where('order_number', $orderData['id'])->first();
 
+        $incomingStatus = $orderData['fulfillment_status'] ?? null;
+        $finalStatus = $incomingStatus !== null
+            ? $incomingStatus
+            : ($existingOrder->fulfillment_status ?? null);
         $store = \App\Models\Store::where('domain', str_replace(['https://', 'http://'], '', $shopDomain))->first();
 
         \App\Models\Order::updateOrCreate(
@@ -189,7 +195,7 @@ class ShopifyController extends Controller
                 'email' => $orderData['email'] ?? null,
                 'total_price' => $orderData['total_price'],
                 'financial_status' => $orderData['financial_status'],
-                'fulfillment_status' => $orderData['fulfillment_status'],
+                'fulfillment_status' => $finalStatus,
                 'order_data' => json_encode($orderData),
                 'store_id' => $store?->id,
                 'updated_at' => now(),
@@ -448,16 +454,16 @@ class ShopifyController extends Controller
 
 
     public function registerWebhooksForAllStores()
-{
-    $stores = \App\Models\Store::all();
-    $results = [];
+    {
+        $stores = \App\Models\Store::all();
+        $results = [];
 
-    foreach ($stores as $store) {
-        $results[$store->domain] = $this->registerAllOrderWebhooks($store->domain, $store->token)->getData();
+        foreach ($stores as $store) {
+            $results[$store->domain] = $this->registerAllOrderWebhooks($store->domain, $store->token)->getData();
+        }
+
+        return response()->json($results);
     }
-
-    return response()->json($results);
-}
 
 
 

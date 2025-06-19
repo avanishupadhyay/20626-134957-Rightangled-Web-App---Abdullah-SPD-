@@ -25,20 +25,27 @@
                 <a class="nav-link {{ request()->routeIs('checker_orders.index', 'checker_orders.view') ? 'active' : '' }}"
                     href="{{ route('checker_orders.index') }}">
                     <div class="sb-nav-link-icon"><i class="fa fa-check-square"></i>
-</div>
+                    </div>
                     Checkers
                 </a>
                 <a class="nav-link {{ request()->routeIs('dispenser_orders.index', 'dispenser_orders.view') ? 'active' : '' }}"
                     href="{{ route('dispenser_orders.index') }}">
                     <div class="sb-nav-link-icon"><i class="fas fa-shipping-fast"></i>
-</div>
+                    </div>
                     Dispenser
                 </a>
 
                 <a class="nav-link {{ request()->routeIs('admin.report') ? 'active' : '' }}"
                     href="{{ url('/admin/report') }}"><i class="fas fa-chart-bar"></i>&nbsp;Report
                 </a>
-
+                @role('Admin')
+                    <a class="nav-link {{ request()->routeIs('orders.index') ? 'active' : '' }}"
+                        href="{{ route('orders.index') }}">
+                        <div class="sb-nav-link-icon"><i class="fa fa-first-order" aria-hidden="true"></i>
+                        </div>
+                        Orders
+                    </a>
+                @endrole
 
                 <div class="sb-sidenav-menu-heading">Configurations</div>
 
@@ -90,15 +97,7 @@
                         Users
                     </a>
                 @endrole
-                 @role('Admin')
-                <div class="sb-sidenav-menu-heading">Modules</div>
-                <a class="nav-link {{ request()->routeIs('orders.index') ? 'active' : '' }}"
-                    href="{{ route('orders.index') }}">
-                    <div class="sb-nav-link-icon"><i class="fa fa-first-order" aria-hidden="true"></i>
-                    </div>
-                    Orders
-                </a>
-                @endrole
+
             </div>
     </nav>
 </div>
