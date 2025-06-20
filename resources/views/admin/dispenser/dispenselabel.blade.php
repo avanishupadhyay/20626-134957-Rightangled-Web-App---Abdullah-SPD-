@@ -46,9 +46,11 @@
 </head>
 
 <body>
+
     {{-- 1. Dispensing Labels Section --}}
     @foreach ($processedOrders as $order)
         <div class="order-block">
+            <div style="text-align: center; margin-top: 10px;">
             <h4>Dispensing Label</h4>
             <p><strong>Order Number:</strong> {{ $order->order_number }}</p>
             <p><strong>Prescription Date:</strong> {{ $order->order_data['created_at'] ?? 'N/A' }}</p>
@@ -56,6 +58,7 @@
                 {{ $order->order_data['customer']['last_name'] ?? '' }}</p>
             <p><strong>DOB:</strong> {{ $order->order_data['customer']['dob'] ?? 'N/A' }}</p>
             <p><strong>Prescriber:</strong> {{ $order->order_data['prescriber_name'] ?? 'N/A' }}</p>
+            </div>
 
             {{-- Line Items --}}
             <div class="section">
@@ -78,10 +81,24 @@
                     </tbody>
                 </table>
             </div>
+            <br>
+
+            <div style="text-align: center; margin-top: 10px;">
+                <strong>Rightangled Clinic</strong>
+                GPHC reg number: 9011933 {{ config('Site.location') }}<br>
+                <p style="margin: 5px 0;">Keep out of the reach and sight of children. Store in dry place and away from
+                    light</p>
+                <strong>Dispensed by:</strong> {{ auth()->user()->name }}<br>
+                <strong>Packed by:</strong> {{ auth()->user()->name }}
+            </div>
+
+
         </div>
 
         {{-- Page break between labels --}}
-        <div class="page-break"></div>
+        @if (!$loop->last)
+            <div class="page-break"></div>
+        @endif
     @endforeach
 
     {{-- 2. Packaging Slips Section --}}
@@ -96,27 +113,49 @@
             <p><strong>RIGHTANGLED Orders</strong></p>
             <p>{{ now()->format('d F Y') }}</p>
 
-
-            {{-- SHIP TO --}}
-            <p><strong>SHIP TO</strong></p>
-            <p>No shipping address</p>
-
             {{-- BILL TO --}}
             @foreach ($groupedOrders['hq'] as $order)
                 {{-- BILL TO --}}
-                <p><strong>BILL TO</strong></p>
-                <p>{{ $order->bill_to['name'] ?? '' }}</p>
-                <p>{{ $order->bill_to['address1'] ?? '' }}</p>
-                <p>{{ $order->bill_to['city'] ?? '' }} {{ $order->bill_to['province'] ?? '' }}
-                    {{ $order->bill_to['zip'] ?? '' }}</p>
-                <p>{{ $order->bill_to['country'] ?? '' }}</p>
+                <table style="width: 100%; border-collapse: collapse;">
+                    <tr>
+                        <!-- SHIP TO -->
+                        <td style="width: 48%; vertical-align: top;">
+                            <p style="margin: 0; font-weight: bold;">SHIP TO</p>
+                            <p style="margin: 0;">No shipping address</p>
+                        </td>
+
+                        <!-- BILL TO -->
+                        <td style="width: 48%; vertical-align: top;">
+                            <p style="margin: 0; font-weight: bold;">BILL TO</p>
+                            <p style="margin: 0;">{{ $order->bill_to['name'] ?? '' }}</p>
+                            <p style="margin: 0;">{{ $order->bill_to['address1'] ?? '' }}</p>
+                            <p style="margin: 0;">
+                                {{ $order->bill_to['city'] ?? '' }} {{ $order->bill_to['province'] ?? '' }}
+                                {{ $order->bill_to['zip'] ?? '' }}
+                            </p>
+                            <p style="margin: 0;">{{ $order->bill_to['country'] ?? '' }}</p>
+                        </td>
+                    </tr>
+                </table>
+
 
                 {{-- ITEMS --}}
-                <p><strong>ITEMS QUANTITY</strong></p>
-                @foreach ($order->line_items as $item)
-                    <p>{{ $item['title'] ?? 'N/A' }} — {{ $item['quantity'] ?? 0 }} Tablets</p>
-                @endforeach
-                <hr>
+                <table class="product-table">
+                    <thead>
+                        <tr>
+                            <th>Product</th>
+                            <th>Quantity</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach ($order->line_items as $item)
+                            <tr>
+                                <td>{{ $item['title'] ?? 'N/A' }}</td>
+                                <td>{{ $item['quantity'] ?? 0 }} Tablets</td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
             @endforeach
 
 
@@ -129,7 +168,9 @@
                 info@rightangled.com<br>
                 rightangled.com</p>
         </div>
-        <div class="page-break"></div>
+        @if (!$loop->last)
+            <div class="page-break"></div>
+        @endif
     @endif
 
     {{-- Separate Packaging Slips for Local Delivery --}}
@@ -141,28 +182,53 @@
                 <p>{{ \Carbon\Carbon::parse($order->created_at)->format('d F Y') }}</p>
 
                 {{-- SHIP TO --}}
-                <p><strong>SHIP TO</strong></p>
-                <p>{{ $order->ship_to['name'] ?? '' }}</p>
-                <p>{{ $order->ship_to['address1'] ?? '' }}</p>
-                <p>{{ $order->ship_to['city'] ?? '' }} {{ $order->ship_to['province'] ?? '' }}
-                    {{ $order->ship_to['zip'] ?? '' }}</p>
-                <p>{{ $order->ship_to['country'] ?? '' }}</p>
+                <table style="width: 100%; border-collapse: collapse;">
+                    <tr>
+                        <!-- SHIP TO -->
+                        <td style="width: 50%; vertical-align: top;">
+                            <p style="margin: 0; font-weight: bold;">SHIP TO</p>
+                            <p style="margin: 0;">{{ $order->ship_to['name'] ?? '' }}</p>
+                            <p style="margin: 0;">{{ $order->ship_to['address1'] ?? '' }}</p>
+                            <p style="margin: 0;">
+                                {{ $order->ship_to['city'] ?? '' }} {{ $order->ship_to['province'] ?? '' }}
+                                {{ $order->ship_to['zip'] ?? '' }}
+                            </p>
+                            <p style="margin: 0;">{{ $order->ship_to['country'] ?? '' }}</p>
+                        </td>
 
-                {{-- BILL TO --}}
-                <p><strong>BILL TO</strong></p>
-                <p>{{ $order->bill_to['name'] ?? '' }}</p>
-                <p>{{ $order->bill_to['address1'] ?? '' }}</p>
-                <p>{{ $order->bill_to['city'] ?? '' }} {{ $order->bill_to['province'] ?? '' }}
-                    {{ $order->bill_to['zip'] ?? '' }}</p>
-                <p>{{ $order->bill_to['country'] ?? '' }}</p>
+                        <!-- BILL TO -->
+                        <td style="width: 50%; vertical-align: top;">
+                            <p style="margin: 0; font-weight: bold;">BILL TO</p>
+                            <p style="margin: 0;">{{ $order->bill_to['name'] ?? '' }}</p>
+                            <p style="margin: 0;">{{ $order->bill_to['address1'] ?? '' }}</p>
+                            <p style="margin: 0;">
+                                {{ $order->bill_to['city'] ?? '' }} {{ $order->bill_to['province'] ?? '' }}
+                                {{ $order->bill_to['zip'] ?? '' }}
+                            </p>
+                            <p style="margin: 0;">{{ $order->bill_to['country'] ?? '' }}</p>
+                        </td>
+                    </tr>
+                </table>
+
+
 
                 {{-- Items --}}
-                <p><strong>ITEMS QUANTITY</strong></p>
-                @foreach ($order->line_items as $item)
-                    <p>{{ $item['title'] ?? 'N/A' }}</p>
-                    <p>{{ $item['quantity'] ?? 0 }} Tablets</p>
-                @endforeach
-
+                <table class="product-table">
+                    <thead>
+                        <tr>
+                            <th>Product</th>
+                            <th>Quantity</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach ($order->line_items as $item)
+                            <tr>
+                                <td>{{ $item['title'] ?? 'N/A' }}</td>
+                                <td>{{ $item['quantity'] ?? 0 }} Tablets</td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
                 {{-- Notes and Footer --}}
                 <p><strong>NOTES</strong></p>
                 <p>Customer already completed ID verification</p>

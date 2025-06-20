@@ -1,19 +1,19 @@
 @extends('admin.layouts.app')
 
 @section('content')
-  <div class="row page-titles mx-0 mb-3">
-            <div class="col-sm-6 p-0">
-                <div class="welcome-text">
-                    <h4>Dispensed Batches</h4>
-                </div>
-            </div>
-            <div class="col-sm-6 p-0 justify-content-sm-end mt-2 mt-sm-0 d-flex">
-                <ol class="breadcrumb">
-                    <li class="breadcrumb-item"><a href="{{ route('admin.dashboard') }}">Dashboard</a></li>
-                    <li class="breadcrumb-item"><a href="{{ route('dispenser_orders.index') }}">Dispensers</a></li>
-                </ol>
+    <div class="row page-titles mx-0 mb-3">
+        <div class="col-sm-6 p-0">
+            <div class="welcome-text">
+                <h4>Dispensed Batches</h4>
             </div>
         </div>
+        <div class="col-sm-6 p-0 justify-content-sm-end mt-2 mt-sm-0 d-flex">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ route('admin.dashboard') }}">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="{{ route('dispenser_orders.index') }}">Dispensers</a></li>
+            </ol>
+        </div>
+    </div>
     <div class="row mb-5">
         <!-- Column starts -->
         <div class="col-xl-12">
@@ -69,7 +69,12 @@
                                 <td>{{ $batch->user->name ?? 'N/A' }}</td>
                                 <td>{{ \Carbon\Carbon::parse($batch->created_at)->format('d/m/Y H:i') }}</td>
                                 <td> <a href="{{ route('dispenser.batches.download', $batch->id) }}"
-                                        class="btn btn-sm btn-success">  <i class="fa fa-download"></i></a> </td>
+                                        class="btn btn-sm btn-success"> <i class="fa fa-download"></i></a>
+                                  <button class="btn btn-sm btn-primary"
+    onclick="openAndPrintPDF('{{ asset('storage/' . $batch->pdf_path) }}')">
+    <i class="fa fa-print"></i>
+</button>
+                                </td>
                             </tr>
                         @endforeach
                     </tbody>
@@ -80,4 +85,19 @@
                 </div>
             @endif
         </div>
+
 </div> @endsection
+<script>
+    function openAndPrintPDF(pdfUrl) {
+        const printWindow = window.open(pdfUrl, '_blank');
+
+        const checkLoaded = setInterval(() => {
+            if (printWindow.document.readyState === 'complete') {
+                // printWindow.focus();
+                // printWindow.print();
+                // clearInterval(checkLoaded);
+            }
+        }, 500);
+    }
+</script>
+

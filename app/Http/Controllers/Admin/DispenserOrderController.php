@@ -267,7 +267,14 @@ class DispenserOrderController extends Controller
             ]);
         }
 
-        return redirect()->route('dispenser_orders.index')->with('success', 'Dispensing PDF generated and saved.');
+        $orderGIDs = $processedOrders->pluck('order_number')->map(fn($id) => "gid://shopify/Order/{$id}")->toArray();
+        bulkAddShopifyTags($orderGIDs, 'dispensed');
+
+
+        // return $pdf->stream("{$batch->batch_number}.pdf"); // force download
+        // return view('admin.dispenser.dispenselabel', compact('processedOrders', 'batch'));
+
+        return redirect()->route('dispenser.batches.list')->with('success', 'Dispensing PDF generated and ready to download');
     }
 
 
@@ -407,7 +414,7 @@ class DispenserOrderController extends Controller
                 'form_params' => [
                     'grant_type' => 'client_credentials',
                     'client_id' => env('ROYALMAIL_CLIENT_ID'),
-                    'client_secret' =>env('ROYALMAIL_CLIENT_SECRET'),
+                    'client_secret' => env('ROYALMAIL_CLIENT_SECRET'),
                 ],
                 'headers' => [
                     'Content-Type' => 'application/x-www-form-urlencoded',
@@ -464,6 +471,133 @@ class DispenserOrderController extends Controller
     }
 
 
+    // private function createDHLShippingLabel($order)
+    // {
+    //     $orderData = $order;
+    //     // dd($orderData);
+
+    //     $shipper = [
+    //         'name'       => 'Demo DS',
+    //         'company'    => 'DS Ecom',
+    //         'phone'      => '0123456789',
+    //         'address'    => [
+    //             'streetLines' => ['123 Shipper Street'],
+    //             'city'        => 'London',
+    //             'postalCode'  => 'E1 6AN',
+    //             'countryCode' => 'GB'
+    //         ],
+    //         'email'      => 'support@yourcompany.com'
+    //     ];
+
+    //     $recipientAddress = $orderData['shipping_address'] ?? [];
+
+    //     $recipient = [
+    //         'name'       => $recipientAddress['name'] ?? 'Customer',
+    //         'phone'      => $recipientAddress['phone'] ?? '0000000000',
+    //         'address'    => [
+    //             'streetLines' => [$recipientAddress['address1'] ?? '', $recipientAddress['address2'] ?? ''],
+    //             'city'        => $recipientAddress['city'] ?? '',
+    //             'postalCode'  => $recipientAddress['zip'] ?? '',
+    //             'countryCode' => strtoupper($recipientAddress['country_code'] ?? 'US')
+    //         ],
+    //         'email'      => $orderData['email'] ?? 'unknown@example.com'
+    //     ];
+
+    //     $payload = [
+    //         'plannedShippingDateAndTime' => now()->addDay()->toIso8601String(),
+    //         'productCode' => 'P', // Express Worldwide
+    //         'payerAccountNumber' => env('DHL_ACCOUNT_NUMBER'),
+    //         'customerDetails' => [
+    //             'shipperDetails' => $shipper,
+    //             'receiverDetails' => $recipient,
+    //         ],
+    //         'content' => [
+    //             'packages' => [
+    //                 [
+    //                     'weight' => 1,
+    //                     'dimensions' => [
+    //                         'length' => 10,
+    //                         'width' => 10,
+    //                         'height' => 10
+    //                     ]
+    //                 ]
+    //             ],
+    //             'description' => 'Medical Order - ' . $orderData['id']
+    //         ],
+    //         'outputImageProperties' => [
+    //             'printerDPI' => 300,
+    //             'encodingFormat' => 'PDF'
+    //         ]
+    //     ];
+
+    //     try {
+    //         $client = new \GuzzleHttp\Client();
+    //         $response = $client->post('https://api-eu.dhl.com/shipments', [
+    //             'headers' => [
+    //                 'DHL-API-Key'       => env('DHL_API_KEY'), // Use config() instead of env() directly
+    //                 'Subscription-Key'  => env('DHL_SUBS_KEY'), // Include if needed
+    //                 'Message-Reference' => uniqid('ref_', true),
+    //                 'Message-Reference-Date' => now()->toIso8601String(),
+    //                 'Content-Type'      => 'application/json',
+    //                 'Accept'            => 'application/json',
+    //             ],
+    //             'json' => $payload,
+    //             'timeout' => 15, // optional: timeout for request
+    //         ]);
+
+    //         $body = json_decode($response->getBody(), true);
+    //         dd($body);
+
+    //         // Extract base64 PDF label and save to storage
+    //         $base64 = $body['label']['labelData'] ?? null;
+    //         if ($base64) {
+    //             $filePath = 'shipping_labels/DHL_' . $order->order_number . '.pdf';
+    //             Storage::disk('public')->put($filePath, base64_decode($base64));
+    //             return storage_path('app/public/' . $filePath); // Full path to saved label
+    //         } else {
+    //             return null;
+    //         }
+    //     } catch (\Exception $e) {
+    //         dd("error");
+    //         \Log::error('DHL Label Creation Failed: ' . $e->getMessage());
+    //                     dd("error");
+
+    //         return null;
+    //     }
+    // }
+
+    // public function generateDgfShipmentLabel()
+    // {
+    //     try {
+    //         $client = new \GuzzleHttp\Client();
+
+    //         $response = $client->post('https://api-sandbox.dhl.com/dgff/transportation/shipment-label', [
+    //             'headers' => [
+    //                 'Authorization' => 'Bearer ' . env('DHL_DGF_TOKEN'), // Replace with actual token
+    //                 'Content-Type' => 'application/json',
+    //                 'Accept' => 'application/octet-stream', // For binary response
+    //             ],
+    //             'json' => [
+    //                 'shipmentID' => 'S21000645937',
+    //                 'housebillNumber' => '8FE7018',
+    //                 'additionalInformation' => 'This is a test label',
+    //                 'mimeType' => 'pdf',
+    //                 'acceptContentType' => 'application/octet-stream',
+    //             ],
+    //             'stream' => true, // Important for binary download
+    //         ]);
+
+    //         // Save PDF locally
+    //         $pdfPath = storage_path('app/public/dgf_labels/label_' . now()->format('YmdHis') . '.pdf');
+    //         Storage::disk('public')->put('dgf_labels/label_' . now()->format('YmdHis') . '.pdf', $response->getBody());
+
+    //         return response()->json(['success' => true, 'message' => 'Label downloaded successfully.', 'path' => $pdfPath]);
+    //     } catch (\Exception $e) {
+    //         \Log::error('DGF Label Error: ' . $e->getMessage());
+    //         return response()->json(['error' => 'Failed to generate DGF label.'], 500);
+    //     }
+    // }
+
     //     public function generateRoyalMailLabelFromShopify($order)
     // {
     //     $token =env('AUTH_TOKEN'); // From earlier
@@ -516,4 +650,14 @@ class DispenserOrderController extends Controller
     //     return $data; // Later you'll extract label from here
     // }
 
+    public function download($id)
+    {
+        $batch = DispenseBatch::findOrFail($id);
+
+        if (!$batch->pdf_path || !Storage::disk('public')->exists($batch->pdf_path)) {
+            return redirect()->back()->with('error', 'PDF not found for this batch.');
+        }
+
+        return Storage::disk('public')->download($batch->pdf_path);
+    }
 }
