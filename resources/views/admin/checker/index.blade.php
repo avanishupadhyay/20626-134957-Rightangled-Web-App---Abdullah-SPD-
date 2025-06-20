@@ -130,7 +130,9 @@
                                         <th>Status</th>
                                         <th>Last Action</th>
                                         <th>Created At</th>
+                                        @role('Checker')
                                         <th>Action</th>
+                                        @endrole
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -160,6 +162,7 @@
                                             <td>{{ $order->orderaction?->decision_timestamp?->format(config('Reading.date_time_format')) ?? 'N/A' }}
                                             </td>
                                             <td>{{ $order->created_at->format(config('Reading.date_time_format')) }}</td>
+                                            @role('Checker')
                                             <td>
                                                 <div class="d-flex">
                                                     <a href="{{ route('checker_orders.view', $order->id) }}"
@@ -168,6 +171,7 @@
                                                     </a>
                                                 </div>
                                             </td>
+                                            @endrole
                                         </tr>
                                     @empty
                                         <tr>
