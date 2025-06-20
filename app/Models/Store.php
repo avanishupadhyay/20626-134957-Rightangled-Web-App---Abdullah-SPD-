@@ -14,7 +14,24 @@ class Store extends Model
 		'status',
 		'app_client_id',
 		'app_secret_key',
-		'app_admin_access_token'
+		'app_admin_access_token',
+		 // Newly added shipper-related fields
+		'AddressId',
+		'ShipperReference',
+		'ShipperReference2',
+		'ShipperDepartment',
+		'CompanyName',
+		'ContactName',
+		'AddressLine1',
+		'AddressLine2',
+		'AddressLine3',
+		'Town',
+		'County',
+		'CountryCode',
+		'Postcode',
+		'PhoneNumber',
+		'EmailAddress',
+		'VatNumber',
 
 	];
 

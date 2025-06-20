@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Http\Request;
 use App\Models\Order;
 use App\Models\OrderAction;
+use App\Models\Prescriber;
 use Illuminate\Support\Facades\Storage;
 
 if (!function_exists('pr')) {
@@ -603,7 +604,7 @@ function getProductMetafield($productId, $storeId = null)
 	//     $accessToken = $store->token;
 
 
-	$response = Http::withHeaders([
+	$response = Http::withHeaders([	
 		'X-Shopify-Access-Token' => $accessToken,
 	])->get("https://{$shopDomain}/admin/api/2024-10/products/{$productId}/metafields.json");
 
@@ -654,7 +655,114 @@ function getOrderMetafields($orderId)
 	return [];
 }
 
-function buildCommonMetafields(Request $request, string $decisionStatus, $orderId, $pdfUrl = null): array
+// function buildCommonMetafields(Request $request, string $decisionStatus, $orderId, $pdfUrl = null): array
+// {
+// 	$user = auth()->user();
+// 	$prescriberData = $user->prescriber;
+
+// 	$resourceGid = 'gid://shopify/Order/'.$orderId;
+// 	if(empty($prescriberData->signature_image)){
+// 		$imageUrl = asset('admin/signature-images/signature.png');
+// 	}else{
+// 		$filePath = "signature-images/{$prescriberData->signature_image}";
+// 		$imageUrl = rtrim(config('app.url'), '/') . '/' . ltrim(Storage::url($filePath), '/');
+// 		// $imageUrl = asset('admin/signature-images/' . $prescriberData->signature_image);
+// 	}
+// 	$file_id = uploadImageAndSaveMetafield($imageUrl);
+
+// 	$metafields = [
+// 		[
+// 			'ownerId' => $resourceGid,
+// 			'namespace' => 'custom',
+// 			'key' => 'prescriber_id',
+// 			'type' => 'number_integer',
+// 			'value' => $user->id,
+// 		],
+// 		[
+// 			'namespace' => 'custom',
+// 			'key' => 'prescriber_s_name',
+// 			'type' => 'single_line_text_field',
+// 			'value' => $user->name ?? 'admin_user',
+// 		],
+// 		[
+// 			'namespace' => 'custom',
+// 			'key' => 'gphc_number_',
+// 			'type' => 'single_line_text_field',
+// 			'value' => $prescriberData->gphc_number ?? 'marked_by admin',
+// 		],
+// 		// [
+// 		// 	'namespace' => 'custom',
+// 		// 	'key' => 'prescriber_s_signature',
+// 		// 	'type' => 'single_line_text_field',
+// 		// 	'value' => $prescriberData->signature_image ?? 'Signed by ' . $user->name,
+// 		// ],
+// 		[
+// 			'ownerId' => $resourceGid,
+// 			'namespace' => 'custom',
+// 			'key' => 'prescriber_s_signatures',
+// 			'type' => 'file_reference',
+// 			'value' => $file_id ?? '',
+// 		],
+// 		[
+// 			'namespace' => 'custom',
+// 			'key' => 'decision_status',
+// 			'type' => 'single_line_text_field',
+// 			'value' => $decisionStatus,
+// 		],
+// 		[
+// 			'namespace' => 'custom',
+// 			'key' => 'decision_timestamp',
+// 			'type' => 'date_time',
+// 			'value' => now()->toIso8601String(),
+// 		],
+
+// 	];
+
+// 	if ($decisionStatus === 'approved') {
+// 		$metafields[] = [
+// 			'namespace' => 'custom',
+// 			'key' => 'clinical_reasoning',
+// 			'type' => 'multi_line_text_field',
+// 			'value' => $request->clinical_reasoning,
+// 		];
+// 		$metafields[] = [
+// 			'namespace' => 'custom',
+// 			'key' => 'patient_s_dob',
+// 			'type' => 'date',
+// 			'value' => $request->patient_s_dob,
+// 		];
+// 		$metafields[] = [
+// 			'namespace' => 'custom',
+// 			'key' => 'approval',
+// 			'type' => 'boolean',
+// 			'value' => true,
+// 		];
+// 		$metafields[] = [
+// 			'namespace' => 'custom',
+// 			'key' => 'prescriber_pdf',
+// 			'type' => 'url',
+// 			'value' => $pdfUrl,
+// 		];
+// 	} elseif ($decisionStatus === 'rejected') {
+// 		$metafields[] = [
+// 			'namespace' => 'custom',
+// 			'key' => 'rejection_reason',
+// 			'type' => 'multi_line_text_field',
+// 			'value' => $request->rejection_reason,
+// 		];
+// 	} elseif ($decisionStatus === 'on_hold') {
+// 		$metafields[] = [
+// 			'namespace' => 'custom',
+// 			'key' => 'on_hold_reason',
+// 			'type' => 'multi_line_text_field',
+// 			'value' => $request->on_hold_reason,
+// 		];
+// 	}
+
+// 	return $metafields;
+// }
+
+function buildCommonMetafields(Request $request, string $decisionStatus,$orderId, $pdfUrl = null): array
 {
 	$user = auth()->user();
 	$prescriberData = $user->prescriber;
@@ -675,15 +783,17 @@ function buildCommonMetafields(Request $request, string $decisionStatus, $orderI
 			'namespace' => 'custom',
 			'key' => 'prescriber_id',
 			'type' => 'number_integer',
-			'value' => $user->id,
+			'value' => (string) $user->id ?? '',
 		],
 		[
+			'ownerId' => $resourceGid,
 			'namespace' => 'custom',
 			'key' => 'prescriber_s_name',
 			'type' => 'single_line_text_field',
 			'value' => $user->name ?? 'admin_user',
 		],
 		[
+			'ownerId' => $resourceGid,
 			'namespace' => 'custom',
 			'key' => 'gphc_number_',
 			'type' => 'single_line_text_field',
@@ -703,58 +813,66 @@ function buildCommonMetafields(Request $request, string $decisionStatus, $orderI
 			'value' => $file_id ?? '',
 		],
 		[
+			'ownerId' => $resourceGid,
 			'namespace' => 'custom',
 			'key' => 'decision_status',
 			'type' => 'single_line_text_field',
-			'value' => $decisionStatus,
+			'value' => $decisionStatus ?? '',
 		],
 		[
+			'ownerId' => $resourceGid,
 			'namespace' => 'custom',
 			'key' => 'decision_timestamp',
 			'type' => 'date_time',
-			'value' => now()->toIso8601String(),
+			// 'value' => now()->toIso8601String(),
+			'value' => now()->toAtomString(),
 		],
 
 	];
 
 	if ($decisionStatus === 'approved') {
 		$metafields[] = [
+			'ownerId' => $resourceGid,
 			'namespace' => 'custom',
 			'key' => 'clinical_reasoning',
 			'type' => 'multi_line_text_field',
-			'value' => $request->clinical_reasoning,
+			'value' => $request->clinical_reasoning ?? '',
 		];
 		$metafields[] = [
+			'ownerId' => $resourceGid,
 			'namespace' => 'custom',
 			'key' => 'patient_s_dob',
 			'type' => 'date',
-			'value' => $request->patient_s_dob,
+			// 'value' => $request->patient_s_dob ?? '',
+			'value' => date('Y-m-d', strtotime($request->patient_s_dob ?? now())),
 		];
 		$metafields[] = [
+			'ownerId' => $resourceGid,
 			'namespace' => 'custom',
 			'key' => 'approval',
 			'type' => 'boolean',
-			'value' => true,
+			'value' => 'true',
 		];
 		$metafields[] = [
+			'ownerId' => $resourceGid,
 			'namespace' => 'custom',
 			'key' => 'prescriber_pdf',
 			'type' => 'url',
-			'value' => $pdfUrl,
+			'value' => $pdfUrl ?? '',
 		];
 	} elseif ($decisionStatus === 'rejected') {
 		$metafields[] = [
 			'namespace' => 'custom',
 			'key' => 'rejection_reason',
 			'type' => 'multi_line_text_field',
-			'value' => $request->rejection_reason,
+			'value' => $request->rejection_reason ?? '',
 		];
 	} elseif ($decisionStatus === 'on_hold') {
 		$metafields[] = [
 			'namespace' => 'custom',
 			'key' => 'on_hold_reason',
 			'type' => 'multi_line_text_field',
-			'value' => $request->on_hold_reason,
+			'value' => $request->on_hold_reason ?? '',
 		];
 	}
 
@@ -1049,6 +1167,13 @@ function uploadImageAndSaveMetafield($publicImageUrl)
 	$shop = env('SHOP_DOMAIN'); // e.g., your-store.myshopify.com
 	$token = env('ACCESS_TOKEN');
 
+	$user = auth()->user();
+
+	$existing = Prescriber::where('user_id', $user->id)->first();
+    if ($existing) {
+        return $existing->file_gid;
+    }
+
 	// Step 1: Upload image to Shopify Files via GraphQL
 	$uploadQuery = <<<'GRAPHQL'
             mutation fileCreate($files: [FileCreateInput!]!) {
@@ -1099,52 +1224,6 @@ function uploadImageAndSaveMetafield($publicImageUrl)
 
 	// $fileGid = $fileData['id'];
 	return $fileData['id'] ?? '';
-
-	// Step 2: Save file GID as metafield on given resource
-	// $metafieldQuery = <<<'GRAPHQL'
-	//     mutation metafieldsSet($metafields: [MetafieldsSetInput!]!) {
-	//     metafieldsSet(metafields: $metafields) {
-	//         metafields {
-	//         id
-	//         namespace
-	//         key
-	//         type
-	//         value
-	//         }
-	//         userErrors {
-	//         field
-	//         message
-	//         }
-	//     }
-	//     }
-	//     GRAPHQL;
-
-	// $metafieldVariables = [
-	//     'metafields' => [
-	//         [
-	//             'ownerId' => $resourceGid, // e.g., Order GID
-	//             'namespace' => 'custom',
-	//             'key' => 'prescriber_s_signatures',
-	//             'type' => 'file_reference',
-	//             'value' => $fileGid,
-	//         ]
-	//     ]
-	// ];
-
-	// $metafieldResponse = Http::withHeaders([
-	//     'X-Shopify-Access-Token' => $token,
-	//     'Content-Type' => 'application/json',
-	// ])->post("https://{$shop}/admin/api/2025-04/graphql.json", [
-	//     'query' => $metafieldQuery,
-	//     'variables' => $metafieldVariables,
-	// ])->json();
-
-	// return [
-	//     'status' => 'success',
-	//     'fileGid' => $fileGid,
-	//     'uploadResult' => $uploadResponse,
-	//     'metafieldResult' => $metafieldResponse,
-	// ];
 }
 
 function getShopifyImageUrl($gid)

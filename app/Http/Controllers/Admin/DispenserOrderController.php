@@ -177,7 +177,14 @@ class DispenserOrderController extends Controller
             $customer = $orderData['customer'] ?? [];
             $shippingAddress = $orderData['shipping_address'] ?? [];
             $billingAddress = $orderData['billing_address'] ?? [];
+         
+            $authToken = '';
+            $shipper = (array) DB::table('stores')->first();
+            
+            $destination = $shippingAddress;
+            // $response = $this->createRoyalMailShipment($authToken, $shipper, $destination, $orderData);
 
+            // pr($orderData);die;
             // Sort items by quantity (descending)
             $lineItems = collect($orderData['line_items'] ?? [])->map(function ($item) {
                 $productId = $item['product_id'] ?? null;
@@ -267,8 +274,8 @@ class DispenserOrderController extends Controller
             ]);
         }
 
-        $orderGIDs = $processedOrders->pluck('order_number')->map(fn($id) => "gid://shopify/Order/{$id}")->toArray();
-        bulkAddShopifyTags($orderGIDs, 'dispensed');
+        // $orderGIDs = $processedOrders->pluck('order_number')->map(fn($id) => "gid://shopify/Order/{$id}")->toArray();
+        // bulkAddShopifyTags($orderGIDs, 'dispensed');
 
 
         // return $pdf->stream("{$batch->batch_number}.pdf"); // force download
@@ -650,14 +657,143 @@ class DispenserOrderController extends Controller
     //     return $data; // Later you'll extract label from here
     // }
 
-    public function download($id)
-    {
-        $batch = DispenseBatch::findOrFail($id);
+    // public function download($id)
+    // {
+    //     $batch = DispenseBatch::findOrFail($id);
 
-        if (!$batch->pdf_path || !Storage::disk('public')->exists($batch->pdf_path)) {
-            return redirect()->back()->with('error', 'PDF not found for this batch.');
+    //     if (!$batch->pdf_path || !Storage::disk('public')->exists($batch->pdf_path)) {
+    //         return redirect()->back()->with('error', 'PDF not found for this batch.');
+    //     }
+
+    //     return Storage::disk('public')->download($batch->pdf_path);
+    // }
+
+    // try {
+    //     $response = createRoyalMailShipment($shipmentData, 'your_access_token_here');
+    //     dd($response); // Show success response
+    // } catch (\Exception $e) {
+    //     dd($e->getMessage()); // Show error if any
+    // }
+
+    function createRoyalMailShipment(string $authToken, $shipper, $destination, $orderData)
+    {
+        $items = $orderData['line_items'];
+        $url = 'https://api.royalmail.net/shipping/v3/shipments';
+        // pr($destination);die; 
+        // dd($shipper);
+        $shipmentData = [
+            "Shipper" => [
+                "AddressId" => $shipper['AddressId'] ?? '',
+                "ShipperReference" => $shipper['ShipperReference'] ?? '',
+                "ShipperReference2" => $shipper['ShipperReference2'] ?? '',
+                "ShipperDepartment" => $shipper['ShipperDepartment'] ?? '',
+                "CompanyName" => $shipper['name'] ?? '',
+                "ContactName" => $shipper['ContactName'] ?? '',
+                "AddressLine1" => $shipper['AddressLine1'] ?? '',
+                "AddressLine2" => $shipper['AddressLine1'] ?? '',
+                "AddressLine3" => $shipper['AddressLine1'] ?? '',
+                "Town" => $shipper['Town'] ?? '',
+                "County" => $shipper['County'] ?? '',
+                "CountryCode" => $shipper['CountryCode'] ?? '',
+                "Postcode" => $shipper['Postcode'] ?? '',
+                "PhoneNumber" => $shipper['PhoneNumber'] ?? '',
+                "EmailAddress" => $shipper['EmailAddress'] ?? '',
+                "VatNumber" => $shipper['VatNumber'] ?? '',
+            ],
+            "Destination" => [
+                // "AddressId" => "UNIQUEID123",
+                "CompanyName" => $destination['company'] ?? '',
+                "ContactName" => $destination['name'] ?? '',
+                "AddressLine1" => $destination['address1'] ?? '',
+                "AddressLine2" => $destination['address2'] ?? '',
+                "AddressLine3" => $destination['address3'] ?? '',
+                "Town" => $destination['city'] ?? '',
+                "County" => $destination['country'] ?? '',
+                "CountryCode" => $destination['country_code'] ?? '',
+                "Postcode" => $destination['zip'] ?? '',
+                "PhoneNumber" => $destination['phone'] ?? '',
+                "EmailAddress" => $orderData['customer']['email'] ?? '',
+                // "VatNumber" => $destination[''] ?? '',
+            ],
+            "ShipmentInformation" => [
+                "ShipmentDate" => "2025-06-20",
+                "ServiceCode" => "TPLN",
+                "ServiceOptions" => [
+                    "PostingLocation" => "123456789",
+                    "ServiceLevel" => "01",
+                    "ServiceFormat" => "P",
+                    "Safeplace" => "Front Porch",
+                    "SaturdayGuaranteed" => false,
+                    "ConsequentialLoss" => "Level4",
+                    "LocalCollect" => false,
+                    "TrackingNotifications" => "EmailAndSMS",
+                    "RecordedSignedFor" => false
+                ],
+                "TotalPackages" => 1,
+                "TotalWeight" => $orderData['total_weight'] ?? 0,
+                "WeightUnitOfMeasure" => "G",
+                "Product" => "NDX",
+                "DescriptionOfGoods" => "Clothing",
+                "ReasonForExport" => "Sale of goods",
+                "Value" => $orderData['current_subtotal_price'] ?? '',
+                "Currency" => $orderData['currency'] ?? '',
+                "Incoterms" => "DDU",
+                "LabelFormat" => "PDF",
+                "SilentPrintProfile" => "75b59db8-3cd3-4578-888e-54be016f07cc",
+                "ShipmentAction" => "Process",
+                "Packages" => [
+                    [
+                        "PackageOccurrence" => 1,
+                        "PackagingId" => "UNIQUEID123",
+                        "Weight" => 2.2,
+                        "Length" => 15,
+                        "Width" => 15,
+                        "Height" => 5
+                    ]
+                ],
+                "Items" => [
+                    [
+                        "ItemId" => $items['id'] ?? '',
+                        "Quantity" => $items['quantity'] ?? '',
+                        "Description" => $items[''] ?? '',
+                        "Value" => $items['price'] ?? '',
+                        "Weight" => $items['grams'] ?? '',
+                        "PackageOccurrence" => $items[''] ?? '',
+                        "HsCode" => $items[''] ?? '',
+                        "SkuCode" => $items['sku'] ?? '',   
+                        "CountryOfOrigin" => $items[''] ?? '',
+                        "ImageUrl" => "http://www.myimagestore.com/myimage.jpg"
+                    ]
+                ]
+            ],
+            "CustomsInformation" => [
+                "PreRegistrationNumber" => "GB13132313",
+                "PreRegistrationType" => "EORI",
+                "ShippingCharges" => $orderData['shipping_lines']['price'] ?? '',
+                "OtherCharges" => "0.00",
+                "QuotedLandedCost" => "0.00",
+                "InvoiceNumber" => "1234567890",
+                "InvoiceDate" => "2020-12-31",
+                "ExportLicence" => false,
+                "AddresseeIdentificationReferenceNumber" => "1234567890"
+            ]
+        ];
+
+        $response = Http::withHeaders([
+            'X-RMG-Auth-Token' => $authToken,
+            'Accept' => 'application/json',
+            'Content-Type' => 'application/json',
+        ])->post($url, [
+            'shipment' => $shipmentData
+        ]);
+
+        if ($response->successful()) {
+            return $response->json(); // success response
+        } else {
+            // Handle error (log or throw)
+            throw new \Exception("Royal Mail API Error: " . $response->body());
         }
 
-        return Storage::disk('public')->download($batch->pdf_path);
+
     }
 }

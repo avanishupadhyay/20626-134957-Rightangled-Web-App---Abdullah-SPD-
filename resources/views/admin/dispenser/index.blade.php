@@ -80,8 +80,9 @@
                                             <th>Items Count</th>
                                             <th>Item Names</th>
                                             <th>Created At</th>
+                                            @role('Dispenser')
                                             <th>Action</th>
-
+                                            @endrole
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -102,12 +103,14 @@
 
                                                 <td>{{ \Carbon\Carbon::parse($order->created_at)->format('d/m/Y H:i') }}
                                                 </td>
+                                                @role('Dispenser')
                                                 <td class="d-flex">
                                                     <a href="{{ route('dispenser_orders.view', $order->id) }}"
                                                         class="btn btn-primary btn-sm">
                                                         <i class="fa fa-eye" aria-hidden="true"></i>
                                                     </a>
                                                 </td>
+                                                @endrole
                                             </tr>
                                         @endforeach
                                     </tbody>
