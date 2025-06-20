@@ -17,11 +17,11 @@
     <link href="{{ asset('/admin') }}/css/custom_styles.css" rel="stylesheet" />
     <link href="{{ asset('/admin') }}/css/selecttwo.css" rel="stylesheet" />
     <link href="{{ asset('/admin') }}/css/custom.css" rel="stylesheet" />
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-<script src="{{ asset('js/deleteconfirm.js') }}"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="{{ asset('js/deleteconfirm.js') }}"></script>
 
-<!-- CSS -->
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+    <!-- CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
 
 
 </head>
@@ -79,8 +79,22 @@
     @include('admin.elements.js_scripts')
     @yield('custom_js_scripts')
     <!-- JS dependencies -->
-<script src="https://cdn.jsdelivr.net/npm/moment@2.29.4/moment.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('form').forEach(function(form) {
+                form.addEventListener('submit', function() {
+                    const submitButtons = form.querySelectorAll('button[type="submit"]');
+                    submitButtons.forEach(function(btn) {
+                        btn.disabled = true;
+                        // btn.innerText = 'Submitting...'; // Optional: change button text
+                    });
+                });
+            });
+        });
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/moment@2.29.4/moment.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
 </body>
 
 </html>

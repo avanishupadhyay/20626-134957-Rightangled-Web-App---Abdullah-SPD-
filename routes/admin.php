@@ -88,7 +88,7 @@ Route::get('Dispenser/orders/{id}/view', [DispenserOrderController::class, 'view
 Route::post('Dispenser/orders/dispense', [DispenserOrderController::class, 'printDispenseBatch'])->name('orders.dispensed');
 Route::get('/Qrcodedata', [DispenserOrderController::class, 'showQrData']);
 Route::get('/Dispenser/batches', [DispenserOrderController::class, 'listBatches'])->name('dispenser.batches.list');
-Route::get('/dispenser/batches/{batch}/download', [DispenserOrderController::class, 'downloadBatchPdf'])->name('dispenser.batches.download');
+Route::get('/dispenser/batches/{batch}/download', [DispenserOrderController::class, 'download'])->name('dispenser.batches.download');
 
 
 });

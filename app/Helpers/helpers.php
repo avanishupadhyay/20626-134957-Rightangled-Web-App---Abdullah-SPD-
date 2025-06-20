@@ -659,10 +659,10 @@ function buildCommonMetafields(Request $request, string $decisionStatus, $orderI
 	$user = auth()->user();
 	$prescriberData = $user->prescriber;
 
-	$resourceGid = 'gid://shopify/Order/'.$orderId;
-	if(empty($prescriberData->signature_image)){
+	$resourceGid = 'gid://shopify/Order/' . $orderId;
+	if (empty($prescriberData->signature_image)) {
 		$imageUrl = asset('admin/signature-images/signature.png');
-	}else{
+	} else {
 		$filePath = "signature-images/{$prescriberData->signature_image}";
 		$imageUrl = rtrim(config('app.url'), '/') . '/' . ltrim(Storage::url($filePath), '/');
 		// $imageUrl = asset('admin/signature-images/' . $prescriberData->signature_image);
@@ -1071,86 +1071,86 @@ function uploadImageAndSaveMetafield($publicImageUrl)
             }
             GRAPHQL;
 
-        $uploadResponse = Http::withHeaders([
-            'X-Shopify-Access-Token' => $token,
-            'Content-Type' => 'application/json',
-        ])->post("https://{$shop}/admin/api/2025-04/graphql.json", [
-            'query' => $uploadQuery,
-            'variables' => [
-                'files' => [
-                    [
-                        'alt' => 'Uploaded image',
-                        'contentType' => 'IMAGE',
-                        'originalSource' => $publicImageUrl,
-                    ]
-                ]
-            ],
-        ])->json();
+	$uploadResponse = Http::withHeaders([
+		'X-Shopify-Access-Token' => $token,
+		'Content-Type' => 'application/json',
+	])->post("https://{$shop}/admin/api/2025-04/graphql.json", [
+		'query' => $uploadQuery,
+		'variables' => [
+			'files' => [
+				[
+					'alt' => 'Uploaded image',
+					'contentType' => 'IMAGE',
+					'originalSource' => $publicImageUrl,
+				]
+			]
+		],
+	])->json();
 
-        $fileData = $uploadResponse['data']['fileCreate']['files'][0] ?? null;
+	$fileData = $uploadResponse['data']['fileCreate']['files'][0] ?? null;
 
-        if (!$fileData || !isset($fileData['id'])) {
-            return [
-                'status' => 'error',
-                'message' => 'Image upload failed',
-                'response' => $uploadResponse,
-            ];
-        }
+	if (!$fileData || !isset($fileData['id'])) {
+		return [
+			'status' => 'error',
+			'message' => 'Image upload failed',
+			'response' => $uploadResponse,
+		];
+	}
 
-        // $fileGid = $fileData['id'];
-        return $fileData['id'] ?? '';
+	// $fileGid = $fileData['id'];
+	return $fileData['id'] ?? '';
 
-        // Step 2: Save file GID as metafield on given resource
-        // $metafieldQuery = <<<'GRAPHQL'
-        //     mutation metafieldsSet($metafields: [MetafieldsSetInput!]!) {
-        //     metafieldsSet(metafields: $metafields) {
-        //         metafields {
-        //         id
-        //         namespace
-        //         key
-        //         type
-        //         value
-        //         }
-        //         userErrors {
-        //         field
-        //         message
-        //         }
-        //     }
-        //     }
-        //     GRAPHQL;
+	// Step 2: Save file GID as metafield on given resource
+	// $metafieldQuery = <<<'GRAPHQL'
+	//     mutation metafieldsSet($metafields: [MetafieldsSetInput!]!) {
+	//     metafieldsSet(metafields: $metafields) {
+	//         metafields {
+	//         id
+	//         namespace
+	//         key
+	//         type
+	//         value
+	//         }
+	//         userErrors {
+	//         field
+	//         message
+	//         }
+	//     }
+	//     }
+	//     GRAPHQL;
 
-        // $metafieldVariables = [
-        //     'metafields' => [
-        //         [
-        //             'ownerId' => $resourceGid, // e.g., Order GID
-        //             'namespace' => 'custom',
-        //             'key' => 'prescriber_s_signatures',
-        //             'type' => 'file_reference',
-        //             'value' => $fileGid,
-        //         ]
-        //     ]
-        // ];
+	// $metafieldVariables = [
+	//     'metafields' => [
+	//         [
+	//             'ownerId' => $resourceGid, // e.g., Order GID
+	//             'namespace' => 'custom',
+	//             'key' => 'prescriber_s_signatures',
+	//             'type' => 'file_reference',
+	//             'value' => $fileGid,
+	//         ]
+	//     ]
+	// ];
 
-        // $metafieldResponse = Http::withHeaders([
-        //     'X-Shopify-Access-Token' => $token,
-        //     'Content-Type' => 'application/json',
-        // ])->post("https://{$shop}/admin/api/2025-04/graphql.json", [
-        //     'query' => $metafieldQuery,
-        //     'variables' => $metafieldVariables,
-        // ])->json();
+	// $metafieldResponse = Http::withHeaders([
+	//     'X-Shopify-Access-Token' => $token,
+	//     'Content-Type' => 'application/json',
+	// ])->post("https://{$shop}/admin/api/2025-04/graphql.json", [
+	//     'query' => $metafieldQuery,
+	//     'variables' => $metafieldVariables,
+	// ])->json();
 
-        // return [
-        //     'status' => 'success',
-        //     'fileGid' => $fileGid,
-        //     'uploadResult' => $uploadResponse,
-        //     'metafieldResult' => $metafieldResponse,
-        // ];
-    }
+	// return [
+	//     'status' => 'success',
+	//     'fileGid' => $fileGid,
+	//     'uploadResult' => $uploadResponse,
+	//     'metafieldResult' => $metafieldResponse,
+	// ];
+}
 
-	function getShopifyImageUrl($gid)
-	{
-		$endpoint = 'https://' . env('SHOP_DOMAIN') . '/admin/api/2024-01/graphql.json';
-		$accessToken = env('ACCESS_TOKEN');
+function getShopifyImageUrl($gid)
+{
+	$endpoint = 'https://' . env('SHOP_DOMAIN') . '/admin/api/2024-01/graphql.json';
+	$accessToken = env('ACCESS_TOKEN');
 
 	$query = <<<GQL
 		{
@@ -1174,4 +1174,82 @@ function uploadImageAndSaveMetafield($publicImageUrl)
 	$data = $response->json();
 
 	return $data['data']['node']['image']['url'] ?? null;
+}
+
+
+function bulkAddShopifyTags(array $orderGIDs, string $tag)
+{
+	$shop = env('SHOP_DOMAIN'); // e.g., your-store.myshopify.com
+	$token = env('ACCESS_TOKEN');
+
+	$mutationParts = [];
+	$variableDeclarations = [];
+	$variables = [
+		'tag' => $tag,
+	];
+
+	foreach ($orderGIDs as $index => $gid) {
+		$mutationName = "tagMutation$index";
+		$variableName = "id$index";
+
+		$variableDeclarations[] = "\$$variableName: ID!";
+		$mutationParts[] = <<<GQL
+        $mutationName: tagsAdd(id: \$$variableName, tags: [\$tag]) {
+            node {
+                id
+                ... on Order {
+                    tags
+                }
+            }
+            userErrors {
+                field
+                message
+            }
+        }
+        GQL;
+
+		$variables[$variableName] = $gid;
+	}
+
+	// Use the helper functions *outside* the heredoc
+	$allVariableDeclarations = implodeWithCommas($variableDeclarations);
+	$allMutationParts = implodeWithNewLines($mutationParts);
+
+	// Now embed the generated strings
+	$query = <<<GQL
+    mutation BulkAddTags(\$tag: String!, $allVariableDeclarations) {
+        $allMutationParts
+    }
+    GQL;
+
+	$response = Http::withHeaders([
+		'X-Shopify-Access-Token' => $token,
+		'Content-Type' => 'application/json',
+	])->post("https://$shop/admin/api/2024-01/graphql.json", [
+		'query' => $query,
+		'variables' => $variables,
+	]);
+
+	return $response->json();
+}
+
+
+// Helper functions (can go outside the class as global helpers if needed)
+function implodeWithCommas(array $items): string
+{
+	return implode(', ', $items);
+}
+function implodeWithNewLines(array $items): string
+{
+	return implode("\n", $items);
+}
+
+// Helper to build variable declarations like $id0: ID!, $id1: ID!, ...
+function buildVariableDeclarations(array $orderGIDs): string
+{
+	$declarations = [];
+	foreach ($orderGIDs as $index => $_) {
+		$declarations[] = "\$id$index: ID!";
+	}
+	return implode(', ', $declarations);
 }

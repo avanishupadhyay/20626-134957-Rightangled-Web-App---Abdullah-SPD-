@@ -97,10 +97,6 @@
             <p><strong>Prescriber</strong> {{ $prescriber_s_name }}</p>
             <p><strong>Prescriber’s Reg Number:</strong> {{ $prescriber_reg }}</p>
 
-            <p><strong>GPhC Number:</strong> {{ $gphc_number }}</p>
-
-
-
         </div>
     </div>
 
@@ -121,7 +117,7 @@
                     <strong>Rightangled Clinic</strong><br>
                     {{ config('Site.location') }}<br>
                     Zip: W6 0LT<br>
-                    Gphc number: 9011933<br>
+                    Gphc number: {{$gphc_number}}<br>
                     Tel: {{ config('Site.contact') }}<br>
                     Email: {{ config('Site.email') }}
                 </td>
