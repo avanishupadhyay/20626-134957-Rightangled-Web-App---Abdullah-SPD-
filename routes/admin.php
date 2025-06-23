@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\AccuracyCheckerOrderController;
 use App\Http\Controllers\Admin\ConfigurationsController;
 use App\Http\Controllers\Admin\UserLogsController;
 use App\Http\Controllers\Admin\OrdersController;
@@ -90,5 +91,9 @@ Route::get('/Qrcodedata', [DispenserOrderController::class, 'showQrData']);
 Route::get('/Dispenser/batches', [DispenserOrderController::class, 'listBatches'])->name('dispenser.batches.list');
 Route::get('/dispenser/batches/{batch}/download', [DispenserOrderController::class, 'download'])->name('dispenser.batches.download');
 
+//Accuracy Checker route
+Route::get('Accuracy-checker/orders', [AccuracyCheckerOrderController::class, 'index'])->name('accuracychecker_orders.index');
+Route::get('Accuracy-checker/orders/ajax/{id}', [AccuracyCheckerOrderController::class, 'ajaxView']);
+Route::post('/Accuracy-checker/orders/fulfill/{id}', [AccuracyCheckerOrderController::class, 'fulfill'])->name('accuracychecker_orders.fulfill');
 
 });

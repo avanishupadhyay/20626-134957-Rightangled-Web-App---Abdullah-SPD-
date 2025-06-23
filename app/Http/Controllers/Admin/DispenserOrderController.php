@@ -36,9 +36,18 @@ class DispenserOrderController extends Controller
 
     public function index(Request $request)
     {
-        $approvedOrderNumbers = OrderAction::where('decision_status', 'approved')
-            ->latest('created_at')
-            ->pluck('order_id');
+        // $approvedOrderNumbers = OrderAction::where('decision_status', 'approved')
+        //     ->latest('created_at')
+        //     ->pluck('order_id');
+
+        $approvedOrderNumbers = OrderAction::latest('created_at')
+            ->get()
+            ->unique('order_id') // Keep only the latest action per order_id
+            ->filter(function ($action) {
+                return $action->decision_status === 'approved';
+            })
+            ->pluck('order_id')
+            ->toArray();
 
         $alreadyDispensed = OrderDispense::pluck('order_id')->toArray();
 
