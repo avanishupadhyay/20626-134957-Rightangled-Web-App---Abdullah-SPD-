@@ -46,8 +46,9 @@
                             <div class="col-md-1 d-grid">
                                 <a href="{{ route('dispenser_orders.index') }}" class="btn btn-secondary">Clear</a>
                             </div>
-                            <div class="col-md-3 ms-auto d-grid align-items-end"> <a href="{{ route('dispenser.batches.list') }}"
-                                    class="btn btn-info">Dispensed Batches</a> </div>
+                            <div class="col-md-3 ms-auto d-grid align-items-end"> <a
+                                    href="{{ route('dispenser.batches.list') }}" class="btn btn-info">Dispensed Batches</a>
+                            </div>
                         </form>
 
                     </div>
@@ -64,7 +65,9 @@
                     <div class="card mb-4">
                         <div class="card-header d-flex justify-content-between align-items-center">
                             <strong>Approved Orders for Dispensing</strong>
-                            <button type="submit" class="btn btn-primary">Dispense Selected</button>
+                            <div id="dispenseSelectedWrapper"  style="display: none;">
+                                <button type="submit" class="btn btn-success">Dispense Selected</button>
+                            </div>
                         </div>
                         <div class="card-body table-responsive">
                             @if ($orders->isEmpty())
@@ -101,7 +104,7 @@
                                                     {{ collect($order->decoded_order_data['line_items'] ?? [])->map(fn($item) => $item['title'] . ' × ' . $item['quantity'])->join(', ') }}
                                                 </td>
 
-                                                <td>{{ \Carbon\Carbon::parse($order->created_at)->format('d/m/Y H:i') }}
+                                                <td>{{ $order->created_at->format(config('Reading.date_time_format')) }}
                                                 </td>
                                                 @role('Dispenser')
                                                 <td class="d-flex">
@@ -125,43 +128,28 @@
         <div class="mt-1">
             {!! $orders->appends(request()->query())->links('pagination::bootstrap-5') !!}
         </div>
-        {{-- <script>
-            document.addEventListener('DOMContentLoaded', function() {
-                // Initialize daterangepicker
-                $('#date_range').daterangepicker({
-                    autoUpdateInput: false,
-                    locale: {
-                        cancelLabel: 'Clear',
-                        format: 'YYYY-MM-DD'
-                    },
-                    opens: 'left',
-                    maxDate: moment(), // Optional: disallow future dates
-                });
 
-                $('#date_range').on('apply.daterangepicker', function(ev, picker) {
-                    $(this).val(picker.startDate.format('YYYY-MM-DD') + ' to ' + picker.endDate.format(
-                        'YYYY-MM-DD'));
-                });
-
-                $('#date_range').on('cancel.daterangepicker', function(ev, picker) {
-                    $(this).val('');
-                });
-
-                // If there is already a date_range value, set the picker accordingly
-                @if (request('date_range'))
-                    let dates = "{{ request('date_range') }}".split(' to ');
-                    if (dates.length === 2) {
-                        $('#date_range').data('daterangepicker').setStartDate(dates[0]);
-                        $('#date_range').data('daterangepicker').setEndDate(dates[1]);
-                        $('#date_range').val("{{ request('date_range') }}");
-                    }
-                @endif
-            });
-        </script> --}}
         <script>
-            document.getElementById('select-all')?.addEventListener('change', function() {
-                const checkboxes = document.querySelectorAll('.order-checkbox');
-                checkboxes.forEach(checkbox => checkbox.checked = this.checked);
+            function toggleDispenseButton() {
+                const anyChecked = document.querySelectorAll('.order-checkbox:checked').length > 0;
+                document.getElementById('dispenseSelectedWrapper').style.display = anyChecked ? 'block' : 'none';
+            }
+
+            document.addEventListener('DOMContentLoaded', function() {
+                // Watch select-all
+                document.getElementById('select-all')?.addEventListener('change', function() {
+                    const checkboxes = document.querySelectorAll('.order-checkbox');
+                    checkboxes.forEach(checkbox => {
+                        checkbox.checked = this.checked;
+                    });
+                    toggleDispenseButton();
+                });
+
+                // Watch individual checkboxes
+                document.querySelectorAll('.order-checkbox').forEach(cb => {
+                    cb.addEventListener('change', toggleDispenseButton);
+                });
             });
         </script>
+
     @endsection
