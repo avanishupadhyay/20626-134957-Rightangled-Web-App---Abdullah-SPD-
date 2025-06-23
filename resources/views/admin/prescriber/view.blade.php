@@ -84,6 +84,12 @@
                             <div class="row mb-2">
                                 <div class="col-md-6">
                                     <strong>Product:</strong> {{ $item['title'] }} ({{ $item['variant_title'] ?? '' }})
+                                    <br>
+                                    {{-- @if($order_images)
+                                        @foreach ($order_images as $key=>$value)
+                                            <img src="{{ $value }}" alt="Product Image" style="width:100px;height:100px" />
+                                        @endforeach
+                                    @endif --}}
                                 </div>
                                 <div class="col-md-6 text-end">
                                     <strong>£{{ number_format($item['price'], 2) }}</strong> ×

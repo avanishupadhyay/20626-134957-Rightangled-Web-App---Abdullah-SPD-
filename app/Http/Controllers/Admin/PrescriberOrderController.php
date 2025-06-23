@@ -239,12 +239,22 @@ class PrescriberOrderController extends Controller
     public function view($id)
     {
         $order = Order::findOrFail($id);
-        // $orderMetafields = getOrderMetafields($order->order_number) ?? null;
-        $orderMetafields = [];
+        // $orderData = json_decode($order->order_data); // decode JSON string into object
+        $order_images = [];
+
+        // foreach ($orderData->line_items as $item) {
+        //     $images = getProductImages($order->order_number, $item->product_id);
+        //     if (!empty($images)) {
+        //         $order_images[] = $images[0]; // only store the first image
+        //     }
+        // }
+    
+        $orderMetafields = getOrderMetafields($order->order_number) ?? null;
+        // $orderMetafields = [];
         // dd($orderMetafields);
 
         $orderData = json_decode($order->order_data, true);
-        return view('admin.prescriber.view', compact('order', 'orderData', 'orderMetafields'));
+        return view('admin.prescriber.view', compact('order', 'orderData', 'orderMetafields','order_images'));
     }
 
 
@@ -296,19 +306,21 @@ class PrescriberOrderController extends Controller
             'rejection_reason' => 'required_if:decision_status,rejected',
             'on_hold_reason' => 'required_if:decision_status,on_hold',
         ]);
-
+        
         $decisionStatus = $request->decision_status;
         // $pdfUrl = $this->generateAndStorePDF($orderId);
         $pdfPath = $this->generateAndStorePDF($orderId);
+        
         $pdfUrl = rtrim(config('app.url'), '/') . '/' . ltrim($pdfPath, '/');
         // $metafields = buildCommonMetafields($request, $decisionStatus, $orderId, $pdfUrl);
         $metafieldsInput  = buildCommonMetafields($request, $decisionStatus, $orderId, $pdfUrl);
+        
         $roleName = auth()->user()->getRoleNames()->first(); // Returns string or null
 
-        $shopDomain = env('SHOP_DOMAIN');
-        $accessToken = env('ACCESS_TOKEN');
-        // ['shopDomain' => $shopDomain, 'accessToken' => $accessToken] = getShopifyCredentialsByOrderId($orderId);
-
+        // $shopDomain = env('SHOP_DOMAIN');
+        // $accessToken = env('ACCESS_TOKEN');
+        [$shopDomain, $accessToken] = array_values(getShopifyCredentialsByOrderId($orderId));
+        
         DB::beginTransaction();
         try {
             // Step 1: Push metafields to Shopify
@@ -340,7 +352,7 @@ class PrescriberOrderController extends Controller
             Http::withHeaders([
                 'X-Shopify-Access-Token' => $accessToken,
                 'Content-Type' => 'application/json',
-            ])->post("https://{$shopDomain}/admin/api/2023-10/graphql.json", [
+            ])->post("{$shopDomain}/admin/api/2023-10/graphql.json", [
                 'query' => $query,
                 'variables' => [
                     'metafields' => $metafieldsInput
@@ -418,8 +430,8 @@ class PrescriberOrderController extends Controller
         $order = Order::where('order_number', $orderId)->first();
         $orderData = json_decode($order->order_data, true);
         $items = [];
-        // $orderMetafields = getOrderMetafields($order->order_number);
-         $orderMetafields = [];
+        $orderMetafields = getOrderMetafields($order->order_number);
+        //  $orderMetafields = [];
         $user = auth()->user();
         $prescriberData = $user->prescriber;
 
