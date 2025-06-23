@@ -180,7 +180,7 @@ class AccuracyCheckerOrderController extends Controller
                     'user_id' => auth()->id(),
                 ],
                 [
-                    'decision_status' => 'dispensed',
+                    'decision_status' => 'accurately_checked',
                     'decision_timestamp' => now(),
                     'role' => $roleName,
                 ]

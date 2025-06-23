@@ -186,10 +186,10 @@ class DispenserOrderController extends Controller
             $customer = $orderData['customer'] ?? [];
             $shippingAddress = $orderData['shipping_address'] ?? [];
             $billingAddress = $orderData['billing_address'] ?? [];
-         
+
             $authToken = '';
             $shipper = (array) DB::table('stores')->first();
-            
+
             $destination = $shippingAddress;
             // $response = $this->createRoyalMailShipment($authToken, $shipper, $destination, $orderData);
 
@@ -281,6 +281,21 @@ class DispenserOrderController extends Controller
                 'order_id' => $order->order_number,
                 'details' => 'Order dispensed by ' . auth()->user()->name . ' on ' . now()->format('d/m/Y') . ' at ' . now()->format('H:i'),
             ]);
+
+            $roleName = auth()->user()?->roles?->first()?->name ?? 'unknown';
+
+            // Step 4: Log or update order decision
+            \App\Models\OrderAction::updateOrCreate(
+                [
+                    'order_id' => $order->id, // Assuming this links to Order.id (not order_number)
+                    'user_id' => auth()->id(),
+                ],
+                [
+                    'decision_status' => 'dispensed',
+                    'decision_timestamp' => now(),
+                    'role' => $roleName,
+                ]
+            );
         }
 
         // $orderGIDs = $processedOrders->pluck('order_number')->map(fn($id) => "gid://shopify/Order/{$id}")->toArray();
@@ -769,7 +784,7 @@ class DispenserOrderController extends Controller
                         "Weight" => $items['grams'] ?? '',
                         "PackageOccurrence" => $items[''] ?? '',
                         "HsCode" => $items[''] ?? '',
-                        "SkuCode" => $items['sku'] ?? '',   
+                        "SkuCode" => $items['sku'] ?? '',
                         "CountryOfOrigin" => $items[''] ?? '',
                         "ImageUrl" => "http://www.myimagestore.com/myimage.jpg"
                     ]
@@ -802,7 +817,5 @@ class DispenserOrderController extends Controller
             // Handle error (log or throw)
             throw new \Exception("Royal Mail API Error: " . $response->body());
         }
-
-
     }
 }
