@@ -575,14 +575,14 @@ function getCountryISDByCode($country_code)
 function getShopifyCredentialsByOrderId($orderId)
 {
 	$order = \App\Models\Order::with('store')->where('order_number', $orderId)->first();
-
+		
 	if (!$order || !$order->store) {
 		throw new \Exception('Store not found for the given order ID.');
 	}
 
 	return [
 		'shopDomain'   => $order->store->domain, // e.g., "your-shop.myshopify.com"
-		'accessToken'  => $order->store->token,
+		'accessToken'  => $order->store->app_admin_access_token,
 	];
 
 	// Fallback:
@@ -765,14 +765,16 @@ function buildCommonMetafields(Request $request, string $decisionStatus,$orderId
 
 	$resourceGid = 'gid://shopify/Order/' . $orderId;
 	if (empty($prescriberData->signature_image)) {
-		$imageUrl = asset('admin/signature-images/signature.png');
+		$imageUrl = rtrim(config('app.url'), '/') . '/' . ltrim(Storage::url('signature-images/signature.png'), '/');
+		// asset('admin/signature-images/signature.png');
 	} else {
 		$filePath = "signature-images/{$prescriberData->signature_image}";
 		$imageUrl = rtrim(config('app.url'), '/') . '/' . ltrim(Storage::url($filePath), '/');
 		// $imageUrl = asset('admin/signature-images/' . $prescriberData->signature_image);
 	}
+	
 	$file_id = uploadImageAndSaveMetafield($imageUrl,$orderId);
-
+	
 	$metafields = [
 		[
 			'ownerId' => $resourceGid,
@@ -1001,7 +1003,7 @@ function markFulfillmentOnHold($orderId, $reason)
 		$holdResponse = Http::withHeaders([
 			'X-Shopify-Access-Token' => $accessToken,
 			'Content-Type' => 'application/json',
-		])->post("https://{$shopDomain}/admin/api/2023-10/fulfillment_orders/{$fulfillmentOrderId}/hold.json", [
+		])->post("{$shopDomain}/admin/api/2023-10/fulfillment_orders/{$fulfillmentOrderId}/hold.json", [
 			'fulfillment_hold' => [
 				'reason' => 'other',
 				'reason_notes' => $reason ?? 'Order placed on hold during review.',
@@ -1117,7 +1119,7 @@ function releaseFulfillmentHold($orderId, $reason)
 	$releaseResponse = Http::withHeaders([
 		'X-Shopify-Access-Token' => $accessToken,
 		'Content-Type' => 'application/json',
-	])->post("https://{$shopDomain}/admin/api/2023-10/fulfillment_orders/{$fulfillmentOrderId}/release_hold.json");
+	])->post("{$shopDomain}/admin/api/2023-10/fulfillment_orders/{$fulfillmentOrderId}/release_hold.json");
 
 	if ($releaseResponse->failed()) {
 		return response()->json([
@@ -1166,17 +1168,18 @@ if (!function_exists('getOrderData')) {
 
 function uploadImageAndSaveMetafield($publicImageUrl,$orderId)
 {
+		
 	// $shop = env('SHOP_DOMAIN'); // e.g., your-store.myshopify.com
 	// $token = env('ACCESS_TOKEN');
 	[$shopDomain, $accessToken] = array_values(getShopifyCredentialsByOrderId($orderId));
-
+	
 	$user = auth()->user();
-
+	
 	$existing = Prescriber::where('user_id', $user->id)->first();
-    if ($existing) {
+	
+    if (!empty($existing->file_gid)) {
         return $existing->file_gid;
     }
-
 	// Step 1: Upload image to Shopify Files via GraphQL
 	$uploadQuery = <<<'GRAPHQL'
             mutation fileCreate($files: [FileCreateInput!]!) {
@@ -1198,7 +1201,6 @@ function uploadImageAndSaveMetafield($publicImageUrl,$orderId)
             }
             }
             GRAPHQL;
-
 	$uploadResponse = Http::withHeaders([
 		'X-Shopify-Access-Token' => $accessToken,
 		'Content-Type' => 'application/json',
@@ -1225,6 +1227,8 @@ function uploadImageAndSaveMetafield($publicImageUrl,$orderId)
 		];
 	}
 
+	Prescriber::where('user_id', $user->id)->update(['file_gid' => $fileData['id'] ?? null]);
+	
 	// $fileGid = $fileData['id'];
 	return $fileData['id'] ?? '';
 }
@@ -1388,5 +1392,27 @@ if (!function_exists('fulfillShopifyOrder')) {
         }
 
         return $fulfillResponse->json();
+    }
+}
+
+
+function getProductImages($shopifyOrderId,$productId)
+{
+	[$shopDomain, $accessToken] = array_values(getShopifyCredentialsByOrderId($shopifyOrderId));
+
+    $url = "{$shopDomain}/admin/api/2024-01/products/{$productId}/images.json";
+
+    $response = Http::withHeaders([
+        'X-Shopify-Access-Token' => $accessToken,
+        'Content-Type' => 'application/json',
+    ])->get($url);
+
+    if ($response->successful()) {
+        $images = $response->json('images');
+
+        // Return array of image src URLs
+        return collect($images)->pluck('src')->all();
+    } else {
+        throw new \Exception('Failed to fetch product images: ' . $response->body());
     }
 }

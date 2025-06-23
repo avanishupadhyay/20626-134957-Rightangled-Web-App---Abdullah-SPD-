@@ -198,23 +198,48 @@ class OrderController extends Controller
             'release_hold_reason' => 'required_if:decision_status,release_hold',
         ]);
         $decisionStatus = $request->decision_status;
-        $metafields = buildCommonMetafields($request, $decisionStatus,$orderId);
-        $shopDomain = env('SHOP_DOMAIN');
-        $accessToken = env('ACCESS_TOKEN');
+        $metafieldsInput = buildCommonMetafields($request, $decisionStatus,$orderId);
+        // $shopDomain = env('SHOP_DOMAIN');
+        // $accessToken = env('ACCESS_TOKEN');
+        [$shopDomain, $accessToken] = array_values(getShopifyCredentialsByOrderId($orderId));
         // ['shopDomain' => $shopDomain, 'accessToken' => $accessToken] = getShopifyCredentialsByOrderId($orderId);
         $roleName = auth()->user()->getRoleNames()->first(); // Returns string or null
 
         DB::beginTransaction();
         try {
             // Step 1: Push metafields to Shopify
-            foreach ($metafields as $field) {
-                Http::withHeaders([
-                    'X-Shopify-Access-Token' => $accessToken,
-                    'Content-Type' => 'application/json',
-                ])->post("https://{$shopDomain}/admin/api/2023-10/orders/{$orderId}/metafields.json", [
-                    'metafield' => $field
-                ]);
-            }
+            // foreach ($metafields as $field) {
+            //     Http::withHeaders([
+            //         'X-Shopify-Access-Token' => $accessToken,
+            //         'Content-Type' => 'application/json',
+            //     ])->post("https://{$shopDomain}/admin/api/2023-10/orders/{$orderId}/metafields.json", [
+            //         'metafield' => $field
+            //     ]);
+            // }
+            $query = <<<'GRAPHQL'
+                    mutation metafieldsSet($metafields: [MetafieldsSetInput!]!) {
+                    metafieldsSet(metafields: $metafields) {
+                        metafields {
+                        key
+                        namespace
+                        id
+                        }
+                        userErrors {
+                        field
+                        message
+                        }
+                    }
+                    }
+                    GRAPHQL;
+            Http::withHeaders([
+                'X-Shopify-Access-Token' => $accessToken,
+                'Content-Type' => 'application/json',
+            ])->post("{$shopDomain}/admin/api/2023-10/graphql.json", [
+                'query' => $query,
+                'variables' => [
+                    'metafields' => $metafieldsInput
+                ]
+            ]);
 
             // Step 2: Take action based on decision
             if ($decisionStatus === 'on_hold') {
