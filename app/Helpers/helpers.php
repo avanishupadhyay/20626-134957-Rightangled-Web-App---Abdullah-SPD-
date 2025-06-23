@@ -1332,3 +1332,55 @@ function buildVariableDeclarations(array $orderGIDs): string
 	}
 	return implode(', ', $declarations);
 }
+
+
+
+if (!function_exists('fulfillShopifyOrder')) {
+    function fulfillShopifyOrder($shopifyOrderId)
+    {
+        $shop = env('SHOP_DOMAIN'); // e.g., yourshop.myshopify.com
+        $token = env('ACCESS_TOKEN');
+
+        // Step 1: Get Fulfillment Order ID from Shopify
+        $orderResponse = Http::withHeaders([
+            'X-Shopify-Access-Token' => $token
+        ])->get("https://{$shop}/admin/api/2023-10/orders/{$shopifyOrderId}/fulfillment_orders.json");
+
+        if (!$orderResponse->successful()) {
+            throw new \Exception('Failed to fetch fulfillment orders');
+        }
+
+        $fulfillmentOrderId = $orderResponse['fulfillment_orders'][0]['id'] ?? null;
+
+        if (!$fulfillmentOrderId) {
+            throw new \Exception('Fulfillment order ID not found');
+        }
+
+        // Step 2: Fulfill
+        $fulfillResponse = Http::withHeaders([
+            'X-Shopify-Access-Token' => $token,
+            'Content-Type' => 'application/json',
+        ])->post("https://{$shop}/admin/api/2023-10/fulfillments.json", [
+            'fulfillment' => [
+                'message' => 'Order fulfilled via Accuracy Checker',
+                'notify_customer' => true,
+                'tracking_info' => [
+                    'number' => null,
+                    'url' => null,
+                    'company' => null
+                ],
+                'line_items_by_fulfillment_order' => [
+                    [
+                        'fulfillment_order_id' => $fulfillmentOrderId,
+                    ]
+                ]
+            ]
+        ]);
+
+        if (!$fulfillResponse->successful()) {
+            throw new \Exception('Failed to fulfill order');
+        }
+
+        return $fulfillResponse->json();
+    }
+}

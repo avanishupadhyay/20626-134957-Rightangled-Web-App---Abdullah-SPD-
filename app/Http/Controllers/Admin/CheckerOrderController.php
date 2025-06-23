@@ -40,7 +40,7 @@ class CheckerOrderController extends Controller
                 $q->whereRaw("JSON_EXTRACT(order_data, '$.cancelled_at') IS NULL")
                     ->orWhereRaw("JSON_UNQUOTE(JSON_EXTRACT(order_data, '$.cancelled_at')) = 'null'");
             })->whereDoesntHave('orderaction', function ($q) {
-                $q->where('decision_status', 'approved');
+                $q->whereIn('decision_status', ['approved', 'dispensed', 'accurately_checked']);
             });
 
         // ->whereRaw("JSON_EXTRACT(order_data, '$.cancelled_at') IS NULL");

@@ -37,18 +37,13 @@
             </div>
         </div>
 
-        <!-- Buttons -->
-        {{-- <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#approveModal">Approve</button>
-        <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#rejectModal">Reject</button>
-        <button class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#onHoldModal">On Hold</button>
-        <button class="btn btn-info" data-bs-toggle="modal" data-bs-target="#releaseHoldModal">Release Hold</button> --}}
-
-
         <div class="m-3">
             @if (!$statuses['is_cancelled'])
                 @if ($statuses['fulfillment_status'] === 'on_hold')
                     <button class="btn btn-info" data-bs-toggle="modal" data-bs-target="#releaseHoldModal">Release
                         Hold</button>
+                @elseif ($statuses['fulfillment_status'] === 'fulfilled')
+                    
                 @else
                     @switch($statuses['latest_decision_status'])
                         @case('approved')
@@ -103,46 +98,7 @@
                 </div>
             </div>
 
-            {{-- Right Card --}}
-            {{-- <div class="col-md-6">
-                <div class="card mb-4 equal-height-card">
-                    <div class="card-header"><strong>{{ ucfirst($order->financial_status) }}</strong></div>
-                    <div class="card-body">
-                        <div class="row mb-2">
-                            <div class="col-md-6">Subtotal ({{ count($orderData['line_items']) }} item)</div>
-                            <div class="col-md-6 text-end">
-                                £{{ number_format($orderData['current_subtotal_price'] ?? 0, 2) }}</div>
-                        </div>
 
-                        <div class="row mb-2">
-                            <div class="col-md-6">
-                                Shipping<br>
-                                <small>{{ $orderData['shipping_lines'][0]['title'] ?? 'N/A' }}
-                                    ({{ $orderData['total_weight'] / 1000 }} kg)</small>
-                            </div>
-                            <div class="col-md-6 text-end">
-                                £{{ number_format($orderData['shipping_lines'][0]['price'] ?? 0, 2) }}
-                            </div>
-                        </div>
-
-                        <div class="row mb-2">
-                            <div class="col-md-6">Taxes ({{ $orderData['tax_lines'][0]['title'] ?? 'N/A' }})</div>
-                            <div class="col-md-6 text-end">£{{ number_format($orderData['total_tax'] ?? 0, 2) }}</div>
-                        </div>
-
-                        <div class="row">
-                            <div class="col-md-6">Total</div>
-                            <div class="col-md-6 text-end">£{{ number_format($orderData['total_price'] ?? 0, 2) }}</div>
-                        </div>
-                        <hr>
-
-                        <div class="row fw-bold">
-                            <div class="col-md-6">Paid</div>
-                            <div class="col-md-6 text-end">£{{ number_format($orderData['total_price'] ?? 0, 2) }}</div>
-                        </div>
-                    </div>
-                </div>
-            </div> --}}
             @php
                 $itemCount = 0;
                 foreach ($orderData['line_items'] as $item) {

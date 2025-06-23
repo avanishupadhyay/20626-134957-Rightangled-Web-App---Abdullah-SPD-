@@ -34,6 +34,12 @@
                     </div>
                     Dispenser
                 </a>
+                 <a class="nav-link {{ request()->routeIs('accuracychecker_orders.index', 'accuracychecker_orders.view') ? 'active' : '' }}"
+                    href="{{ route('accuracychecker_orders.index') }}">
+                    <div class="sb-nav-link-icon"><i class="fa-solid fa-check"></i>
+                    </div>
+                    ACT
+                </a>
                 @role('Admin')
                     <a class="nav-link {{ request()->routeIs('admin.report') ? 'active' : '' }}"
                         href="{{ url('/admin/report') }}"><i class="fas fa-chart-bar"></i>&nbsp;Report

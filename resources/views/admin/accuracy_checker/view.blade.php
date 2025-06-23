@@ -28,11 +28,14 @@
             <div class="col-sm-6 p-0 justify-content-sm-end mt-2 mt-sm-0 d-flex">
                 <ol class="breadcrumb">
                     <li class="breadcrumb-item"><a href="{{ route('admin.dashboard') }}">Dashboard</a></li>
-                    <li class="breadcrumb-item"><a href="{{ route('dispenser_orders.index') }}">Dispensers</a></li>
-                    <li class="breadcrumb-item active">View Details</li>
+                    <li class="breadcrumb-item"><a href="{{ route('checker_orders.index') }}">Checkers</a></li>
+                    <li class="breadcrumb-item active">Edit</li>
                 </ol>
             </div>
-        </div>  
+        </div>
+
+     
+        
          <div class="row">
             {{-- Left Card --}}
             <div class="col-md-6">
@@ -288,6 +291,6 @@
     </div>
 
 
-   
+        
 
 @endsection

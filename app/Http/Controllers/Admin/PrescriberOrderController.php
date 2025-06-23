@@ -104,8 +104,8 @@ class PrescriberOrderController extends Controller
                     ->orWhereRaw("JSON_UNQUOTE(JSON_EXTRACT(order_data, '$.cancelled_at')) = 'null'");
             })
             // Exclude orders whose prescription decision_status is 'approved'
-            ->whereDoesntHave('orderaction', function ($q) {
-                $q->where('decision_status', 'approved');
+          ->whereDoesntHave('orderaction', function ($q) {
+                $q->whereIn('decision_status', ['approved', 'dispensed', 'accurately_checked']);
             });
 
 
