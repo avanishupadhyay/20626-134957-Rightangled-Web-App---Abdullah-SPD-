@@ -215,7 +215,7 @@
                                         {{ $value ? 'Yes' : 'No' }}
                                     @elseif (Str::startsWith($value, 'gid://shopify/MediaImage/'))
                                         @php
-                                            $imageUrl = getShopifyImageUrl($value);
+                                            $imageUrl = getShopifyImageUrl($value,$order->id);
                                         @endphp
 
                                         @if ($imageUrl)

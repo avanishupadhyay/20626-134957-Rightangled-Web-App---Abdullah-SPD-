@@ -593,20 +593,15 @@ function getShopifyCredentialsByOrderId($orderId)
 }
 
 
-function getProductMetafield($productId, $storeId = null)
+function getProductMetafield($productId,$orderId)
 {
-	$shopDomain = env('SHOP_DOMAIN');
-	$accessToken = env('ACCESS_TOKEN');
-	//   $store = \App\Models\Store::find($storeId);
-	//     if (!$store) return null;
-
-	//     $shopDomain = $store->domain;
-	//     $accessToken = $store->token;
-
+	// $shopDomain = env('SHOP_DOMAIN');
+	// $accessToken = env('ACCESS_TOKEN');
+	[$shopDomain, $accessToken] = array_values(getShopifyCredentialsByOrderId($orderId));
 
 	$response = Http::withHeaders([	
 		'X-Shopify-Access-Token' => $accessToken,
-	])->get("https://{$shopDomain}/admin/api/2024-10/products/{$productId}/metafields.json");
+	])->get("{$shopDomain}/admin/api/2024-10/products/{$productId}/metafields.json");
 
 	if ($response->successful()) {
 		$metafields = $response->json('metafields');
@@ -622,8 +617,9 @@ function getProductMetafield($productId, $storeId = null)
 function getOrderMetafields($orderId)
 {
 
-	$shopDomain = env('SHOP_DOMAIN');
-	$accessToken = env('ACCESS_TOKEN');
+	// $shopDomain = env('SHOP_DOMAIN');
+	// $accessToken = env('ACCESS_TOKEN');
+	[$shopDomain, $accessToken] = array_values(getShopifyCredentialsByOrderId($orderId));
 	// ['shopDomain' => $shopDomain, 'accessToken' => $accessToken] = getShopifyCredentialsByOrderId($orderId);
 
 
@@ -631,7 +627,7 @@ function getOrderMetafields($orderId)
 
 	$response = Http::withHeaders([
 		'X-Shopify-Access-Token' => $accessToken,
-	])->get("https://{$shopDomain}/admin/api/{$apiVersion}/orders/{$orderId}/metafields.json");
+	])->get("{$shopDomain}/admin/api/{$apiVersion}/orders/{$orderId}/metafields.json");
 
 	if ($response->successful()) {
 		$metafields = collect($response->json('metafields'));
@@ -775,7 +771,7 @@ function buildCommonMetafields(Request $request, string $decisionStatus,$orderId
 		$imageUrl = rtrim(config('app.url'), '/') . '/' . ltrim(Storage::url($filePath), '/');
 		// $imageUrl = asset('admin/signature-images/' . $prescriberData->signature_image);
 	}
-	$file_id = uploadImageAndSaveMetafield($imageUrl);
+	$file_id = uploadImageAndSaveMetafield($imageUrl,$orderId);
 
 	$metafields = [
 		[
@@ -982,14 +978,16 @@ function buildCommonMetafieldsChecker(Request $request, string $decisionStatus):
 
 function markFulfillmentOnHold($orderId, $reason)
 {
-	$shopDomain = env('SHOP_DOMAIN');
-	$accessToken = env('ACCESS_TOKEN');
+	// $shopDomain = env('SHOP_DOMAIN');
+	// $accessToken = env('ACCESS_TOKEN');
+	[$shopDomain, $accessToken] = array_values(getShopifyCredentialsByOrderId($orderId));
+
 	// ['shopDomain' => $shopDomain, 'accessToken' => $accessToken] = getShopifyCredentialsByOrderId($orderId);
 
 	// Step 1: Get all fulfillment orders
 	$response = Http::withHeaders([
 		'X-Shopify-Access-Token' => $accessToken,
-	])->get("https://{$shopDomain}/admin/api/2023-10/orders/{$orderId}/fulfillment_orders.json");
+	])->get("{$shopDomain}/admin/api/2023-10/orders/{$orderId}/fulfillment_orders.json");
 
 	$fulfillmentOrders = $response->json('fulfillment_orders');
 	if (empty($fulfillmentOrders)) {
@@ -1024,15 +1022,17 @@ function markFulfillmentOnHold($orderId, $reason)
 
 function cancelOrder($orderId, $reason)
 {
-	$shopDomain = env('SHOP_DOMAIN');
-	$accessToken = env('ACCESS_TOKEN');
+	// $shopDomain = env('SHOP_DOMAIN');
+	// $accessToken = env('ACCESS_TOKEN');
+	[$shopDomain, $accessToken] = array_values(getShopifyCredentialsByOrderId($orderId));
+
 	// ['shopDomain' => $shopDomain, 'accessToken' => $accessToken] = getShopifyCredentialsByOrderId($orderId);
 
 
 	$response = Http::withHeaders([
 		'X-Shopify-Access-Token' => $accessToken,
 		'Content-Type' => 'application/json',
-	])->post("https://{$shopDomain}/admin/api/2023-10/orders/{$orderId}/cancel.json", [
+	])->post("{$shopDomain}/admin/api/2023-10/orders/{$orderId}/cancel.json", [
 		'email' => true,
 		'reason' => $reason, // or 'other', 'fraud', 'inventory'
 		// 'restock' => true,
@@ -1087,14 +1087,16 @@ function getOrderDecisionStatus($orderId)
 
 function releaseFulfillmentHold($orderId, $reason)
 {
-	$shopDomain = env('SHOP_DOMAIN');
-	$accessToken = env('ACCESS_TOKEN');
+	// $shopDomain = env('SHOP_DOMAIN');
+	// $accessToken = env('ACCESS_TOKEN');
+	[$shopDomain, $accessToken] = array_values(getShopifyCredentialsByOrderId($orderId));
+
 	// ['shopDomain' => $shopDomain, 'accessToken' => $accessToken] = getShopifyCredentialsByOrderId($orderId);
 
 	// Step 1: Get fulfillment orders for the order
 	$response = Http::withHeaders([
 		'X-Shopify-Access-Token' => $accessToken,
-	])->get("https://{$shopDomain}/admin/api/2023-10/orders/{$orderId}/fulfillment_orders.json");
+	])->get("{$shopDomain}/admin/api/2023-10/orders/{$orderId}/fulfillment_orders.json");
 
 	if ($response->failed()) {
 		return response()->json([
@@ -1162,10 +1164,11 @@ if (!function_exists('getOrderData')) {
 // $response = $this->uploadImageAndSaveMetafield($imageUrl, $orderIdGid);
 // dd($response);
 
-function uploadImageAndSaveMetafield($publicImageUrl)
+function uploadImageAndSaveMetafield($publicImageUrl,$orderId)
 {
-	$shop = env('SHOP_DOMAIN'); // e.g., your-store.myshopify.com
-	$token = env('ACCESS_TOKEN');
+	// $shop = env('SHOP_DOMAIN'); // e.g., your-store.myshopify.com
+	// $token = env('ACCESS_TOKEN');
+	[$shopDomain, $accessToken] = array_values(getShopifyCredentialsByOrderId($orderId));
 
 	$user = auth()->user();
 
@@ -1197,9 +1200,9 @@ function uploadImageAndSaveMetafield($publicImageUrl)
             GRAPHQL;
 
 	$uploadResponse = Http::withHeaders([
-		'X-Shopify-Access-Token' => $token,
+		'X-Shopify-Access-Token' => $accessToken,
 		'Content-Type' => 'application/json',
-	])->post("https://{$shop}/admin/api/2025-04/graphql.json", [
+	])->post("{$shopDomain}/admin/api/2025-04/graphql.json", [
 		'query' => $uploadQuery,
 		'variables' => [
 			'files' => [
@@ -1226,10 +1229,11 @@ function uploadImageAndSaveMetafield($publicImageUrl)
 	return $fileData['id'] ?? '';
 }
 
-function getShopifyImageUrl($gid)
+function getShopifyImageUrl($gid,$orderId)
 {
-	$endpoint = 'https://' . env('SHOP_DOMAIN') . '/admin/api/2024-01/graphql.json';
-	$accessToken = env('ACCESS_TOKEN');
+	// $endpoint = 'https://' . env('SHOP_DOMAIN') . '/admin/api/2024-01/graphql.json';
+	// $accessToken = env('ACCESS_TOKEN');
+	[$shopDomain, $accessToken] = array_values(getShopifyCredentialsByOrderId($orderId));
 
 	$query = <<<GQL
 		{
@@ -1246,7 +1250,7 @@ function getShopifyImageUrl($gid)
 	$response = Http::withHeaders([
 		'X-Shopify-Access-Token' => $accessToken,
 		'Content-Type' => 'application/json',
-	])->post($endpoint, [
+	])->post("{$shopDomain}/admin/api/2024-01/graphql.json", [
 		'query' => $query
 	]);
 
@@ -1256,10 +1260,11 @@ function getShopifyImageUrl($gid)
 }
 
 
-function bulkAddShopifyTags(array $orderGIDs, string $tag)
+function bulkAddShopifyTags(array $orderGIDs, string $tag,$shopifyOrderId)
 {
-	$shop = env('SHOP_DOMAIN'); // e.g., your-store.myshopify.com
-	$token = env('ACCESS_TOKEN');
+	// $shop = env('SHOP_DOMAIN'); // e.g., your-store.myshopify.com
+	// $token = env('ACCESS_TOKEN');
+	[$shopDomain, $accessToken] = array_values(getShopifyCredentialsByOrderId($shopifyOrderId));
 
 	$mutationParts = [];
 	$variableDeclarations = [];
@@ -1302,9 +1307,9 @@ function bulkAddShopifyTags(array $orderGIDs, string $tag)
     GQL;
 
 	$response = Http::withHeaders([
-		'X-Shopify-Access-Token' => $token,
+		'X-Shopify-Access-Token' => $accessToken,
 		'Content-Type' => 'application/json',
-	])->post("https://$shop/admin/api/2024-01/graphql.json", [
+	])->post("$shopDomain/admin/api/2024-01/graphql.json", [
 		'query' => $query,
 		'variables' => $variables,
 	]);
@@ -1338,13 +1343,14 @@ function buildVariableDeclarations(array $orderGIDs): string
 if (!function_exists('fulfillShopifyOrder')) {
     function fulfillShopifyOrder($shopifyOrderId)
     {
-        $shop = env('SHOP_DOMAIN'); // e.g., yourshop.myshopify.com
-        $token = env('ACCESS_TOKEN');
+        // $shop = env('SHOP_DOMAIN'); // e.g., yourshop.myshopify.com
+        // $token = env('ACCESS_TOKEN');
+		[$shopDomain, $accessToken] = array_values(getShopifyCredentialsByOrderId($shopifyOrderId));
 
         // Step 1: Get Fulfillment Order ID from Shopify
         $orderResponse = Http::withHeaders([
-            'X-Shopify-Access-Token' => $token
-        ])->get("https://{$shop}/admin/api/2023-10/orders/{$shopifyOrderId}/fulfillment_orders.json");
+            'X-Shopify-Access-Token' => $accessToken
+        ])->get("{$shopDomain}/admin/api/2023-10/orders/{$shopifyOrderId}/fulfillment_orders.json");
 
         if (!$orderResponse->successful()) {
             throw new \Exception('Failed to fetch fulfillment orders');
@@ -1358,9 +1364,9 @@ if (!function_exists('fulfillShopifyOrder')) {
 
         // Step 2: Fulfill
         $fulfillResponse = Http::withHeaders([
-            'X-Shopify-Access-Token' => $token,
+            'X-Shopify-Access-Token' => $accessToken,
             'Content-Type' => 'application/json',
-        ])->post("https://{$shop}/admin/api/2023-10/fulfillments.json", [
+        ])->post("{$shopDomain}/admin/api/2023-10/fulfillments.json", [
             'fulfillment' => [
                 'message' => 'Order fulfilled via Accuracy Checker',
                 'notify_customer' => true,
