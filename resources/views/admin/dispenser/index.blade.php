@@ -83,8 +83,9 @@
                                             <th>Items Count</th>
                                             <th>Item Names</th>
                                             <th>Created At</th>
+                                            @role('Dispenser')
                                             <th>Action</th>
-
+                                            @endrole
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -105,12 +106,14 @@
 
                                                 <td>{{ $order->created_at->format(config('Reading.date_time_format')) }}
                                                 </td>
+                                                @role('Dispenser')
                                                 <td class="d-flex">
                                                     <a href="{{ route('dispenser_orders.view', $order->id) }}"
                                                         class="btn btn-primary btn-sm">
                                                         <i class="fa fa-eye" aria-hidden="true"></i>
                                                     </a>
                                                 </td>
+                                                @endrole
                                             </tr>
                                         @endforeach
                                     </tbody>

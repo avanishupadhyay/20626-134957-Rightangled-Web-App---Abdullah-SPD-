@@ -44,6 +44,124 @@
                                             </p>
                                         @enderror
                                     </div>
+
+                                    <div class="col-md-6 form-group">
+                                        <label for="AddressId">Address ID</label>
+                                        <input type="text" name="AddressId" id="AddressId" class="form-control"
+                                            value="{{ old('AddressId', $store->AddressId) }}" maxlength="100">
+                                        @error('AddressId')
+                                            <p class="text-danger">{{ $message }}</p>
+                                        @enderror
+                                    </div>
+
+                                    <div class="col-md-6 form-group">
+                                        <label for="ShipperReference">Shipper Reference</label>
+                                        <input type="text" name="ShipperReference" id="ShipperReference"
+                                            class="form-control" value="{{ old('ShipperReference', $store->ShipperReference) }}" maxlength="100">
+                                        @error('ShipperReference')
+                                            <p class="text-danger">{{ $message }}</p>
+                                        @enderror
+                                    </div>
+
+                                    <div class="col-md-6 form-group">
+                                        <label for="ShipperReference2">Shipper Reference 2</label>
+                                        <input type="text" name="ShipperReference2" id="ShipperReference2"
+                                            class="form-control" value="{{ old('ShipperReference2', $store->ShipperReference2) }}" maxlength="100">
+                                        @error('ShipperReference2')
+                                            <p class="text-danger">{{ $message }}</p>
+                                        @enderror
+                                    </div>
+
+                                    <div class="col-md-6 form-group">
+                                        <label for="ShipperDepartment">Shipper Department</label>
+                                        <input type="text" name="ShipperDepartment" id="ShipperDepartment"
+                                            class="form-control" value="{{ old('ShipperDepartment', $store->ShipperDepartment) }}" maxlength="100">
+                                        @error('ShipperDepartment')
+                                            <p class="text-danger">{{ $message }}</p>
+                                        @enderror
+                                    </div>
+
+                                    <div class="col-md-6 form-group">
+                                        <label for="ContactName">Contact Name</label>
+                                        <input type="text" name="ContactName" id="ContactName" class="form-control"
+                                            value="{{ old('ContactName', $store->ContactName) }}" maxlength="100">
+                                        @error('ContactName')
+                                            <p class="text-danger">{{ $message }}</p>
+                                        @enderror
+                                    </div>
+
+                                    <div class="col-md-6 form-group">
+                                        <label for="AddressLine1">Address Line 1</label>
+                                        <input type="text" name="AddressLine1" id="AddressLine1" class="form-control"
+                                            value="{{ old('AddressLine1', $store->AddressLine1) }}" maxlength="100">
+                                        @error('AddressLine1')
+                                            <p class="text-danger">{{ $message }}</p>
+                                        @enderror
+                                    </div>
+
+                                    <div class="col-md-6 form-group">
+                                        <label for="Town">Town</label>
+                                        <input type="text" name="Town" id="Town" class="form-control"
+                                            value="{{ old('Town', $store->Town) }}" maxlength="100">
+                                        @error('Town')
+                                            <p class="text-danger">{{ $message }}</p>
+                                        @enderror
+                                    </div>
+
+                                    <div class="col-md-6 form-group">
+                                        <label for="County">County</label>
+                                        <input type="text" name="County" id="County" class="form-control"
+                                            value="{{ old('County', $store->County) }}" maxlength="100">
+                                        @error('County')
+                                            <p class="text-danger">{{ $message }}</p>
+                                        @enderror
+                                    </div>
+
+                                    <div class="col-md-6 form-group">
+                                        <label for="CountryCode">Country Code</label>
+                                        <input type="text" name="CountryCode" id="CountryCode" class="form-control"
+                                            value="{{ old('CountryCode', $store->CountryCode) }}" maxlength="100">
+                                        @error('CountryCode')
+                                            <p class="text-danger">{{ $message }}</p>
+                                        @enderror
+                                    </div>
+
+                                    <div class="col-md-6 form-group">
+                                        <label for="Postcode">Postcode</label>
+                                        <input type="text" name="Postcode" id="Postcode" class="form-control"
+                                            value="{{ old('Postcode', $store->Postcode) }}" maxlength="20">
+                                        @error('Postcode')
+                                            <p class="text-danger">{{ $message }}</p>
+                                        @enderror
+                                    </div>
+
+                                    <div class="col-md-6 form-group">
+                                        <label for="PhoneNumber">Phone Number</label>
+                                        <input type="text" name="PhoneNumber" id="PhoneNumber" class="form-control"
+                                            value="{{ old('PhoneNumber', $store->PhoneNumber) }}" maxlength="20">
+                                        @error('PhoneNumber')
+                                            <p class="text-danger">{{ $message }}</p>
+                                        @enderror
+                                    </div>
+
+                                    <div class="col-md-6 form-group">
+                                        <label for="EmailAddress">Email Address</label>
+                                        <input type="email" name="EmailAddress" id="EmailAddress" class="form-control"
+                                            value="{{ old('EmailAddress', $store->EmailAddress) }}" maxlength="100">
+                                        @error('EmailAddress')
+                                            <p class="text-danger">{{ $message }}</p>
+                                        @enderror
+                                    </div>
+
+                                    <div class="col-md-6 form-group">
+                                        <label for="VatNumber">VAT Number</label>
+                                        <input type="text" name="VatNumber" id="VatNumber" class="form-control"
+                                            value="{{ old('VatNumber', $store->VatNumber) }}" maxlength="30">
+                                        @error('VatNumber')
+                                            <p class="text-danger">{{ $message }}</p>
+                                        @enderror
+                                    </div>
+
                                     <div class="col-md-12 form-group">
                                         <label for="Description">Description</label>
                                         <textarea name="description" id="Description" class="form-control" rows="4">{{ old('description', $store->description) }}</textarea>

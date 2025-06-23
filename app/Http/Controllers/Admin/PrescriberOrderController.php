@@ -239,7 +239,8 @@ class PrescriberOrderController extends Controller
     public function view($id)
     {
         $order = Order::findOrFail($id);
-        $orderMetafields = getOrderMetafields($order->order_number) ?? null;
+        // $orderMetafields = getOrderMetafields($order->order_number) ?? null;
+        $orderMetafields = [];
         // dd($orderMetafields);
 
         $orderData = json_decode($order->order_data, true);
@@ -300,7 +301,8 @@ class PrescriberOrderController extends Controller
         // $pdfUrl = $this->generateAndStorePDF($orderId);
         $pdfPath = $this->generateAndStorePDF($orderId);
         $pdfUrl = rtrim(config('app.url'), '/') . '/' . ltrim($pdfPath, '/');
-        $metafields = buildCommonMetafields($request, $decisionStatus, $orderId, $pdfUrl);
+        // $metafields = buildCommonMetafields($request, $decisionStatus, $orderId, $pdfUrl);
+        $metafieldsInput  = buildCommonMetafields($request, $decisionStatus, $orderId, $pdfUrl);
         $roleName = auth()->user()->getRoleNames()->first(); // Returns string or null
 
         $shopDomain = env('SHOP_DOMAIN');
@@ -310,15 +312,43 @@ class PrescriberOrderController extends Controller
         DB::beginTransaction();
         try {
             // Step 1: Push metafields to Shopify
-            foreach ($metafields as $field) {
-                Http::withHeaders([
-                    'X-Shopify-Access-Token' => $accessToken,
-                    'Content-Type' => 'application/json',
-                ])->post("https://{$shopDomain}/admin/api/2023-10/orders/{$orderId}/metafields.json", [
-                    'metafield' => $field
-                ]);
-            }
-           
+            // foreach ($metafields as $field) {
+            //     Http::withHeaders([
+            //         'X-Shopify-Access-Token' => $accessToken,
+            //         'Content-Type' => 'application/json',
+            //     ])->post("https://{$shopDomain}/admin/api/2023-10/orders/{$orderId}/metafields.json", [
+            //         'metafield' => $field
+            //     ]);
+            // }
+
+        // -----------------GraphQl---------------------------
+             $query = <<<'GRAPHQL'
+                    mutation metafieldsSet($metafields: [MetafieldsSetInput!]!) {
+                    metafieldsSet(metafields: $metafields) {
+                        metafields {
+                        key
+                        namespace
+                        id
+                        }
+                        userErrors {
+                        field
+                        message
+                        }
+                    }
+                    }
+                    GRAPHQL;
+            Http::withHeaders([
+                'X-Shopify-Access-Token' => $accessToken,
+                'Content-Type' => 'application/json',
+            ])->post("https://{$shopDomain}/admin/api/2023-10/graphql.json", [
+                'query' => $query,
+                'variables' => [
+                    'metafields' => $metafieldsInput
+                ]
+            ]);
+
+        // -----------------GraphQl---------------------------
+
             // Step 2: Take action based on decision
             if ($decisionStatus === 'on_hold') {
                 markFulfillmentOnHold($orderId, $request->on_hold_reason);
@@ -388,7 +418,8 @@ class PrescriberOrderController extends Controller
         $order = Order::where('order_number', $orderId)->first();
         $orderData = json_decode($order->order_data, true);
         $items = [];
-        $orderMetafields = getOrderMetafields($order->order_number);
+        // $orderMetafields = getOrderMetafields($order->order_number);
+         $orderMetafields = [];
         $user = auth()->user();
         $prescriberData = $user->prescriber;
 
@@ -418,7 +449,7 @@ class PrescriberOrderController extends Controller
             'prescriber_s_name' => $orderMetafields['prescriber_s_name'] ?? 'N/A',
             'gphc_number' => $prescriberData->gphc_number ?? 'N/A',
             'patient_s_dob' => $orderMetafields['patient_s_dob'] ?? 'N/A',
-            'approval' => $orderMetafields['approval'],
+            'approval' => $orderMetafields['approval'] ?? '',
             'prescriber_signature' => $image_path ?? null,
         ]);
 
