@@ -681,16 +681,16 @@ class DispenserOrderController extends Controller
     //     return $data; // Later you'll extract label from here
     // }
 
-    // public function download($id)
-    // {
-    //     $batch = DispenseBatch::findOrFail($id);
+    public function download($id)
+    {
+        $batch = DispenseBatch::findOrFail($id);
 
-    //     if (!$batch->pdf_path || !Storage::disk('public')->exists($batch->pdf_path)) {
-    //         return redirect()->back()->with('error', 'PDF not found for this batch.');
-    //     }
+        if (!$batch->pdf_path || !Storage::disk('public')->exists($batch->pdf_path)) {
+            return redirect()->back()->with('error', 'PDF not found for this batch.');
+        }
 
-    //     return Storage::disk('public')->download($batch->pdf_path);
-    // }
+        return Storage::disk('public')->download($batch->pdf_path);
+    }
 
     // try {
     //     $response = createRoyalMailShipment($shipmentData, 'your_access_token_here');

@@ -13,6 +13,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Storage;
 use Carbon\Carbon;
 use App\Models\OrderDispense;
+use App\Models\User;
 
 class AccuracyCheckerOrderController extends Controller
 {
@@ -41,10 +42,11 @@ class AccuracyCheckerOrderController extends Controller
             })
             ->pluck('order_id')
             ->toArray();
+        // dd($latestApprovedOrderIds);
 
         // Step 3: Final query
         $query = Order::whereIn('order_number', $dispensed)
-            ->whereIn('id', $latestApprovedOrderIds)
+            ->whereIn('order_number', $latestApprovedOrderIds)
             ->whereNull('fulfillment_status')
             ->where(function ($q) {
                 $q->whereRaw("JSON_EXTRACT(order_data, '$.cancelled_at') IS NULL")
@@ -106,16 +108,93 @@ class AccuracyCheckerOrderController extends Controller
     //     return view('admin.accuracy_checker.view', compact('order', 'orderData', 'orderMetafields'));
     // }
 
+
+
+    // public function ajaxView($id)
+    // {
+    //     $order = Order::where('order_number', $id)->first();
+
+    //     if (!$order) {
+    //         return response()->json(['status' => 'error', 'message' => 'Orders not found']);
+    //     }
+
+    //     $orderData = json_decode($order->order_data, true);
+    //     $items = $orderData['line_items'] ?? [];
+
+    //     $shipping = $orderData['shipping_address'] ?? [];
+
+    //     return response()->json([
+    //         'status' => 'success',
+    //         'order' => [
+    //             'order_number' => $order->order_number,
+    //             'email' => $order->email,
+    //         ],
+    //         'shipping_address' => [
+    //             'name' => $shipping['name'] ?? 'N/A',
+    //             'address1' => $shipping['address1'] ?? '',
+    //             'address2' => $shipping['address2'] ?? '',
+    //             'city' => $shipping['city'] ?? '',
+    //             'zip' => $shipping['zip'] ?? '',
+    //             'country' => $shipping['country'] ?? '',
+    //             'phone' => $shipping['phone'] ?? '',
+    //         ],
+    //         'items' => array_map(function ($item) {
+    //             return [
+    //                 'name' => $item['title'] ?? 'N/A',
+    //                 'quantity' => $item['quantity'] ?? 0,
+    //                 'price' => $item['price'] ?? '-',
+    //             ];
+    //         }, $items)
+    //     ]);
+    // }
+
+
+
     public function ajaxView($id)
     {
         $order = Order::where('order_number', $id)->first();
-        // dd( $order );
 
         if (!$order) {
             return response()->json(['status' => 'error', 'message' => 'Order not found']);
         }
 
-        $items = json_decode($order->order_data, true)['line_items'] ?? [];
+        // If fulfilled, return error message with details
+        if ($order->fulfillment_status === 'fulfilled') {
+            $dispensedAction = OrderAction::where('order_id', $id)
+                ->where('decision_status', 'dispensed')
+                ->first();
+
+            $checkedAction = OrderAction::where('order_id', $id)
+                ->where('decision_status', 'accurately_checked')
+                ->first();
+
+            $messageParts = [];
+
+            if ($dispensedAction) {
+                $dispensedUser = User::find($dispensedAction->user_id);
+                $messageParts[] = "Dispensed on {$dispensedAction->created_at} by " . ($dispensedUser->name ?? 'Unknown');
+            }
+
+            if ($checkedAction) {
+                $checkedUser = User::find($checkedAction->user_id);
+                $messageParts[] = "Checked on {$checkedAction->created_at} by " . ($checkedUser->name ?? 'Unknown');
+            }
+
+            $fullMessage = '';
+            if (!empty($messageParts)) {
+                $fullMessage .= ' ' . implode(' | ', $messageParts);
+            }
+
+            return response()->json([
+                'status' => 'error',
+                'message' => $fullMessage,
+            ]);
+        }
+
+        // Proceed if not fulfilled
+        $orderData = json_decode($order->order_data, true);
+        $items = $orderData['line_items'] ?? [];
+        $shipping = $orderData['shipping_address'] ?? [];
 
         return response()->json([
             'status' => 'success',
@@ -123,16 +202,27 @@ class AccuracyCheckerOrderController extends Controller
                 'order_number' => $order->order_number,
                 'email' => $order->email,
             ],
+            'shipping_address' => [
+                'name' => $shipping['name'] ?? 'N/A',
+                'address1' => $shipping['address1'] ?? '',
+                'address2' => $shipping['address2'] ?? '',
+                'city' => $shipping['city'] ?? '',
+                'zip' => $shipping['zip'] ?? '',
+                'country' => $shipping['country'] ?? '',
+                'phone' => $shipping['phone'] ?? '',
+            ],
             'items' => array_map(function ($item) {
                 return [
                     'name' => $item['title'] ?? 'N/A',
                     'quantity' => $item['quantity'] ?? 0,
                     'price' => $item['price'] ?? '-',
-
                 ];
-            }, $items)
+            }, $items),
         ]);
     }
+
+
+
 
 
 
