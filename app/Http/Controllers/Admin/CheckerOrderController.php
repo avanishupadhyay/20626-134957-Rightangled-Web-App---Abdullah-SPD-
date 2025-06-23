@@ -174,7 +174,7 @@ class CheckerOrderController extends Controller
             $title = $item['title'];
             $quantity = $item['quantity'];
 
-            $directionOfUse = getProductMetafield($productId); // Shopify API call
+            $directionOfUse = getProductMetafield($productId,$orderId); // Shopify API call
 
             $items[] = [
                 'title' => $title,

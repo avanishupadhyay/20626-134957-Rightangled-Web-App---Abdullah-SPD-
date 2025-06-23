@@ -176,7 +176,7 @@ class AccuracyCheckerOrderController extends Controller
             // Step 4: Log or update order decision
             \App\Models\OrderAction::updateOrCreate(
                 [
-                    'order_id' => $order->id, // Assuming this links to Order.id (not order_number)
+                    'order_id' => $order->order_number, // Assuming this links to Order.id (not order_number)
                     'user_id' => auth()->id(),
                 ],
                 [

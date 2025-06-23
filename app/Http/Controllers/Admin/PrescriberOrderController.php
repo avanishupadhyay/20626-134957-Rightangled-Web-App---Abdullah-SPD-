@@ -432,7 +432,7 @@ class PrescriberOrderController extends Controller
             $productId = $item['product_id'];
             $title = $item['title'];
             $quantity = $item['quantity'];
-            $directionOfUse = getProductMetafield($productId);
+            $directionOfUse = getProductMetafield($productId,$orderId);
 
             $items[] = [
                 'title' => $title,

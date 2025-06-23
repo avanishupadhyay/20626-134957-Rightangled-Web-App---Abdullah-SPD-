@@ -173,10 +173,11 @@ class DispenserOrderController extends Controller
             'order_ids' => 'required|array|min:1',
         ]);
         $orderNumbers = $request->order_ids;
-
+        
         $orders = Order::whereIn('order_number', $orderNumbers)->get();
 
         $processedOrders = $orders->map(function ($order) {
+           
             $orderData = is_array($order->order_data)
                 ? $order->order_data
                 : json_decode($order->order_data, true);
@@ -186,7 +187,7 @@ class DispenserOrderController extends Controller
             $customer = $orderData['customer'] ?? [];
             $shippingAddress = $orderData['shipping_address'] ?? [];
             $billingAddress = $orderData['billing_address'] ?? [];
-
+           
             $authToken = '';
             $shipper = (array) DB::table('stores')->first();
 
@@ -195,9 +196,9 @@ class DispenserOrderController extends Controller
 
             // pr($orderData);die;
             // Sort items by quantity (descending)
-            $lineItems = collect($orderData['line_items'] ?? [])->map(function ($item) {
+            $lineItems = collect($orderData['line_items'] ?? [])->map(function ($item) use($order) {
                 $productId = $item['product_id'] ?? null;
-                $item['direction_of_use'] = $productId ? getProductMetafield($productId) : 'N/A';
+                $item['direction_of_use'] = $productId ? getProductMetafield($productId,$order->order_number) : 'N/A';
                 return $item;
             })->sortByDesc('quantity')->values();
 
@@ -256,7 +257,6 @@ class DispenserOrderController extends Controller
             'batch_number' => 'BATCH-' . now()->format('YmdHis') . '-' . Str::random(4),
             'user_id' => auth()->id(),
         ]);
-
         // Generate PDF
         $pdfHtml = view('admin.dispenser.dispenselabel', compact('processedOrders', 'batch'))->render();
         $pdf = PDF::loadHTML($pdfHtml)->setPaper('A4');
@@ -287,7 +287,7 @@ class DispenserOrderController extends Controller
             // Step 4: Log or update order decision
             \App\Models\OrderAction::updateOrCreate(
                 [
-                    'order_id' => $order->id, // Assuming this links to Order.id (not order_number)
+                    'order_id' => $order->order_number, // Assuming this links to Order.id (not order_number)
                     'user_id' => auth()->id(),
                 ],
                 [
@@ -299,7 +299,7 @@ class DispenserOrderController extends Controller
         }
 
         // $orderGIDs = $processedOrders->pluck('order_number')->map(fn($id) => "gid://shopify/Order/{$id}")->toArray();
-        // bulkAddShopifyTags($orderGIDs, 'dispensed');
+        // bulkAddShopifyTags($orderGIDs, 'dispensed',$order->id);
 
 
         // return $pdf->stream("{$batch->batch_number}.pdf"); // force download
@@ -681,16 +681,16 @@ class DispenserOrderController extends Controller
     //     return $data; // Later you'll extract label from here
     // }
 
-    // public function download($id)
-    // {
-    //     $batch = DispenseBatch::findOrFail($id);
+    public function download($id)
+    {
+        $batch = DispenseBatch::findOrFail($id);
 
-    //     if (!$batch->pdf_path || !Storage::disk('public')->exists($batch->pdf_path)) {
-    //         return redirect()->back()->with('error', 'PDF not found for this batch.');
-    //     }
+        if (!$batch->pdf_path || !Storage::disk('public')->exists($batch->pdf_path)) {
+            return redirect()->back()->with('error', 'PDF not found for this batch.');
+        }
 
-    //     return Storage::disk('public')->download($batch->pdf_path);
-    // }
+        return Storage::disk('public')->download($batch->pdf_path);
+    }
 
     // try {
     //     $response = createRoyalMailShipment($shipmentData, 'your_access_token_here');
