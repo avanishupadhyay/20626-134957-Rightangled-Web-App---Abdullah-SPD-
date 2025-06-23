@@ -34,7 +34,7 @@
 
                             <div class="col-md-3">
                                 <input type="text" name="search" value="{{ request('search') }}" class="form-control"
-                                    placeholder="Search by Order Number">
+                                    placeholder="Search by Order Number" id="manual-order-input">
                             </div>
 
 
@@ -45,6 +45,14 @@
 
                             <div class="col-md-1 d-grid">
                                 <a href="{{ route('accuracychecker_orders.index') }}" class="btn btn-secondary">Clear</a>
+                            </div>
+                            {{-- <div class="col-md-3">
+                                <input type="text" id="manual-order-input" class="form-control"
+                                    placeholder="Manual Order Number">
+                            </div> --}}
+
+                            <div class="col-md-3 d-grid">
+                                <button type="button" id="manualOpenBtn" class="btn btn-info">Open Order Details</button>
                             </div>
 
                         </form>
@@ -127,6 +135,10 @@
                     </div>
                     <div class="modal-body">
                         <p><strong>Customer:</strong> <span id="modalCustomer"></span></p>
+                        <p><strong>Shipping Address:</strong><br>
+                            <span id="modalShippingAddress"></span>
+                        </p>
+
                         <table class="table table-bordered">
                             <thead>
                                 <tr>
@@ -151,30 +163,27 @@
     </div>
 @endsection
 
-
-<script>
+{{-- <script>
     document.addEventListener('DOMContentLoaded', function() {
         let selectedOrderId = null;
-
         const scanInput = document.getElementById('qr-scan-input');
-        const output = document.getElementById('output');
         let scanTimeout = null;
 
-        // Refocus input regularly
+        // Refocus hidden input
         setInterval(() => scanInput.focus(), 500);
 
-        // Detect and handle scan via hardware QR reader
+        // Handle scan input
         scanInput.addEventListener('input', function() {
             clearTimeout(scanTimeout);
             scanTimeout = setTimeout(() => {
                 const scannedOrderNumber = scanInput.value.trim();
-                console.log(scannedOrderNumber);
-                scanInput.value = '';
+                console.log("Scanned value:", scannedOrderNumber);
+                // scanInput.value = '';
 
                 if (scannedOrderNumber === '') return;
 
-                // Auto-open modal using fetched data
-                fetch(/admin/Accuracy-checker/orders/ajax/${scannedOrderNumber})
+                // ✅ Correct fetch URL
+                fetch(`/admin/Accuracy-checker/orders/ajax/${scannedOrderNumber}`)
                     .then(res => res.json())
                     .then(data => {
                         if (data.status == 'success') {
@@ -185,12 +194,15 @@
 
                             const tbody = document.getElementById('modalItemsTable');
                             tbody.innerHTML = '';
+
                             data.items.forEach(item => {
-                                const row = <tr>
-                                    <td>${item.name}</td>
-                                    <td>${item.quantity}</td>
-                                    <td>${item.price}</td>
-                                </tr>;
+                                const row = `
+                                    <tr>
+                                        <td>${item.name}</td>
+                                        <td>${item.quantity}</td>
+                                        <td>${item.price}</td>
+                                    </tr>
+                                `;
                                 tbody.insertAdjacentHTML('beforeend', row);
                             });
 
@@ -200,6 +212,7 @@
                         } else {
                             alert(data.message || 'Order not found.');
                         }
+                        scanInput.value = '';
                     })
                     .catch(err => {
                         console.error(err);
@@ -208,12 +221,12 @@
             }, 300);
         });
 
-        // Fulfill button logic (unchanged)
+        // Fulfill button logic
         document.getElementById('fulfillBtn').addEventListener('click', function() {
             if (!selectedOrderId) return;
             if (!confirm('Mark this order as fulfilled and send dispense mail?')) return;
 
-            fetch(/admin/Accuracy-checker/orders/fulfill/${selectedOrderId}, {
+            fetch(`/admin/Accuracy-checker/orders/fulfill/${selectedOrderId}`, {
                     method: 'POST',
                     headers: {
                         'X-CSRF-TOKEN': '{{ csrf_token() }}',
@@ -223,6 +236,118 @@
                 .then(res => res.json())
                 .then(data => {
                     if (data.status === 'success') {
+                        alert('Order fulfilled and email sent!');
+                        location.reload();
+                    } else {
+                        alert(data.message || 'Failed to fulfill order.');
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    alert('Fulfillment failed.');
+                });
+        });
+    });
+</script> --}}
+<!-- Toastr CSS -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
+
+<!-- Toastr JS -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        let selectedOrderId = null;
+        const scanInput = document.getElementById('qr-scan-input');
+        const manualInput = document.getElementById('manual-order-input');
+        const manualBtn = document.getElementById('manualOpenBtn');
+        let scanTimeout = null;
+
+        // 🔁 Refocus hidden input only if manual input is not focused
+        setInterval(() => {
+            if (document.activeElement !== manualInput) {
+                scanInput.focus();
+            }
+        }, 500);
+
+        // 🔄 Reusable fetch + modal handler
+        function fetchAndShowOrder(orderNumber) {
+            fetch(`/admin/Accuracy-checker/orders/ajax/${orderNumber}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status == 'success') {
+                        document.getElementById('modalOrderNumber').textContent = data.order.order_number;
+                        document.getElementById('modalCustomer').textContent = data.order.email;
+                        const shipping = data.shipping_address;
+                        document.getElementById('modalShippingAddress').innerHTML = `
+                    ${shipping.name}<br>
+                    ${shipping.address1} ${shipping.address2}<br>
+                    ${shipping.city} ${shipping.zip}<br>
+                    ${shipping.country}<br>
+                    Phone: ${shipping.phone}
+                `;
+                        const tbody = document.getElementById('modalItemsTable');
+                        tbody.innerHTML = '';
+
+                        data.items.forEach(item => {
+                            const row = `
+                                <tr>
+                                    <td>${item.name}</td>
+                                    <td>${item.quantity}</td>
+                                    <td>${item.price}</td>
+                                </tr>`;
+                            tbody.insertAdjacentHTML('beforeend', row);
+                        });
+
+                        new bootstrap.Modal(document.getElementById('orderModal')).show();
+                        selectedOrderId = orderNumber;
+                    } else {
+                        alert(data.message || 'Order not found.');
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    alert('Error loading order.');
+                });
+        }
+
+        // ✅ Scanner input (auto-detect from USB device)
+        scanInput.addEventListener('input', function() {
+            clearTimeout(scanTimeout);
+            scanTimeout = setTimeout(() => {
+                const scannedOrderNumber = scanInput.value.trim();
+                if (scannedOrderNumber !== '') {
+                    fetchAndShowOrder(scannedOrderNumber);
+                }
+                scanInput.value = '';
+            }, 300);
+        });
+
+        // ✅ Manual entry fallback
+        manualBtn.addEventListener('click', function() {
+            const manualOrder = manualInput.value.trim();
+            if (manualOrder === '') {
+                alert('Please enter an order number.');
+                return;
+            }
+            fetchAndShowOrder(manualOrder);
+        });
+
+        // ✅ Fulfill button logic
+        document.getElementById('fulfillBtn').addEventListener('click', function() {
+            if (!selectedOrderId) return;
+            if (!confirm('Mark this order as fulfilled and send dispense mail?')) return;
+
+            fetch(`/admin/Accuracy-checker/orders/fulfill/${selectedOrderId}`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Content-Type': 'application/json',
+                    }
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status == 'success') {
                         alert('Order fulfilled and email sent!');
                         location.reload();
                     } else {
