@@ -108,6 +108,21 @@ class PrescriberOrderController extends Controller
 
         $query = Order::whereNull('fulfillment_status')
             // Exclude cancelled orders
+
+       
+        // Step 1: Get latest decision per order_id
+        $excludedStatuses = ['approved', 'on_hold', 'accurately_checked', 'dispensed'];
+
+        $excludedOrderIds = \App\Models\OrderAction::orderBy('created_at', 'desc')
+            ->get()
+            ->unique('order_id') // Keep only the latest action per order_id
+            ->filter(function ($action) use ($excludedStatuses) {
+                return in_array($action->decision_status, $excludedStatuses);
+            })
+            ->pluck('order_id')
+            ->toArray();
+
+        $query = \App\Models\Order::whereNull('fulfillment_status')
             ->where(function ($q) {
                 $q->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(order_data, '$.cancelled_at')) IS NULL")
                     ->orWhereRaw("JSON_UNQUOTE(JSON_EXTRACT(order_data, '$.cancelled_at')) = 'null'");
@@ -173,6 +188,11 @@ class PrescriberOrderController extends Controller
 
     private function filter_queries($request, $query, $isAction = true)
     {
+            })
+            ->whereNotIn('order_number', $excludedOrderIds);
+
+
+
         // Search by name, email or order number
         if ($request->filled('search')) {
             $query->where(function ($q) use ($request) {
@@ -247,11 +267,19 @@ class PrescriberOrderController extends Controller
             }
         }
 
+        // foreach ($orderData->line_items as $item) {
+        //     $images = getProductImages($order->order_number, $item->product_id);
+        //     if (!empty($images)) {
+        //         $order_images[] = $images[0]; // only store the first image
+        //     }
+        // }
+
         $orderMetafields = getOrderMetafields($order->order_number) ?? null;
         // $orderMetafields = [];
         // dd($orderMetafields);
 
         $orderData = json_decode($order->order_data, true);
+        return view('admin.prescriber.view', compact('order', 'orderData', 'orderMetafields', 'order_images'));
         return view('admin.prescriber.view', compact('order', 'orderData', 'orderMetafields', 'order_images'));
     }
 
@@ -305,19 +333,22 @@ class PrescriberOrderController extends Controller
             'on_hold_reason' => 'required_if:decision_status,on_hold',
         ]);
 
+
         $decisionStatus = $request->decision_status;
         // $pdfUrl = $this->generateAndStorePDF($orderId);
         $pdfPath = $this->generateAndStorePDF($orderId);
+
 
         $pdfUrl = rtrim(config('app.url'), '/') . '/' . ltrim($pdfPath, '/');
         // $metafields = buildCommonMetafields($request, $decisionStatus, $orderId, $pdfUrl);
         $metafieldsInput  = buildCommonMetafields($request, $decisionStatus, $orderId, $pdfUrl);
 
-        $roleName = auth()->user()->getRoleNames()->first(); // Returns string or null
 
+        $roleName = auth()->user()->getRoleNames()->first(); // Returns string or null
         // $shopDomain = env('SHOP_DOMAIN');
         // $accessToken = env('ACCESS_TOKEN');
         [$shopDomain, $accessToken] = array_values(getShopifyCredentialsByOrderId($orderId));
+
 
         DB::beginTransaction();
         try {
@@ -331,6 +362,8 @@ class PrescriberOrderController extends Controller
             //     ]);
             // }
 
+            // -----------------GraphQl---------------------------
+            $query = <<<'GRAPHQL'
             // -----------------GraphQl---------------------------
             $query = <<<'GRAPHQL'
                     mutation metafieldsSet($metafields: [MetafieldsSetInput!]!) {
@@ -358,6 +391,13 @@ class PrescriberOrderController extends Controller
             ]);
 
             // -----------------GraphQl---------------------------
+            // -----------------GraphQl---------------------------
+
+
+            if ($decisionStatus === 'approved') {
+                triggerShopifyTimelineNote($orderId);
+            }
+
 
             // Step 2: Take action based on decision
             if ($decisionStatus === 'on_hold') {
@@ -387,6 +427,7 @@ class PrescriberOrderController extends Controller
                 ]);
             }
 
+
             OrderAction::updateOrCreate(
                 [
                     'order_id' => $orderId,
@@ -400,8 +441,10 @@ class PrescriberOrderController extends Controller
                     'decision_timestamp' => now(),
                     'prescribed_pdf' => $pdfPath,
                     'role' => $roleName
+                    'role' => $roleName
                 ]
             );
+
 
 
             // Step 4: Log
@@ -410,6 +453,7 @@ class PrescriberOrderController extends Controller
                 'action' => $decisionStatus,
                 'order_id' => $orderId,
                 // 'details' => $request->clinical_reasoning ?? $request->rejection_reason ?? $request->on_hold_reason,
+                'details' =>  'Order prescribed by ' . auth()->user()->name . ' on ' . now()->format('d/m/Y') . ' at ' . now()->format('H:i') . '. Reason: "' . $request->clinical_reasoning ?? $request->rejection_reason ?? $request->on_hold_reason . '"',
                 'details' =>  'Order prescribed by ' . auth()->user()->name . ' on ' . now()->format('d/m/Y') . ' at ' . now()->format('H:i') . '. Reason: "' . $request->clinical_reasoning ?? $request->rejection_reason ?? $request->on_hold_reason . '"',
             ]);
 
@@ -436,12 +480,15 @@ class PrescriberOrderController extends Controller
         $filePath = "signature-images/{$prescriberData->signature_image}";
         // $image_path = rtrim(config('app.url'), '/') . '/' . ltrim(Storage::url($filePath), '/');
 
+        // $image_path = rtrim(config('app.url'), '/') . '/' . ltrim(Storage::url($filePath), '/');
+
         $image_path = public_path(Storage::url($filePath));
 
         foreach ($orderData['line_items'] as $item) {
             $productId = $item['product_id'];
             $title = $item['title'];
             $quantity = $item['quantity'];
+            $directionOfUse = getProductMetafield($productId, $orderId);
             $directionOfUse = getProductMetafield($productId, $orderId);
 
             $items[] = [

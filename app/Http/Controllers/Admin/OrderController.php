@@ -10,7 +10,7 @@ use App\Models\AuditLog;
 use App\Models\OrderAction;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
-
+use Illuminate\Cache\NullStore;
 
 class OrderController extends Controller
 {
@@ -274,7 +274,7 @@ class OrderController extends Controller
             } elseif ($decisionStatus === 'release_hold') {
                 releaseFulfillmentHold($orderId, $request->release_hold_reason);
                 Order::where('order_number', $orderId)->update([
-                    'fulfillment_status' => '',
+                    'fulfillment_status' => null,
                 ]);
             }
 
