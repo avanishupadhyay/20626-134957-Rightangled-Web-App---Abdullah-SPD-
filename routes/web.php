@@ -6,6 +6,7 @@ use App\Http\Controllers\ShopifyController;
 use App\Http\Controllers\ShopifyInstallerController;
 use App\Http\Middleware\CustomCors;
 use App\Http\Controllers\Admin\DashboardController; 
+use Milon\Barcode\Facades\DNS1D;
 
 
 require __DIR__.'/auth.php';
@@ -94,3 +95,9 @@ Route::match(['get','post'], '/webhook/shopify', [ShopifyController::class, 'han
 Route::match(['get','post'], '/webhook/shopify2', [ShopifyController::class, 'handleTest']);
 
 
+Route::get('/barcode/{orderId}', function ($orderId) {
+    $barcode = new \Milon\Barcode\DNS1D();
+    $pngData = $barcode->getBarcodePNG($orderId, 'C128', 2, 60);
+    return response(base64_decode($pngData))->header('Content-Type', 'image/png');
+});
+;

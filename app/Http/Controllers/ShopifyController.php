@@ -155,13 +155,16 @@ class ShopifyController extends Controller
         $orderData = $request->all();
         $shopDomain = $request->header('X-Shopify-Shop-Domain');
 
-        $store = \App\Models\Store::where('domain', str_replace(['https://', 'http://'], '', $shopDomain))->first();
-
+        $normalizedShopUrl = 'https://' . $shopDomain;
+        // Now match store using the full URL
+        $store = \App\Models\Store::where('domain', $normalizedShopUrl)->first();
+        Log::info("Matched Store:", [$store]);
         \App\Models\Order::updateOrCreate(
             ['order_number' => $orderData['id']],
             [
                 'order_number' => $orderData['id'],
                 'name' => $orderData['name'],
+                 'email' => $orderData['email'],
                 'total_price' => $orderData['total_price'],
                 'financial_status' => $orderData['financial_status'],
                 'fulfillment_status' => $orderData['fulfillment_status'],
@@ -186,7 +189,12 @@ class ShopifyController extends Controller
         $finalStatus = $incomingStatus !== null
             ? $incomingStatus
             : ($existingOrder->fulfillment_status ?? null);
-        $store = \App\Models\Store::where('domain', str_replace(['https://', 'http://'], '', $shopDomain))->first();
+
+        $normalizedShopUrl = 'https://' . $shopDomain;
+        // Now match store using the full URL
+        $store = \App\Models\Store::where('domain', $normalizedShopUrl)->first();
+        Log::info("Matched Store:", [$store]);
+
 
         \App\Models\Order::updateOrCreate(
             ['order_number' => $orderData['id']],
@@ -210,8 +218,10 @@ class ShopifyController extends Controller
     {
         $shopDomain = request()->header('X-Shopify-Shop-Domain');
 
-        $store = \App\Models\Store::where('domain', str_replace(['https://', 'http://'], '', $shopDomain))->first();
-
+        $normalizedShopUrl = 'https://' . $shopDomain;
+        // Now match store using the full URL
+        $store = \App\Models\Store::where('domain', $normalizedShopUrl)->first();
+        Log::info("Matched Store:", [$store]);
         $order = \App\Models\Order::where('order_number', $payload['id'])
             ->where('store_id', $store?->id)
             ->first();
@@ -228,8 +238,10 @@ class ShopifyController extends Controller
     {
         $shopDomain = request()->header('X-Shopify-Shop-Domain');
 
-        $store = \App\Models\Store::where('domain', str_replace(['https://', 'http://'], '', $shopDomain))->first();
-
+        $normalizedShopUrl = 'https://' . $shopDomain;
+        // Now match store using the full URL
+        $store = \App\Models\Store::where('domain', $normalizedShopUrl)->first();
+        Log::info("Matched Store:", [$store]);
         $order = \App\Models\Order::where('order_number', $payload['id'])
             ->where('store_id', $store?->id)
             ->first();

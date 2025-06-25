@@ -98,7 +98,7 @@ class CheckerOrderController extends Controller
         }
 
         // Total Pending Orders (from orders table)
-        $totalPendingQuery =Order::with('orderaction')
+        $totalPendingQuery = Order::with('orderaction')
             ->whereNull('fulfillment_status')
             // Add the B2B filter directly here
             ->whereRaw("JSON_EXTRACT(order_data, '$.company.id') IS NOT NULL")
@@ -116,18 +116,18 @@ class CheckerOrderController extends Controller
         $totalPending = $totalPendingQuery->count();
 
         // Shared query for actions
-       $actionsQuery = OrderAction::join('orders', 'order_actions.order_id', '=', 'orders.order_number')
-                        ->where('order_actions.role', 'Checker')
-                        ->whereRaw("JSON_EXTRACT(order_data, '$.company.id') IS NOT NULL")
-                        ->whereRaw("JSON_EXTRACT(order_data, '$.company.location_id') IS NOT NULL")
-                        ->where(function ($q) {
-                            $q->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(orders.order_data, '$.cancelled_at')) IS NULL")
-                            ->orWhereRaw("JSON_UNQUOTE(JSON_EXTRACT(orders.order_data, '$.cancelled_at')) = 'null'");
-                        });
-                        // ->where(function ($q) {
-                        //     $q->whereNull('order_actions.decision_status')
-                        //     ->orWhere('order_actions.decision_status', '!=', 'approved');
-                        // });
+        $actionsQuery = OrderAction::join('orders', 'order_actions.order_id', '=', 'orders.order_number')
+            ->where('order_actions.role', 'Checker')
+            ->whereRaw("JSON_EXTRACT(order_data, '$.company.id') IS NOT NULL")
+            ->whereRaw("JSON_EXTRACT(order_data, '$.company.location_id') IS NOT NULL")
+            ->where(function ($q) {
+                $q->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(orders.order_data, '$.cancelled_at')) IS NULL")
+                    ->orWhereRaw("JSON_UNQUOTE(JSON_EXTRACT(orders.order_data, '$.cancelled_at')) = 'null'");
+            });
+        // ->where(function ($q) {
+        //     $q->whereNull('order_actions.decision_status')
+        //     ->orWhere('order_actions.decision_status', '!=', 'approved');
+        // });
 
         if ($applyDateFilter) {
             $actionsQuery->whereBetween('order_actions.created_at', [$startDate, $endDate]);
@@ -146,7 +146,7 @@ class CheckerOrderController extends Controller
             'total_rejected' => $totalRejected,
         ];
 
-        return view('admin.checker.index', compact('orders', 'statuses','counts'));
+        return view('admin.checker.index', compact('orders', 'statuses', 'counts'));
     }
 
     public function view($id)
@@ -174,7 +174,7 @@ class CheckerOrderController extends Controller
             $title = $item['title'];
             $quantity = $item['quantity'];
 
-            $directionOfUse = getProductMetafield($productId,$orderId); // Shopify API call
+            $directionOfUse = getProductMetafield($productId, $orderId); // Shopify API call
 
             $items[] = [
                 'title' => $title,
@@ -214,11 +214,11 @@ class CheckerOrderController extends Controller
         $metafields = buildCommonMetafieldsChecker($request, $decisionStatus);
         // dd($metafields);
 
-        $shopDomain = env('SHOP_DOMAIN');
-        $accessToken = env('ACCESS_TOKEN');
+        // $shopDomain = env('SHOP_DOMAIN');
+        // $accessToken = env('ACCESS_TOKEN');
         $roleName = auth()->user()->getRoleNames()->first(); // Returns string or null
 
-        // ['shopDomain' => $shopDomain, 'accessToken' => $accessToken] = getShopifyCredentialsByOrderId($orderId);
+        ['shopDomain' => $shopDomain, 'accessToken' => $accessToken] = getShopifyCredentialsByOrderId($orderId);
 
         DB::beginTransaction();
         try {
@@ -230,6 +230,10 @@ class CheckerOrderController extends Controller
                 ])->post("https://{$shopDomain}/admin/api/2023-10/orders/{$orderId}/metafields.json", [
                     'metafield' => $field
                 ]);
+            }
+
+            if ($decisionStatus === 'approved') {
+                triggerShopifyTimelineNote($orderId);
             }
 
             // Step 2: Take action based on decision
@@ -254,7 +258,7 @@ class CheckerOrderController extends Controller
 
                 // Update the order
                 $order->update([
-                    'fulfillment_status' => '',
+                    'fulfillment_status' =>null,
                     'order_data' => json_encode($orderData),
                     'cancelled_at' => $cancelTime,
                 ]);
@@ -272,7 +276,7 @@ class CheckerOrderController extends Controller
                     'rejection_reason' => $request->rejection_reason,
                     'on_hold_reason' => $request->on_hold_reason,
                     'decision_timestamp' => now(),
-                    'role'=> $roleName
+                    'role' => $roleName
                 ]
             );
 
