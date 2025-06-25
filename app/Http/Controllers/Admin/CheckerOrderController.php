@@ -80,7 +80,6 @@ class CheckerOrderController extends Controller
 
         // Total Pending Orders (from orders table)
         $totalPendingQuery = Order::with('orderaction')
-        $totalPendingQuery = Order::with('orderaction')
             ->whereNull('fulfillment_status')
             // Add the B2B filter directly here
             ->whereRaw("JSON_EXTRACT(order_data, '$.company.id') IS NOT NULL")
@@ -329,7 +328,6 @@ class CheckerOrderController extends Controller
                     'rejection_reason' => $request->rejection_reason,
                     'on_hold_reason' => $request->on_hold_reason,
                     'decision_timestamp' => now(),
-                    'role' => $roleName
                     'role' => $roleName
                 ]
             );

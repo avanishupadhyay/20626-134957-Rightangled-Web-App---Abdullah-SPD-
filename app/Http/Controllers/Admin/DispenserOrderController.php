@@ -17,6 +17,7 @@ use Illuminate\Support\Str;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
 use Milon\Barcode\DNS2D;
 use Illuminate\Support\Facades\Log;
+use setasign\Fpdi\Fpdi;
 
 
 
@@ -197,17 +198,16 @@ class DispenserOrderController extends Controller
 
             $destination = $shippingAddress;
 
-            // if(isset($shippingAddress) && isset($shippingAddress['country']) && $shippingAddress['country'] == "United Kingdom"){
+            // if(isset($shippingAddress) && isset($shippingAddress['country']) && $shippingAddress['country'] == "United Kingdom" && $shippingCode != 'rightangled hq' && $shippingCode != 'local delivery'){
             //     // For UK Shippment
             //     $response = $this->createRoyalMailShipment($authToken, $shipper, $destination, $orderData);
-            // }else{
+            // }elseif(isset($shippingAddress) && isset($shippingAddress['country']) && $shippingAddress['country'] != "United Kingdom"){
             //     // For International Shippment
             //     $response = $this->createDHLShipment($authToken, $shipper, $destination, $orderData);
             // }
 
             // pr($orderData);die;
             // Sort items by quantity (descending)
-            $lineItems = collect($orderData['line_items'] ?? [])->map(function ($item) use ($order) {
             $lineItems = collect($orderData['line_items'] ?? [])->map(function ($item) use ($order) {
                 $productId = $item['product_id'] ?? null;
                 $item['direction_of_use'] = $productId ? getProductMetafield($productId, $order->order_number) : 'N/A';
@@ -286,6 +286,11 @@ class DispenserOrderController extends Controller
         Storage::disk('public')->put($filePath, $pdf->output());
         $batch->update(['pdf_path' => $filePath]);
 
+        // Merge shipping label pdf 
+        // $first_path = public_path(Storage::url($filePath)); 
+        // $second_path = public_path(Storage::url('dispense_batches/BATCH-20250623101948-qCxj.pdf'));
+        // $res = $this->mergePdfs($first_path,$second_path,$first_path);
+
         foreach ($processedOrders as $order) {
             OrderDispense::create([
                 'order_id' => $order->order_number,
@@ -301,22 +306,22 @@ class DispenserOrderController extends Controller
                 'details' => 'Order dispensed by ' . auth()->user()->name . ' on ' . now()->format('d/m/Y') . ' at ' . now()->format('H:i'),
             ]);
 
-        $roleName = auth()->user()?->roles?->first()?->name ?? 'unknown';
+            $roleName = auth()->user()?->roles?->first()?->name ?? 'unknown';
 
-        // Step 4: Log or update order decision
-        OrderAction::updateOrCreate(
-            [
-                'order_id' => $order->order_number, // Assuming this links to Order.id (not order_number)
-                'user_id' => auth()->id(),
-            ],
-            [
-                'decision_status' => 'dispensed',
-                'decision_timestamp' => now(),
-                'role' => $roleName,
-            ]
-        );
+            // Step 4: Log or update order decision
+            OrderAction::updateOrCreate(
+                [
+                    'order_id' => $order->order_number, // Assuming this links to Order.id (not order_number)
+                    'user_id' => auth()->id(),
+                ],
+                [
+                    'decision_status' => 'dispensed',
+                    'decision_timestamp' => now(),
+                    'role' => $roleName,
+                ]
+            );
         }
-
+        
         // $orderGIDs = $processedOrders->pluck('order_number')->map(fn($id) => "gid://shopify/Order/{$id}")->toArray();
         // bulkAddShopifyTagsAndNotes($orderGIDs, 'dispensed',$order->id);
         $orderGIDsWithStoreIds = $processedOrders->map(function ($order) {
@@ -336,6 +341,34 @@ class DispenserOrderController extends Controller
         return redirect()->route('dispenser.batches.list')->with('success', 'Dispensing PDF generated and ready to download');
     }
 
+    function mergePdfs($originalPdfPath, $pdfToAppendPath, $outputPath)
+    {
+        $pdf = new FPDI();
+
+        // Add original PDF
+        $pageCount = $pdf->setSourceFile($originalPdfPath);
+        for ($pageNo = 1; $pageNo <= $pageCount; $pageNo++) {
+            $templateId = $pdf->importPage($pageNo);
+            $size = $pdf->getTemplateSize($templateId);
+
+            $pdf->AddPage($size['orientation'], [$size['width'], $size['height']]);
+            $pdf->useTemplate($templateId);
+        }
+
+        // Append another PDF
+        $pageCount = $pdf->setSourceFile($pdfToAppendPath);
+        for ($pageNo = 1; $pageNo <= $pageCount; $pageNo++) {
+            $templateId = $pdf->importPage($pageNo);
+            $size = $pdf->getTemplateSize($templateId);
+
+            $pdf->AddPage($size['orientation'], [$size['width'], $size['height']]);
+            $pdf->useTemplate($templateId);
+        }
+
+        // Output the combined PDF
+        $pdf->Output('F', $outputPath); // 'F' = save to file
+        return $outputPath;
+    }
 
 
     public function showQrData()
