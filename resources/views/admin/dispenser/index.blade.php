@@ -65,7 +65,7 @@
                     <div class="card mb-4">
                         <div class="card-header d-flex justify-content-between align-items-center">
                             <strong>Approved Orders for Dispensing</strong>
-                            <div id="dispenseSelectedWrapper"  style="display: none;">
+                            <div id="dispenseSelectedWrapper" style="display: none;">
                                 <button type="submit" class="btn btn-success">Dispense Selected</button>
                             </div>
                         </div>
@@ -84,7 +84,7 @@
                                             <th>Item Names</th>
                                             <th>Created At</th>
                                             @role('Dispenser')
-                                            <th>Action</th>
+                                                <th>Action</th>
                                             @endrole
                                         </tr>
                                     </thead>
@@ -107,12 +107,14 @@
                                                 <td>{{ $order->created_at->format(config('Reading.date_time_format')) }}
                                                 </td>
                                                 @role('Dispenser')
-                                                <td class="d-flex">
-                                                    <a href="{{ route('dispenser_orders.view', $order->id) }}"
-                                                        class="btn btn-primary btn-sm">
-                                                        <i class="fa fa-eye" aria-hidden="true"></i>
-                                                    </a>
-                                                </td>
+                                                    <td>
+                                                        <div class="d-flex">
+                                                            <a href="{{ route('dispenser_orders.view', $order->id) }}"
+                                                                class="btn btn-primary btn-sm">
+                                                                <i class="fa fa-eye" aria-hidden="true"></i>
+                                                            </a>
+                                                        </div>
+                                                    </td>
                                                 @endrole
                                             </tr>
                                         @endforeach

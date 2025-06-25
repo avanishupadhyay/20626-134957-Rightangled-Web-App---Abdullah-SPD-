@@ -95,12 +95,17 @@
                                         <th>Total Price {{ config('Site.currency') }}</th>
                                         <th>Financial Status</th>
                                         <th>Fulfillment Status</th>
+                                        <th>Prescriber Status</th>
+                                        <th>Checker Status</th>
+                                        <th>Dispenser Status</th>
+                                        <th>Act Status</th>
                                         <th>Created At</th>
                                         <th>Action</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     @forelse ($orders as $index => $order)
+                                        {{-- @php pr($order) @endphp --}}
                                         <tr>
                                             <td>{{ $index + 1 }}</td>
                                             <td>{{ $order->order_number }}</td>
@@ -123,16 +128,30 @@
                                                 </span>
                                             </td>
                                             <td>{{ ucfirst($order->fulfillment_status) ?? 'NA' }}</td>
+                                           @php
+                                                $action = $order->orderaction;
+
+                                                $prescriberStatus = ($action && $action->role === 'Prescriber') ? $action->decision_status : '-';
+                                                $checkerStatus    = ($action && $action->role === 'Checker') ? $action->decision_status : '-';
+                                                $dispenserStatus  = ($action && $action->role === 'Dispenser') ? $action->decision_status : '-';
+                                                $actStatus        = ($action && $action->role === 'ACT') ? $action->decision_status : '-';
+                                            @endphp 
+                                            <td>{{ ucfirst($prescriberStatus) }}</td>
+                                            <td>{{ ucfirst($checkerStatus) }}</td>
+                                            <td>{{ ucfirst($dispenserStatus) }}</td>
+                                            <td>{{ ucfirst($actStatus) }}</td>
                                             <td>{{ $order->created_at->format(config('Reading.date_time_format')) }}</td>
-                                            <td class="d-flex flex-wrap gap-2">
-                                                <a href="{{ route('orders.view', $order->id) }}"
-                                                    class="btn btn-primary btn-sm">
-                                                    <i class="fa-solid fa-pen-to-square"></i>
-                                                </a>
+                                            <td>
+                                                <div class="d-flex flex-wrap gap-2">
+                                                    <a href="{{ route('orders.view', $order->id) }}"
+                                                        class="btn btn-primary btn-sm">
+                                                        <i class="fa-solid fa-pen-to-square"></i>
+                                                    </a>
+                                                </div>
                                                 {{-- Uncomment if needed --}}
                                                 {{-- <a href="{{ route('orders.downloadPDF', $order->id) }}" class="btn btn-danger btn-sm" target="_blank">
-                                            <i class="fas fa-file-pdf"></i>
-                                        </a> --}}
+                                                    <i class="fas fa-file-pdf"></i>
+                                                </a> --}}
                                             </td>
                                         </tr>
                                     @empty

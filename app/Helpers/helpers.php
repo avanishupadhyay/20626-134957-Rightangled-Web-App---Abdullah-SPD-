@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Http;
 use Illuminate\Http\Request;
 use App\Models\Order;
+use App\Models\User;
 use App\Models\OrderAction;
 use App\Models\Prescriber;
 use Illuminate\Support\Facades\Storage;
@@ -877,6 +878,20 @@ function buildCommonMetafields(Request $request, string $decisionStatus,$orderId
 	return $metafields;
 }
 
+function metaiFieldAdmin(Request $request, string $decisionStatus)
+{
+	$metafields = [
+		[
+			'namespace' => 'custom',
+			'key' => 'admin_notes',
+			'type' => 'multi_line_text_field',
+			'value' => $decisionStatus .' - '. $request->clinical_reasoning,
+		],
+	];
+	
+	return $metafields;
+}
+
 function buildCommonMetafieldsChecker(Request $request, string $decisionStatus): array
 {
 	$user = auth()->user();
@@ -1414,5 +1429,36 @@ function getProductImages($shopifyOrderId,$productId)
         return collect($images)->pluck('src')->all();
     } else {
         throw new \Exception('Failed to fetch product images: ' . $response->body());
+    }
+}
+
+
+// function getPrescriberStatus($order_id){
+// 	$response = OrderAction::where(['order_id'=>$order_id,'role'=>'Prescriber'])->orderBy('id', 'DESC')->first();
+// 	return $response && isset($response->decision_status) ? $response->decision_status : '-';
+// }
+// function getCheckerStatus($order_id){
+// 	$response = OrderAction::where(['order_id'=>$order_id,'role'=>'Checker'])->orderBy('id', 'DESC')->first();
+// 	return $response && isset($response->decision_status) ? $response->decision_status : '-';
+// }
+// function getDispenserStatus($order_id){
+// 	$response = OrderAction::where(['order_id'=>$order_id,'role'=>'Dispenser'])->orderBy('id', 'DESC')->first();
+// 	return $response && isset($response->decision_status) ? $response->decision_status : '-';
+// }
+// function getACTStatus($order_id){
+// 	$response = OrderAction::where(['order_id'=>$order_id,'role'=>'ACT'])->orderBy('id', 'DESC')->first();
+// 	return $response && isset($response->decision_status) ? $response->decision_status : '-';
+// }
+
+function getPrescriberData($order_id){
+	$response = OrderAction::where(['order_id'=>$order_id,'role'=>'Prescriber'])->orderBy('id', 'DESC')->first();
+	return $response;
+}
+
+if (!function_exists('getUserName')) {
+    function getUserName($userId)
+    {
+        $user = User::find($userId);
+      	return $user ? $user->name : null;
     }
 }

@@ -49,15 +49,18 @@
 
     {{-- 1. Dispensing Labels Section --}}
     @foreach ($processedOrders as $order)
+    @php 
+    $prescriber_data = getPrescriberData($order->order_number);
+    @endphp
         <div class="order-block">
             <div style="text-align: center; margin-top: 10px;">
             <h4>Dispensing Label</h4>
             <p><strong>Order Number:</strong> {{ $order->order_number }}</p>
-            <p><strong>Prescription Date:</strong> {{ $order->order_data['created_at'] ?? 'N/A' }}</p>
+            <p><strong>Prescription Date:</strong> {{ isset($prescriber_data->updated_at) ? $prescriber_data->updated_at : '' }}</p>
             <p><strong>Customer:</strong> {{ $order->order_data['customer']['first_name'] ?? '' }}
                 {{ $order->order_data['customer']['last_name'] ?? '' }}</p>
             <p><strong>DOB:</strong> {{ $order->order_data['customer']['dob'] ?? 'N/A' }}</p>
-            <p><strong>Prescriber:</strong> {{ $order->order_data['prescriber_name'] ?? 'N/A' }}</p>
+            <p><strong>Prescriber:</strong>   {{ isset($prescriber_data->id) ? (ucfirst(getUserName($prescriber_data->id)) ?? '-') : '-' }}</p>
             </div>
 
             {{-- Line Items --}}

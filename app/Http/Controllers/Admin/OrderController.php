@@ -28,7 +28,10 @@ class OrderController extends Controller
 
     public function index(Request $request)
     {
-        $query = Order::query();
+        // $query = Order::query();
+         $query = Order::with(['orderaction' => function ($q) {
+                        $q->orderBy('id', 'DESC');
+                    }]);
 
         // Search by name, email or order number
         if ($request->filled('search')) {
@@ -198,7 +201,7 @@ class OrderController extends Controller
             'release_hold_reason' => 'required_if:decision_status,release_hold',
         ]);
         $decisionStatus = $request->decision_status;
-        $metafieldsInput = buildCommonMetafields($request, $decisionStatus,$orderId);
+        $metafieldsInput = metaiFieldAdmin($request, $decisionStatus,$orderId);
         // $shopDomain = env('SHOP_DOMAIN');
         // $accessToken = env('ACCESS_TOKEN');
         [$shopDomain, $accessToken] = array_values(getShopifyCredentialsByOrderId($orderId));
