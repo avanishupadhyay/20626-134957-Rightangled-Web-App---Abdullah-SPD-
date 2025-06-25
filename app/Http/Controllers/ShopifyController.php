@@ -158,6 +158,9 @@ class ShopifyController extends Controller
         $normalizedShopUrl = 'https://' . $shopDomain;
         // Now match store using the full URL
         $store = \App\Models\Store::where('domain', $normalizedShopUrl)->first();
+        if(!$store){
+            return;
+        }
         Log::info("Matched Store:", [$store]);
         \App\Models\Order::updateOrCreate(
             ['order_number' => $orderData['id']],
@@ -193,6 +196,9 @@ class ShopifyController extends Controller
         $normalizedShopUrl = 'https://' . $shopDomain;
         // Now match store using the full URL
         $store = \App\Models\Store::where('domain', $normalizedShopUrl)->first();
+        if(!$store){
+            return;
+        }
         Log::info("Matched Store:", [$store]);
 
 
@@ -221,6 +227,9 @@ class ShopifyController extends Controller
         $normalizedShopUrl = 'https://' . $shopDomain;
         // Now match store using the full URL
         $store = \App\Models\Store::where('domain', $normalizedShopUrl)->first();
+        if(!$store){
+            return;
+        }
         Log::info("Matched Store:", [$store]);
         $order = \App\Models\Order::where('order_number', $payload['id'])
             ->where('store_id', $store?->id)
@@ -241,6 +250,9 @@ class ShopifyController extends Controller
         $normalizedShopUrl = 'https://' . $shopDomain;
         // Now match store using the full URL
         $store = \App\Models\Store::where('domain', $normalizedShopUrl)->first();
+        if(!$store){
+            return;
+        }
         Log::info("Matched Store:", [$store]);
         $order = \App\Models\Order::where('order_number', $payload['id'])
             ->where('store_id', $store?->id)

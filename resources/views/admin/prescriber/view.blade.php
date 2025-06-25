@@ -233,7 +233,7 @@
                                         {{-- <p><em>(Image GID: {{ $value }})</em></p> --}}
                                     @elseif (filter_var($value, FILTER_VALIDATE_URL))
                                         <a href="{{ $value }}" target="_blank"
-                                            rel="noopener noreferrer">{{ $value }}</a>
+                                            rel="noopener noreferrer">Click Here <i class="fa-solid fa-up-right-from-square"></i></a>
                                     @else
                                         {{ $value }}
                                     @endif

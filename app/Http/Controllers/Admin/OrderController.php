@@ -202,6 +202,7 @@ class OrderController extends Controller
         ]);
         $decisionStatus = $request->decision_status;
         $metafieldsInput = metaiFieldAdmin($request, $decisionStatus,$orderId);
+        
         // $shopDomain = env('SHOP_DOMAIN');
         // $accessToken = env('ACCESS_TOKEN');
         [$shopDomain, $accessToken] = array_values(getShopifyCredentialsByOrderId($orderId));
@@ -244,6 +245,9 @@ class OrderController extends Controller
                 ]
             ]);
 
+            if ($decisionStatus === 'approved') {
+                triggerShopifyTimelineNote($orderId);
+            }
             // Step 2: Take action based on decision
             if ($decisionStatus === 'on_hold') {
              

@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Prescriber extends Model
 {
-    protected $fillable = ['user_id', 'gphc_number', 'signature_image'];
+    protected $fillable = ['user_id', 'gphc_number', 'signature_image','file_gid'];
 
     // Relationship with User
     public function user(): BelongsTo
