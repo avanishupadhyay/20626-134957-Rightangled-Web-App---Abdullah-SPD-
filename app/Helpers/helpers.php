@@ -775,9 +775,9 @@ function buildCommonMetafields(Request $request, string $decisionStatus, $orderI
 		$imageUrl = rtrim(config('app.url'), '/') . '/' . ltrim(Storage::url($filePath), '/');
 		// $imageUrl = asset('admin/signature-images/' . $prescriberData->signature_image);
 	}
-
+	
 	$file_id = uploadImageAndSaveMetafield($imageUrl, $orderId);
-
+	
 	$metafields = [
 		[
 			'ownerId' => $resourceGid,
@@ -1242,10 +1242,15 @@ function uploadImageAndSaveMetafield($publicImageUrl, $orderId)
 
 	$user = auth()->user();
 
-	$existing = Prescriber::where('user_id', $user->id)->first();
+	$store_id = getStoreId($orderId);
+	$prescriber = Prescriber::where('user_id', $user->id)->first();
 
-	if (!empty($existing->file_gid)) {
-		return $existing->file_gid;
+	if (!empty($prescriber->file_gid)) {
+		$fileGidArray = json_decode($prescriber->file_gid, true);
+
+		if (isset($fileGidArray[$store_id])) {
+			return $fileGidArray[$store_id];
+		}
 	}
 	// Step 1: Upload image to Shopify Files via GraphQL
 	$uploadQuery = <<<'GRAPHQL'
@@ -1294,8 +1299,25 @@ function uploadImageAndSaveMetafield($publicImageUrl, $orderId)
 		];
 	}
 
-	Prescriber::where('user_id', $user->id)->update(['file_gid' => $fileData['id'] ?? null]);
+	$store_id = getStoreId($orderId);
+	$prescriber = Prescriber::where('user_id', $user->id)->first();
 
+	if ($prescriber) {
+		$fileGidArray = [];
+
+		// Step 1: Decode existing JSON
+		if (!empty($prescriber->file_gid)) {
+			$fileGidArray = json_decode($prescriber->file_gid, true);
+		}
+
+		// Step 2: Update or append the store_id => file_id
+		$fileGidArray[$store_id] = $fileData['id'];
+
+		// Step 3: Save updated JSON back to database
+		$prescriber->update([
+			'file_gid' => json_encode($fileGidArray)
+		]);
+	}
 	// $fileGid = $fileData['id'];
 	return $fileData['id'] ?? '';
 }
@@ -1634,27 +1656,62 @@ if (!function_exists('fulfillShopifyOrder')) {
 }
 
 
+// function getProductImages($shopifyOrderId, $productId)
+// {
+// 	[$shopDomain, $accessToken] = array_values(getShopifyCredentialsByOrderId($shopifyOrderId));
+
+// 	$url = "{$shopDomain}/admin/api/2024-01/products/{$productId}/images.json";
+
+// 	$response = Http::withHeaders([
+// 		'X-Shopify-Access-Token' => $accessToken,
+// 		'Content-Type' => 'application/json',
+// 	])->get($url);
+
+// 	if ($response->successful()) {
+// 		$images = $response->json('images');
+
+// 		// Return array of image src URLs
+// 		return collect($images)->pluck('src')->all();
+// 	} else {
+// 		throw new \Exception('Failed to fetch product images: ' . $response->body());
+// 	}
+// }
+
 function getProductImages($shopifyOrderId, $productId)
 {
-	[$shopDomain, $accessToken] = array_values(getShopifyCredentialsByOrderId($shopifyOrderId));
+    [$shopDomain, $accessToken] = array_values(getShopifyCredentialsByOrderId($shopifyOrderId));
 
-	$url = "{$shopDomain}/admin/api/2024-01/products/{$productId}/images.json";
+    $url = "{$shopDomain}/admin/api/2024-01/graphql.json";
 
-	$response = Http::withHeaders([
-		'X-Shopify-Access-Token' => $accessToken,
-		'Content-Type' => 'application/json',
-	])->get($url);
+    $query = <<<GRAPHQL
+    {
+      product(id: "gid://shopify/Product/{$productId}") {
+        images(first: 10) {
+          edges {
+            node {
+              src
+            }
+          }
+        }
+      }
+    }
+    GRAPHQL;
 
-	if ($response->successful()) {
-		$images = $response->json('images');
+    $response = Http::withHeaders([
+        'X-Shopify-Access-Token' => $accessToken,
+        'Content-Type' => 'application/json',
+    ])->post($url, [
+        'query' => $query,
+    ]);
 
-		// Return array of image src URLs
-		return collect($images)->pluck('src')->all();
-	} else {
-		throw new \Exception('Failed to fetch product images: ' . $response->body());
-	}
+    if ($response->successful()) {
+        $edges = $response->json('data.product.images.edges') ?? [];
+
+        return collect($edges)->pluck('node.src')->all();
+    } else {
+        throw new \Exception('Failed to fetch product images: ' . $response->body());
+    }
 }
-
 
 //add timeline notes on orders when approveduse Illuminate\Support\Facades\Http;
 
@@ -1729,10 +1786,10 @@ if (!function_exists('getUserName')) {
     }
 }
 
-if (!function_exists('getStoreName')) {
-    function getStoreName($storeId)
+if (!function_exists('getStoreId')) {
+    function getStoreId($order_id)
     {
-        $store = Store::find($storeId);
-      	return $store ? $store->name : null;
+        $order = Order::where('order_number',$order_id)->first();
+      	return $order ? $order->store_id : null;
     }
 }
