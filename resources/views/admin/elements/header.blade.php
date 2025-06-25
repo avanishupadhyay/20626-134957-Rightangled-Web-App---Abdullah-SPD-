@@ -50,7 +50,7 @@
                         href="{{ route('orders.index') }}">
                         <div class="sb-nav-link-icon"><i class="fa fa-first-order" aria-hidden="true"></i>
                         </div>
-                        Orders
+                        Admin Orders
                 </a>
                     <div class="sb-sidenav-menu-heading">Configurations</div>
                     @php

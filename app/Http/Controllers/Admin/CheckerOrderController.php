@@ -31,47 +31,28 @@ class CheckerOrderController extends Controller
 
     public function index(Request $request)
     {
-        $query = Order::with('orderaction')
-            ->whereNull('fulfillment_status')
+        $excludedStatuses = ['approved', 'on_hold', 'accurately_checked', 'dispensed'];
+
+        $excludedOrderIds = \App\Models\OrderAction::orderBy('created_at', 'desc')
+            ->get()
+            ->unique('order_id') // Keep only the latest action per order_id
+            ->filter(function ($action) use ($excludedStatuses) {
+                return in_array($action->decision_status, $excludedStatuses);
+            })
+            ->pluck('order_id')
+            ->toArray();
+
+        $query = Order::whereNull('fulfillment_status')
             // Add the B2B filter directly here
             ->whereRaw("JSON_EXTRACT(order_data, '$.company.id') IS NOT NULL")
             ->whereRaw("JSON_EXTRACT(order_data, '$.company.location_id') IS NOT NULL")
             ->where(function ($q) {
                 $q->whereRaw("JSON_EXTRACT(order_data, '$.cancelled_at') IS NULL")
                     ->orWhereRaw("JSON_UNQUOTE(JSON_EXTRACT(order_data, '$.cancelled_at')) = 'null'");
-            })->whereDoesntHave('orderaction', function ($q) {
-                $q->whereIn('decision_status', ['approved', 'dispensed', 'accurately_checked']);
-            });
+            })->whereNotIn('order_number', $excludedOrderIds);
 
-        // ->whereRaw("JSON_EXTRACT(order_data, '$.cancelled_at') IS NULL");
-        // only non-cancelled, unfulfilled, and B2B orders
 
-        // Search by name, email or order number
-        if ($request->filled('search')) {
-            $query->where(function ($q) use ($request) {
-                $q->where('name', 'like', '%' . $request->search . '%')
-                    ->orWhere('email', 'like', '%' . $request->search . '%')
-                    ->orWhere('order_number', 'like', '%' . $request->search . '%');
-            });
-        }
-
-        // Filter by financial status
-        if ($request->filled('financial_status')) {
-            $query->where('financial_status', $request->financial_status);
-        }
-
-        // Filter by date range
-        if ($request->filled('date_range')) {
-            $dates = explode(' to ', $request->date_range);
-            if (count($dates) == 2) {
-                $from = $dates[0];
-                $to = $dates[1];
-
-                $query->whereDate('created_at', '>=', $from)
-                    ->whereDate('created_at', '<=', $to);
-            }
-        }
-
+        $query = $this->filter_queries($request, $query);
         // Get paginated result
         $orders = $query->latest()->paginate(config('Reading.nodes_per_page'));
 
@@ -99,6 +80,7 @@ class CheckerOrderController extends Controller
 
         // Total Pending Orders (from orders table)
         $totalPendingQuery = Order::with('orderaction')
+        $totalPendingQuery = Order::with('orderaction')
             ->whereNull('fulfillment_status')
             // Add the B2B filter directly here
             ->whereRaw("JSON_EXTRACT(order_data, '$.company.id') IS NOT NULL")
@@ -109,6 +91,8 @@ class CheckerOrderController extends Controller
             })->whereDoesntHave('orderaction', function ($q) {
                 $q->where('decision_status', 'approved');
             });
+
+        $totalPendingQuery = $this->filter_queries($request, $totalPendingQuery, $isAction = false);
 
         if ($applyDateFilter) {
             $totalPendingQuery->whereBetween('created_at', [$startDate, $endDate]);
@@ -124,11 +108,20 @@ class CheckerOrderController extends Controller
                 $q->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(orders.order_data, '$.cancelled_at')) IS NULL")
                     ->orWhereRaw("JSON_UNQUOTE(JSON_EXTRACT(orders.order_data, '$.cancelled_at')) = 'null'");
             });
+        $actionsQuery = OrderAction::join('orders', 'order_actions.order_id', '=', 'orders.order_number')
+            ->where('order_actions.role', 'Checker')
+            ->whereRaw("JSON_EXTRACT(order_data, '$.company.id') IS NOT NULL")
+            ->whereRaw("JSON_EXTRACT(order_data, '$.company.location_id') IS NOT NULL")
+            ->where(function ($q) {
+                $q->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(orders.order_data, '$.cancelled_at')) IS NULL")
+                    ->orWhereRaw("JSON_UNQUOTE(JSON_EXTRACT(orders.order_data, '$.cancelled_at')) = 'null'");
+            });
         // ->where(function ($q) {
         //     $q->whereNull('order_actions.decision_status')
         //     ->orWhere('order_actions.decision_status', '!=', 'approved');
         // });
 
+        $actionsQuery = $this->filter_queries($request, $actionsQuery, $isAction = false);
         if ($applyDateFilter) {
             $actionsQuery->whereBetween('order_actions.created_at', [$startDate, $endDate]);
         }
@@ -146,6 +139,38 @@ class CheckerOrderController extends Controller
             'total_rejected' => $totalRejected,
         ];
 
+        return view('admin.checker.index', compact('orders', 'statuses', 'counts'));
+    }
+
+    private function filter_queries($request, $query, $isAction = true)
+    {
+        if ($request->filled('search')) {
+            $query->where(function ($q) use ($request) {
+                $q->where('name', 'like', '%' . $request->search . '%')
+                    ->orWhere('email', 'like', '%' . $request->search . '%')
+                    ->orWhere('order_number', 'like', '%' . $request->search . '%');
+            });
+        }
+
+        // Filter by financial status
+        if ($request->filled('financial_status')) {
+            $query->where('financial_status', $request->financial_status);
+        }
+
+        // Filter by date range
+        if ($isAction) {
+            if ($request->filled('date_range')) {
+                $dates = explode(' to ', $request->date_range);
+                if (count($dates) == 2) {
+                    $from = $dates[0];
+                    $to = $dates[1];
+
+                    $query->whereDate('created_at', '>=', $from)
+                        ->whereDate('created_at', '<=', $to);
+                }
+            }
+        }
+        return $query;
         return view('admin.checker.index', compact('orders', 'statuses', 'counts'));
     }
 
@@ -174,6 +199,7 @@ class CheckerOrderController extends Controller
             $title = $item['title'];
             $quantity = $item['quantity'];
 
+            $directionOfUse = getProductMetafield($productId, $orderId); // Shopify API call
             $directionOfUse = getProductMetafield($productId, $orderId); // Shopify API call
 
             $items[] = [
@@ -211,9 +237,12 @@ class CheckerOrderController extends Controller
 
         $decisionStatus = $request->decision_status;
 
-        $metafields = buildCommonMetafieldsChecker($request, $decisionStatus);
+        $metafieldsInput = buildCommonMetafieldsChecker($request, $decisionStatus);
         // dd($metafields);
 
+        // $shopDomain = env('SHOP_DOMAIN');
+        // $accessToken = env('ACCESS_TOKEN');
+          [$shopDomain, $accessToken] = array_values(getShopifyCredentialsByOrderId($orderId));
         // $shopDomain = env('SHOP_DOMAIN');
         // $accessToken = env('ACCESS_TOKEN');
         $roleName = auth()->user()->getRoleNames()->first(); // Returns string or null
@@ -223,14 +252,38 @@ class CheckerOrderController extends Controller
         DB::beginTransaction();
         try {
             // Step 1: Push metafields to Shopify
-            foreach ($metafields as $field) {
-                Http::withHeaders([
-                    'X-Shopify-Access-Token' => $accessToken,
-                    'Content-Type' => 'application/json',
-                ])->post("https://{$shopDomain}/admin/api/2023-10/orders/{$orderId}/metafields.json", [
-                    'metafield' => $field
-                ]);
-            }
+            // foreach ($metafields as $field) {
+            //     Http::withHeaders([
+            //         'X-Shopify-Access-Token' => $accessToken,
+            //         'Content-Type' => 'application/json',
+            //     ])->post("https://{$shopDomain}/admin/api/2023-10/orders/{$orderId}/metafields.json", [
+            //         'metafield' => $field
+            //     ]);
+            // }
+               $query = <<<'GRAPHQL'
+                    mutation metafieldsSet($metafields: [MetafieldsSetInput!]!) {
+                    metafieldsSet(metafields: $metafields) {
+                        metafields {
+                        key
+                        namespace
+                        id
+                        }
+                        userErrors {
+                        field
+                        message
+                        }
+                    }
+                    }
+                    GRAPHQL;
+            Http::withHeaders([
+                'X-Shopify-Access-Token' => $accessToken,
+                'Content-Type' => 'application/json',
+            ])->post("{$shopDomain}/admin/api/2023-10/graphql.json", [
+                'query' => $query,
+                'variables' => [
+                    'metafields' => $metafieldsInput
+                ]
+            ]);
 
             if ($decisionStatus === 'approved') {
                 triggerShopifyTimelineNote($orderId);
@@ -276,6 +329,7 @@ class CheckerOrderController extends Controller
                     'rejection_reason' => $request->rejection_reason,
                     'on_hold_reason' => $request->on_hold_reason,
                     'decision_timestamp' => now(),
+                    'role' => $roleName
                     'role' => $roleName
                 ]
             );

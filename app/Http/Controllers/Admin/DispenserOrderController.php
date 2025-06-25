@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
 use Milon\Barcode\DNS2D;
+use Illuminate\Support\Facades\Log;
 
 
 
@@ -174,9 +175,11 @@ class DispenserOrderController extends Controller
         ]);
         $orderNumbers = $request->order_ids;
 
+
         $orders = Order::whereIn('order_number', $orderNumbers)->get();
 
         $processedOrders = $orders->map(function ($order) {
+
 
             $orderData = is_array($order->order_data)
                 ? $order->order_data
@@ -188,16 +191,26 @@ class DispenserOrderController extends Controller
             $shippingAddress = $orderData['shipping_address'] ?? [];
             $billingAddress = $orderData['billing_address'] ?? [];
 
+
             $authToken = '';
             $shipper = (array) DB::table('stores')->first();
 
             $destination = $shippingAddress;
-            // $response = $this->createRoyalMailShipment($authToken, $shipper, $destination, $orderData);
+
+            // if(isset($shippingAddress) && isset($shippingAddress['country']) && $shippingAddress['country'] == "United Kingdom"){
+            //     // For UK Shippment
+            //     $response = $this->createRoyalMailShipment($authToken, $shipper, $destination, $orderData);
+            // }else{
+            //     // For International Shippment
+            //     $response = $this->createDHLShipment($authToken, $shipper, $destination, $orderData);
+            // }
 
             // pr($orderData);die;
             // Sort items by quantity (descending)
             $lineItems = collect($orderData['line_items'] ?? [])->map(function ($item) use ($order) {
+            $lineItems = collect($orderData['line_items'] ?? [])->map(function ($item) use ($order) {
                 $productId = $item['product_id'] ?? null;
+                $item['direction_of_use'] = $productId ? getProductMetafield($productId, $order->order_number) : 'N/A';
                 $item['direction_of_use'] = $productId ? getProductMetafield($productId, $order->order_number) : 'N/A';
                 return $item;
             })->sortByDesc('quantity')->values();
@@ -257,8 +270,14 @@ class DispenserOrderController extends Controller
             'batch_number' => 'BATCH-' . now()->format('YmdHis') . '-' . Str::random(4),
             'user_id' => auth()->id(),
         ]);
+
+       
         // Generate PDF
+        // pr($processedOrders->toArray());
+        // pr($batch->toArray());
+        // die;
         $pdfHtml = view('admin.dispenser.dispenselabel', compact('processedOrders', 'batch'))->render();
+        
         $pdf = PDF::loadHTML($pdfHtml)->setPaper('A4');
 
         $fileName = "{$batch->batch_number}.pdf";
@@ -724,6 +743,312 @@ class DispenserOrderController extends Controller
         } else {
             // Handle error (log or throw)
             throw new \Exception("Royal Mail API Error: " . $response->body());
+        }
+    }
+
+    function createDHLShipment(string $authToken, $shipper, $destination, $orderData)
+    {
+        $payload = [
+            "plannedShippingDateAndTime" => "2022-10-19T19:19:40 GMT+00:00",
+            "pickup" => [
+                "isRequested" => false
+            ],
+            "productCode" => "P",
+            "localProductCode" => "P",
+            "getRateEstimates" => false,
+            "accounts" => [
+                [
+                    "typeCode" => "shipper",
+                    "number" => "123456789"
+                ]
+            ],
+            "valueAddedServices" => [
+                [
+                    "serviceCode" => "II",
+                    "value" => 10,
+                    "currency" => "USD"
+                ]
+            ],
+            "outputImageProperties" => [
+                "printerDPI" => 300,
+                "encodingFormat" => "pdf",
+                "imageOptions" => [
+                    [
+                        "typeCode" => "invoice",
+                        "templateName" => "COMMERCIAL_INVOICE_P_10",
+                        "isRequested" => true,
+                        "invoiceType" => "commercial",
+                        "languageCode" => "eng",
+                        "languageCountryCode" => "US"
+                    ],
+                    [
+                        "typeCode" => "waybillDoc",
+                        "templateName" => "ARCH_8x4",
+                        "isRequested" => true,
+                        "hideAccountNumber" => false,
+                        "numberOfCopies" => 1
+                    ],
+                    [
+                        "typeCode" => "label",
+                        "templateName" => "ECOM26_84_001",
+                        "renderDHLLogo" => true,
+                        "fitLabelsToA4" => false
+                    ]
+                ],
+                "splitTransportAndWaybillDocLabels" => true,
+                "allDocumentsInOneImage" => false,
+                "splitDocumentsByPages" => false,
+                "splitInvoiceAndReceipt" => true,
+                "receiptAndLabelsInOneImage" => false
+            ],
+               "AddressId" => $shipper['AddressId'] ?? '',
+                "ShipperReference" => $shipper['ShipperReference'] ?? '',
+                "ShipperReference2" => $shipper['ShipperReference2'] ?? '',
+                "ShipperDepartment" => $shipper['ShipperDepartment'] ?? '',
+                "CompanyName" => $shipper['name'] ?? '',
+                "ContactName" => $shipper['ContactName'] ?? '',
+                "AddressLine1" => $shipper['AddressLine1'] ?? '',
+                "AddressLine2" => $shipper['AddressLine1'] ?? '',
+                "AddressLine3" => $shipper['AddressLine1'] ?? '',
+                "Town" => $shipper['Town'] ?? '',
+                "County" => $shipper['County'] ?? '',
+                "CountryCode" => $shipper['CountryCode'] ?? '',
+                "Postcode" => $shipper['Postcode'] ?? '',
+                "PhoneNumber" => $shipper['PhoneNumber'] ?? '',
+                "EmailAddress" => $shipper['EmailAddress'] ?? '',
+                "VatNumber" => $shipper['VatNumber'] ?? '',
+
+            "customerDetails" => [
+                "shipperDetails" => [
+                    "postalAddress" => [
+                        "postalCode" => $shipper['Postcode'] ?? '',
+                        "cityName" => "Zhaoqing",
+                        "countryCode" => $shipper['CountryCode'] ?? '',
+                        "addressLine1" => $shipper['AddressLine1'] ?? '',
+                        "addressLine2" => $shipper['AddressLine2'] ?? '',
+                        "addressLine3" => $shipper['AddressLine3'] ?? '',
+                        "countyName" => $shipper['County'] ?? '',
+                        "countryName" => $shipper['County'] ?? '',
+                    ],
+                    "contactInformation" => [
+                        "email" => $shipper['EmailAddress'] ?? '',
+                        "phone" => $shipper['PhoneNumber'] ?? '',
+                        "mobilePhone" => "18211309039",
+                        "companyName" => $shipper['name'] ?? '',
+                        "fullName" => $shipper['ContactName'] ?? '',
+                    ],
+                    "registrationNumbers" => [
+                        [
+                            "typeCode" => "SDT",
+                            "number" => "CN123456789",
+                            "issuerCountryCode" => "CN"
+                        ]
+                    ],
+                    "bankDetails" => [
+                        [
+                            "name" => "Bank of China",
+                            "settlementLocalCurrency" => "RMB",
+                            "settlementForeignCurrency" => "USD"
+                        ]
+                    ],
+                    "typeCode" => "business"
+                ],
+                "receiverDetails" => [
+                    "postalAddress" => [
+                        "cityName" => $destination['city'] ?? '',
+                        "countryCode" => $destination['country_code'] ?? '',
+                        "postalCode" => $destination['zip'] ?? '',
+                        "addressLine1" => $destination['address1'] ?? '',
+                        "countryName" => $destination['country'] ?? '',
+                    ],
+                    "contactInformation" => [
+                        "email" => $orderData['customer']['email'] ?? '',
+                        "phone" =>  $destination['phone'] ?? '',
+                        "mobilePhone" => "9402825666",
+                        "companyName" => $destination['company'] ?? '',
+                        "fullName" => $destination['name'] ?? '',
+                    ],
+                    "registrationNumbers" => [
+                        [
+                            "typeCode" => "SSN",
+                            "number" => "US123456789",
+                            "issuerCountryCode" => "US"
+                        ]
+                    ],
+                    "bankDetails" => [
+                        [
+                            "name" => "Bank of America",
+                            "settlementLocalCurrency" => "USD",
+                            "settlementForeignCurrency" => "USD"
+                        ]
+                    ],
+                    "typeCode" => "business"
+                ]
+            ],
+            "content" => [
+                "packages" => [
+                    [
+                        "typeCode" => "2BP",
+                        "weight" => 0.5,
+                        "dimensions" => [
+                            "length" => 1,
+                            "width" => 1,
+                            "height" => 1
+                        ],
+                        "customerReferences" => [
+                            [
+                                "value" => "3654673",
+                                "typeCode" => "CU"
+                            ]
+                        ],
+                        "description" => "Piece content description",
+                        "labelDescription" => "bespoke label description"
+                    ]
+                ],
+                "isCustomsDeclarable" => true,
+                "declaredValue" => 120,
+                "declaredValueCurrency" => "USD",
+                "exportDeclaration" => [
+                    "lineItems" => [
+                        [
+                            "number" => 1,
+                            "description" => "Harry Steward biography first edition",
+                            "price" => 15,
+                            "quantity" => [
+                                "value" => 4,
+                                "unitOfMeasurement" => "GM"
+                            ],
+                            "commodityCodes" => [
+                                ["typeCode" => "outbound", "value" => "84713000"],
+                                ["typeCode" => "inbound", "value" => "5109101110"]
+                            ],
+                            "exportReasonType" => "permanent",
+                            "manufacturerCountry" => "US",
+                            "exportControlClassificationNumber" => "US123456789",
+                            "weight" => ["netValue" => 0.1, "grossValue" => 0.7],
+                            "isTaxesPaid" => true,
+                            "additionalInformation" => ["450pages"],
+                            "customerReferences" => [["typeCode" => "AFE", "value" => "1299210"]],
+                            "customsDocuments" => [["typeCode" => "COO", "value" => "MyDHLAPI - LN#1-CUSDOC-001"]]
+                        ],
+                        [
+                            "number" => 2,
+                            "description" => "Andromeda Chapter 394 - Revenge of Brook",
+                            "price" => 15,
+                            "quantity" => [
+                                "value" => 4,
+                                "unitOfMeasurement" => "GM"
+                            ],
+                            "commodityCodes" => [
+                                ["typeCode" => "outbound", "value" => "6109100011"],
+                                ["typeCode" => "inbound", "value" => "5109101111"]
+                            ],
+                            "exportReasonType" => "permanent",
+                            "manufacturerCountry" => "US",
+                            "exportControlClassificationNumber" => "US123456789",
+                            "weight" => ["netValue" => 0.1, "grossValue" => 0.7],
+                            "isTaxesPaid" => true,
+                            "additionalInformation" => ["36pages"],
+                            "customerReferences" => [["typeCode" => "AFE", "value" => "1299211"]],
+                            "customsDocuments" => [["typeCode" => "COO", "value" => "MyDHLAPI - LN#1-CUSDOC-001"]]
+                        ]
+                    ],
+                    "invoice" => [
+                        "number" => "2667168671",
+                        "date" => "2022-10-22",
+                        "instructions" => ["Handle with care"],
+                        "totalNetWeight" => 0.4,
+                        "totalGrossWeight" => 0.5,
+                        "customerReferences" => [
+                            ["typeCode" => "UCN", "value" => "UCN-783974937"],
+                            ["typeCode" => "CN", "value" => "CUN-76498376498"],
+                            ["typeCode" => "RMA", "value" => "MyDHLAPI-TESTREF-001"]
+                        ],
+                        "termsOfPayment" => "100 days",
+                        "indicativeCustomsValues" => [
+                            "importCustomsDutyValue" => 150.57,
+                            "importTaxesValue" => 49.43
+                        ]
+                    ],
+                    "remarks" => [["value" => "Right side up only"]],
+                    "additionalCharges" => [
+                        ["value" => 10, "caption" => "fee", "typeCode" => "freight"],
+                        ["value" => 20, "caption" => "freight charges", "typeCode" => "other"],
+                        ["value" => 10, "caption" => "ins charges", "typeCode" => "insurance"],
+                        ["value" => 7, "caption" => "rev charges", "typeCode" => "reverse_charge"]
+                    ],
+                    "destinationPortName" => "New York Port",
+                    "placeOfIncoterm" => "ShenZhen Port",
+                    "payerVATNumber" => "12345ED",
+                    "recipientReference" => "01291344",
+                    "exporter" => ["id" => "121233", "code" => "S"],
+                    "packageMarks" => "Fragile glass bottle",
+                    "declarationNotes" => [["value" => "up to three declaration notes"]],
+                    "exportReference" => "export reference",
+                    "exportReason" => "export reason",
+                    "exportReasonType" => "permanent",
+                    "licenses" => [["typeCode" => "export", "value" => "123127233"]],
+                    "shipmentType" => "personal",
+                    "customsDocuments" => [["typeCode" => "INV", "value" => "MyDHLAPI - CUSDOC-001"]]
+                ],
+                "description" => "Shipment",
+                "USFilingTypeValue" => "12345",
+                "incoterm" => "DAP",
+                "unitOfMeasurement" => "metric"
+            ],
+            "shipmentNotification" => [
+                [
+                    "typeCode" => "email",
+                    "receiverId" => "shipmentnotification@mydhlapisample.com",
+                    "languageCode" => "eng",
+                    "languageCountryCode" => "UK",
+                    "bespokeMessage" => "message to be included in the notification"
+                ]
+            ],
+            "getTransliteratedResponse" => false,
+            "estimatedDeliveryDate" => [
+                "isRequested" => true,
+                "typeCode" => "QDDC"
+            ],
+            "getAdditionalInformation" => [
+                [
+                    "typeCode" => "pickupDetails",
+                    "isRequested" => true
+                ]
+            ]
+        ];
+
+        $response = Http::withHeaders([
+            'content-type' => 'application/json',
+            'Message-Reference' => 'd0e7832e-5c98-11ea-bc55-0242ac13',
+            'Message-Reference-Date' => 'Wed, 21 Oct 2015 07:28:00 GMT',
+            'Plugin-Name' => 'SOME_STRING_VALUE',
+            'Plugin-Version' => 'SOME_STRING_VALUE',
+            'Shipping-System-Platform-Name' => 'SOME_STRING_VALUE',
+            'Shipping-System-Platform-Version' => 'SOME_STRING_VALUE',
+            'Webstore-Platform-Name' => 'SOME_STRING_VALUE',
+            'Webstore-Platform-Version' => 'SOME_STRING_VALUE',
+            'x-version' => '2.12.0',
+            'Authorization' => 'Basic ' . base64_encode('demo-key:123456'),
+        ])->post('https://api-mock.dhl.com/mydhlapi/shipments', $payload);
+
+        // pr($response->body());die;
+        if ($response->successful()) {
+            return [
+                'success' => true,
+                'data' => $response->json()
+            ];
+        } else {
+            Log::error('DHL API Error', [
+                'status' => $response->status(),
+                'body' => $response->body(),
+            ]);
+
+            return [
+                'success' => false,
+                'error' => $response->body(),
+                'status' => $response->status()
+            ];
         }
     }
 }
