@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Http\Request;
 use App\Models\Order;
 use App\Models\User;
+use App\Models\Store;
 use App\Models\OrderAction;
 use App\Models\Prescriber;
 use Illuminate\Support\Facades\Storage;
@@ -1725,5 +1726,13 @@ if (!function_exists('getUserName')) {
     {
         $user = User::find($userId);
       	return $user ? $user->name : null;
+    }
+}
+
+if (!function_exists('getStoreName')) {
+    function getStoreName($storeId)
+    {
+        $store = Store::find($storeId);
+      	return $store ? $store->name : null;
     }
 }

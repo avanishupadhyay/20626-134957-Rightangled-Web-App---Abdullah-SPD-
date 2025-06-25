@@ -31,7 +31,7 @@ class OrderController extends Controller
         // $query = Order::query();
          $query = Order::with(['orderaction' => function ($q) {
                         $q->orderBy('id', 'DESC');
-                    }]);
+                    },'store']);
 
         // Search by name, email or order number
         if ($request->filled('search')) {

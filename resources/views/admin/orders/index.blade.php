@@ -95,6 +95,7 @@
                                         <th>Total Price {{ config('Site.currency') }}</th>
                                         <th>Financial Status</th>
                                         <th>Fulfillment Status</th>
+                                        <th>Store</th>
                                         <th>Prescriber Status</th>
                                         <th>Checker Status</th>
                                         <th>Dispenser Status</th>
@@ -136,6 +137,8 @@
                                                 $dispenserStatus  = ($action && $action->role === 'Dispenser') ? $action->decision_status : '-';
                                                 $actStatus        = ($action && $action->role === 'ACT') ? $action->decision_status : '-';
                                             @endphp 
+                                            {{-- <td>{{ ucfirst(getStoreName($order->store_id)) }}</td> --}}
+                                            <td>{{ ucfirst($order->store->name) }}</td>
                                             <td>{{ ucfirst($prescriberStatus) }}</td>
                                             <td>{{ ucfirst($checkerStatus) }}</td>
                                             <td>{{ ucfirst($dispenserStatus) }}</td>
@@ -156,7 +159,7 @@
                                         </tr>
                                     @empty
                                         <tr>
-                                            <td colspan="9" class="text-center">No orders found.</td>
+                                            <td colspan="14" class="text-center">No orders found.</td>
                                         </tr>
                                     @endforelse
                                 </tbody>
