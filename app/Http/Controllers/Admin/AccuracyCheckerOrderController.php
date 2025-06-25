@@ -34,7 +34,7 @@ class AccuracyCheckerOrderController extends Controller
 
         $dispensed = OrderDispense::pluck('order_id')->toArray();
         // Step 2: Get latest action per order, and filter if latest is 'dispensed'
-        $latestApprovedOrderIds = OrderAction::latest('created_at')
+        $latestApprovedOrderIds = OrderAction::latest('updated_at')
             ->get()
             ->unique('order_id') // Keep only the latest action per order_id
             ->filter(function ($action) {
@@ -194,6 +194,7 @@ class AccuracyCheckerOrderController extends Controller
         // Proceed if not fulfilled
         $orderData = json_decode($order->order_data, true);
         $items = $orderData['line_items'] ?? [];
+        // dd($items);
         $shipping = $orderData['shipping_address'] ?? [];
 
         return response()->json([
@@ -214,7 +215,7 @@ class AccuracyCheckerOrderController extends Controller
             'items' => array_map(function ($item) {
                 return [
                     'name' => $item['title'] ?? 'N/A',
-                    'quantity' => $item['quantity'] ?? 0,
+                    'quantity' => $item['current_quantity'] ?? 0,
                     'price' => $item['price'] ?? '-',
                 ];
             }, $items),
@@ -259,6 +260,7 @@ class AccuracyCheckerOrderController extends Controller
 
             // Step 2: Fulfill via Shopify API
             fulfillShopifyOrder($order->order_number); // Your custom logic
+            triggerShopifyTimelineNote($order->order_number);
 
             // Step 3: Get current user role (optional safety)
             $roleName = auth()->user()?->roles?->first()?->name ?? 'unknown';

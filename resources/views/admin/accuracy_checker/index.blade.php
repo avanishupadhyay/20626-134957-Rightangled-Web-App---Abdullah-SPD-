@@ -154,106 +154,28 @@
                         </table>
                     </div>
                     <div class="modal-footer">
-                        <button id="fulfillBtn" class="btn btn-success">Mark as Fulfilled</button>
+                        {{-- <button id="fulfillBtn" class="btn btn-success">Mark as Fulfilled</button> --}}
+                        <div id="barcodeContainer">
+                            <img id="barcodeImage" src="" alt="Barcode">
+                        </div>
+
+
                     </div>
+                    {{-- <input type="text" id="barcode-scan-input" autocomplete="off" style="opacity: 1;" /> --}}
+                    <input type="text" id="barcode-scan-input" style="position: absolute; left: -9999px;" autocomplete="off">
+
+
                 </div>
             </div>
+
         </div>
 
+
+
     </div>
+
 @endsection
 
-{{-- <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        let selectedOrderId = null;
-        const scanInput = document.getElementById('qr-scan-input');
-        let scanTimeout = null;
-
-        // Refocus hidden input
-        setInterval(() => scanInput.focus(), 500);
-
-        // Handle scan input
-        scanInput.addEventListener('input', function() {
-            clearTimeout(scanTimeout);
-            scanTimeout = setTimeout(() => {
-                const scannedOrderNumber = scanInput.value.trim();
-                console.log("Scanned value:", scannedOrderNumber);
-                // scanInput.value = '';
-
-                if (scannedOrderNumber === '') return;
-
-                // ✅ Correct fetch URL
-                fetch(`/admin/Accuracy-checker/orders/ajax/${scannedOrderNumber}`)
-                    .then(res => res.json())
-                    .then(data => {
-                        if (data.status == 'success') {
-                            document.getElementById('modalOrderNumber').textContent = data
-                                .order.order_number;
-                            document.getElementById('modalCustomer').textContent = data
-                                .order.email;
-
-                            const tbody = document.getElementById('modalItemsTable');
-                            tbody.innerHTML = '';
-
-                            data.items.forEach(item => {
-                                const row = `
-                                    <tr>
-                                        <td>${item.name}</td>
-                                        <td>${item.quantity}</td>
-                                        <td>${item.price}</td>
-                                    </tr>
-                                `;
-                                tbody.insertAdjacentHTML('beforeend', row);
-                            });
-
-                            new bootstrap.Modal(document.getElementById('orderModal'))
-                                .show();
-                            selectedOrderId = scannedOrderNumber;
-                        } else {
-                            alert(data.message || 'Order not found.');
-                        }
-                        scanInput.value = '';
-                    })
-                    .catch(err => {
-                        console.error(err);
-                        alert('Error loading order.');
-                    });
-            }, 300);
-        });
-
-        // Fulfill button logic
-        document.getElementById('fulfillBtn').addEventListener('click', function() {
-            if (!selectedOrderId) return;
-            if (!confirm('Mark this order as fulfilled and send dispense mail?')) return;
-
-            fetch(`/admin/Accuracy-checker/orders/fulfill/${selectedOrderId}`, {
-                    method: 'POST',
-                    headers: {
-                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                        'Content-Type': 'application/json',
-                    }
-                })
-                .then(res => res.json())
-                .then(data => {
-                    if (data.status === 'success') {
-                        alert('Order fulfilled and email sent!');
-                        location.reload();
-                    } else {
-                        alert(data.message || 'Failed to fulfill order.');
-                    }
-                })
-                .catch(err => {
-                    console.error(err);
-                    alert('Fulfillment failed.');
-                });
-        });
-    });
-</script> --}}
-<!-- Toastr CSS -->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
-
-<!-- Toastr JS -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
@@ -269,6 +191,7 @@
                 scanInput.focus();
             }
         }, 500);
+
 
         // 🔄 Reusable fetch + modal handler
         function fetchAndShowOrder(orderNumber) {
@@ -288,6 +211,8 @@
                 `;
                         const tbody = document.getElementById('modalItemsTable');
                         tbody.innerHTML = '';
+                        document.getElementById('barcodeImage').src = '/barcode/' + data.order.order_number;
+
 
                         data.items.forEach(item => {
                             const row = `
@@ -300,6 +225,9 @@
                         });
 
                         new bootstrap.Modal(document.getElementById('orderModal')).show();
+                        setSelectedOrderIdForFulfillment(data.order
+                        .order_number); // 👈 Add this to set selectedOrderId
+
                         selectedOrderId = orderNumber;
                     } else {
                         alert(data.message || 'Order not found.');
@@ -334,30 +262,212 @@
         });
 
         // ✅ Fulfill button logic
-        document.getElementById('fulfillBtn').addEventListener('click', function() {
-            if (!selectedOrderId) return;
-            if (!confirm('Mark this order as fulfilled and send dispense mail?')) return;
+        // document.getElementById('fulfillBtn').addEventListener('click', function() {
+        //     if (!selectedOrderId) return;
+        //     if (!confirm('Mark this order as fulfilled and send dispense mail?')) return;
 
-            fetch(`/admin/Accuracy-checker/orders/fulfill/${selectedOrderId}`, {
-                    method: 'POST',
-                    headers: {
-                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                        'Content-Type': 'application/json',
+        //     fetch(`/admin/Accuracy-checker/orders/fulfill/${selectedOrderId}`, {
+        //             method: 'POST',
+        //             headers: {
+        //                 'X-CSRF-TOKEN': '{{ csrf_token() }}',
+        //                 'Content-Type': 'application/json',
+        //             }
+        //         })
+        //         .then(res => res.json())
+        //         .then(data => {
+        //             if (data.status == 'success') {
+        //                 alert('Order fulfilled and email sent!');
+        //                 location.reload();
+        //             } else {
+        //                 alert(data.message || 'Failed to fulfill order.');
+        //             }
+        //         })
+        //         .catch(err => {
+        //             console.error(err);
+        //             alert('Fulfillment failed.');
+        //         });
+        // });
+    });
+</script>
+
+
+{{-- <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const barcodeInput = document.getElementById('barcode-scan-input');
+        const orderModal = document.getElementById('orderModal');
+        let barcodeBuffer = '';
+        let barcodeTimer;
+        let selectedOrderId = null;
+
+        // 🔁 This should be set when modal is opened and order is loaded
+        window.setSelectedOrderIdForFulfillment = function(orderId) {
+            selectedOrderId = orderId;
+            console.log(selectedOrderId);
+        };
+
+        // ✅ Focus input when modal is opened
+        const observer = new MutationObserver((mutationsList) => {
+            for (let mutation of mutationsList) {
+                if (
+                    mutation.type === 'attributes' &&
+                    mutation.attributeName === 'class' &&
+                    orderModal.classList.contains('show')
+                ) {
+                    setTimeout(() => {
+                        barcodeInput.focus();
+                        barcodeBuffer = '';
+                        console.log('Modal opened, focusing barcode input.');
+                    }, 200);
+                }
+            }
+        });
+
+        observer.observe(orderModal, {
+            attributes: true
+        });
+
+        // ✅ Accumulate scanned characters and handle scan
+        document.addEventListener('keydown', function(e) {
+            if (!orderModal.classList.contains('show')) return;
+
+            if (e.key.length === 1) {
+                barcodeBuffer += e.key;
+            }
+
+            clearTimeout(barcodeTimer);
+            barcodeTimer = setTimeout(() => {
+                const scannedValue = barcodeBuffer.trim();
+                if (scannedValue) {
+                    barcodeInput.value = scannedValue;
+
+                    if (!selectedOrderId) {
+                        alert('Order ID not set.');
+                        return;
                     }
-                })
-                .then(res => res.json())
-                .then(data => {
-                    if (data.status == 'success') {
-                        alert('Order fulfilled and email sent!');
-                        location.reload();
+
+                    if (scannedValue.trim().toString() !== selectedOrderId.toString()) {
+                        alert('Scanned barcode does not match this order.');
                     } else {
-                        alert(data.message || 'Failed to fulfill order.');
+                        if (confirm(`Mark order ${scannedValue} as fulfilled?`)) {
+                            fetch(`/admin/Accuracy-checker/orders/fulfill/${selectedOrderId}`, {
+                                    method: 'POST',
+                                    headers: {
+                                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                        'Content-Type': 'application/json',
+                                    }
+                                })
+                                .then(res => res.json())
+                                .then(data => {
+                                    if (data.status === 'success') {
+                                        alert('Order fulfilled and email sent!');
+                                        location.reload();
+                                    } else {
+                                        alert(data.message || 'Failed to fulfill order.');
+                                    }
+                                })
+                                .catch(err => {
+                                    console.error(err);
+                                    alert('Fulfillment request failed.');
+                                });
+                        }
                     }
-                })
-                .catch(err => {
-                    console.error(err);
-                    alert('Fulfillment failed.');
-                });
+
+                    barcodeBuffer = '';
+                }
+            }, 200);
         });
     });
+</script> --}}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const barcodeInput = document.getElementById('barcode-scan-input');
+    const orderModal = document.getElementById('orderModal');
+    let barcodeBuffer = '';
+    let barcodeTimer;
+    let selectedOrderId = null;
+
+    // 🔁 This should be set when modal is opened and order is loaded
+    window.setSelectedOrderIdForFulfillment = function(orderId) {
+        selectedOrderId = orderId;
+        console.log(selectedOrderId);
+    };
+
+    // ✅ Focus input when modal is opened, and clear input when closed
+    const observer = new MutationObserver((mutationsList) => {
+        for (let mutation of mutationsList) {
+            if (
+                mutation.type === 'attributes' &&
+                mutation.attributeName === 'class'
+            ) {
+                const isVisible = orderModal.classList.contains('show');
+
+                if (isVisible) {
+                    setTimeout(() => {
+                        barcodeInput.focus();
+                        barcodeBuffer = '';
+                        console.log('Modal opened, focusing barcode input.');
+                    }, 200);
+                } else {
+                    // 🔻 Modal closed — clear input and buffer
+                    barcodeBuffer = '';
+                    barcodeInput.value = '';
+                    console.log('Modal closed, cleared barcode input.');
+                }
+            }
+        }
+    });
+
+    observer.observe(orderModal, { attributes: true });
+
+    // ✅ Accumulate scanned characters and handle scan
+    document.addEventListener('keydown', function(e) {
+        if (!orderModal.classList.contains('show')) return;
+
+        if (e.key.length === 1) {
+            barcodeBuffer += e.key;
+        }
+
+        clearTimeout(barcodeTimer);
+        barcodeTimer = setTimeout(() => {
+            const scannedValue = barcodeBuffer.trim();
+            if (scannedValue) {
+                barcodeInput.value = scannedValue;
+
+                if (!selectedOrderId) {
+                    alert('Order ID not set.');
+                    return;
+                }
+
+                if (scannedValue !== selectedOrderId.toString()) {
+                    alert('Scanned barcode does not match this order.');
+                } else {
+                    if (confirm(`Mark order ${scannedValue} as fulfilled?`)) {
+                        fetch(`/admin/Accuracy-checker/orders/fulfill/${selectedOrderId}`, {
+                            method: 'POST',
+                            headers: {
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                'Content-Type': 'application/json',
+                            }
+                        })
+                        .then(res => res.json())
+                        .then(data => {
+                            if (data.status === 'success') {
+                                alert('Order fulfilled and email sent!');
+                                location.reload();
+                            } else {
+                                alert(data.message || 'Failed to fulfill order.');
+                            }
+                        })
+                        .catch(err => {
+                            console.error(err);
+                            alert('Fulfillment request failed.');
+                        });
+                    }
+                }
+
+                barcodeBuffer = '';
+            }
+        }, 200);
+    });
+});
 </script>

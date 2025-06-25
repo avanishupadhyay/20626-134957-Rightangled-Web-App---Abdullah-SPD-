@@ -27,7 +27,7 @@ class DispenserOrderController extends Controller
     public function __construct()
     {
         $this->middleware(function ($request, $next) {
-            if (!auth()->check() || !auth()->user()->hasRole('Dispenser')) {
+            if (!auth()->check() || !auth()->user()->hasRole('Admin')) {
                 abort(403, 'Access denied');
             }
             return $next($request);
@@ -41,7 +41,7 @@ class DispenserOrderController extends Controller
         //     ->latest('created_at')
         //     ->pluck('order_id');
 
-        $approvedOrderNumbers = OrderAction::latest('created_at')
+        $approvedOrderNumbers = OrderAction::latest('updated_at')
             ->get()
             ->unique('order_id') // Keep only the latest action per order_id
             ->filter(function ($action) {
@@ -175,9 +175,11 @@ class DispenserOrderController extends Controller
         ]);
         $orderNumbers = $request->order_ids;
 
+
         $orders = Order::whereIn('order_number', $orderNumbers)->get();
 
         $processedOrders = $orders->map(function ($order) {
+
 
             $orderData = is_array($order->order_data)
                 ? $order->order_data
@@ -188,6 +190,7 @@ class DispenserOrderController extends Controller
             $customer = $orderData['customer'] ?? [];
             $shippingAddress = $orderData['shipping_address'] ?? [];
             $billingAddress = $orderData['billing_address'] ?? [];
+
 
             $authToken = '';
             $shipper = (array) DB::table('stores')->first();
@@ -205,7 +208,9 @@ class DispenserOrderController extends Controller
             // pr($orderData);die;
             // Sort items by quantity (descending)
             $lineItems = collect($orderData['line_items'] ?? [])->map(function ($item) use ($order) {
+            $lineItems = collect($orderData['line_items'] ?? [])->map(function ($item) use ($order) {
                 $productId = $item['product_id'] ?? null;
+                $item['direction_of_use'] = $productId ? getProductMetafield($productId, $order->order_number) : 'N/A';
                 $item['direction_of_use'] = $productId ? getProductMetafield($productId, $order->order_number) : 'N/A';
                 return $item;
             })->sortByDesc('quantity')->values();
@@ -296,24 +301,33 @@ class DispenserOrderController extends Controller
                 'details' => 'Order dispensed by ' . auth()->user()->name . ' on ' . now()->format('d/m/Y') . ' at ' . now()->format('H:i'),
             ]);
 
-            $roleName = auth()->user()?->roles?->first()?->name ?? 'unknown';
+        $roleName = auth()->user()?->roles?->first()?->name ?? 'unknown';
 
-            // Step 4: Log or update order decision
-            \App\Models\OrderAction::updateOrCreate(
-                [
-                    'order_id' => $order->order_number, // Assuming this links to Order.id (not order_number)
-                    'user_id' => auth()->id(),
-                ],
-                [
-                    'decision_status' => 'dispensed',
-                    'decision_timestamp' => now(),
-                    'role' => $roleName,
-                ]
-            );
+        // Step 4: Log or update order decision
+        OrderAction::updateOrCreate(
+            [
+                'order_id' => $order->order_number, // Assuming this links to Order.id (not order_number)
+                'user_id' => auth()->id(),
+            ],
+            [
+                'decision_status' => 'dispensed',
+                'decision_timestamp' => now(),
+                'role' => $roleName,
+            ]
+        );
         }
 
         // $orderGIDs = $processedOrders->pluck('order_number')->map(fn($id) => "gid://shopify/Order/{$id}")->toArray();
-        // bulkAddShopifyTags($orderGIDs, 'dispensed',$order->id);
+        // bulkAddShopifyTagsAndNotes($orderGIDs, 'dispensed',$order->id);
+        $orderGIDsWithStoreIds = $processedOrders->map(function ($order) {
+            return [
+                'gid' => "gid://shopify/Order/{$order->order_number}",
+                'shopify_order_id' => $order->order_number,
+                'store_id' => $order->store_id, // assuming you store this
+            ];
+        })->toArray();
+
+        bulkAddShopifyTagsAndNotes($orderGIDsWithStoreIds, 'dispensed');
 
 
         // return $pdf->stream("{$batch->batch_number}.pdf"); // force download
@@ -322,128 +336,6 @@ class DispenserOrderController extends Controller
         return redirect()->route('dispenser.batches.list')->with('success', 'Dispensing PDF generated and ready to download');
     }
 
-
-    // public function printDispenseBatch(Request $request)
-    // {
-    //     $request->validate([
-    //         'order_ids' => 'required|array|min:1',
-    //     ]);
-
-    //     $orderNumbers = $request->order_ids;
-
-    //     $orders = Order::whereIn('order_number', $orderNumbers)->get();
-
-    //     $dispenseLabels = [];
-    //     $shippingLabels = [];
-    //     $packingSlips = [];
-
-    //     $processedOrders = $orders->map(function ($order) use (&$dispenseLabels, &$shippingLabels, &$packingSlips) {
-    //         $orderData = json_decode($order->order_data, true);
-    //         $lineItems = collect($orderData['line_items'] ?? [])->map(function ($item) {
-    //             $productId = $item['product_id'] ?? null;
-    //             $item['direction_of_use'] = $productId ? getProductMetafield($productId) : 'N/A';
-    //             return $item;
-    //         })->sortByDesc('quantity')->values();
-
-    //         $order->order_data = $orderData;
-    //         $order->line_items = $lineItems;
-    //         $order->total_quantity = $lineItems->sum('quantity');
-
-    //         $shippingCountry = strtolower($orderData['shipping_address']['country_code'] ?? 'gb');
-    //         $shippingMethod = strtolower($orderData['shipping_lines'][0]['title'] ?? '');
-
-    //         // QR Code
-    //         $qrPayload = json_encode([
-    //             'order_number' => $order->order_number,
-    //             'name' => $orderData['shipping_address']['name'] ?? '',
-    //             'country' => strtoupper($shippingCountry),
-    //         ]);
-    //         $order->qr_code = (new \Milon\Barcode\DNS2D)->getBarcodeHTML($qrPayload, 'QRCODE');
-
-    //         // Dispense Label
-    //         // $dispenseLabels[] = view('admin.dispenser.partials.dispense_label', compact('order'))->render();
-
-    //         // Label type
-    //         // if ($shippingMethod === 'local_delivery' || $shippingMethod === 'local_pickup') {
-    //         //     $packingSlips[] = view('admin.dispenser.partials.packing_slip', compact('order'))->render();
-    //         // }
-    //         //elseif ($shippingCountry !== 'gb') {
-    //         //     // DHL label placeholder (replace later with real label from API)
-    //         //     $shippingLabels[] = view('admin.dispenser.partials.dhl_placeholder_label', compact('order'))->render();
-    //         // }
-    //         // elseif ($shippingCountry !== 'gb') {
-    //         $labelPath = $this->generateRoyalMailLabelFromShopify($orderData);
-    //         if ($labelPath) {
-    //             $order->label_type = 'dhl_shipping_label';
-    //             $order->label_html = '<embed src="' . asset('storage/' . basename($labelPath)) . '" type="application/pdf" width="100%" height="400px">';
-    //         } else {
-    //             $order->label_html = '<p style="color:red;">DHL Label Failed</p>';
-    //         }
-    //         // } else {
-    //         // Royal Mail (future, optional)
-    //         // $shippingLabels[] = view('admin.dispenser.partials.royal_mail_placeholder_label', compact('order'))->render();
-    //         // }
-
-    //         return $order;
-    //     })->sortByDesc('total_quantity')->values();
-
-    //     // ✅ Create a new batch
-    //     $batch = DispenseBatch::create([
-    //         'batch_number' => 'BATCH-' . now()->format('YmdHis') . '-' . \Str::random(4),
-    //         'user_id' => auth()->id(),
-    //     ]);
-
-    //     // ✅ Combine PDFs
-    //     $filePaths = [];
-
-    //     // Dispense label PDF
-    //     $dispensePdf = \PDF::loadHTML(implode('<div style="page-break-after:always;"></div>', $dispenseLabels))->setPaper('A4');
-    //     $dispenseFilePath = "dispense_batches/{$batch->batch_number}_dispense.pdf";
-    //     Storage::disk('public')->put($dispenseFilePath, $dispensePdf->output());
-    //     $filePaths['dispense'] = $dispenseFilePath;
-
-    //     // Shipping label PDF
-    //     $shippingPdf = \PDF::loadHTML(implode('<div style="page-break-after:always;"></div>', $shippingLabels))->setPaper('A4');
-    //     $shippingFilePath = "dispense_batches/{$batch->batch_number}_shipping.pdf";
-    //     Storage::disk('public')->put($shippingFilePath, $shippingPdf->output());
-    //     $filePaths['shipping'] = $shippingFilePath;
-
-    //     // Packing slip PDF
-    //     // $packingPdf = \PDF::loadHTML(implode('<div style="page-break-after:always;"></div>', $packingSlips))->setPaper('A4');
-    //     // $packingFilePath = "dispense_batches/{$batch->batch_number}_packing.pdf";
-    //     // Storage::disk('public')->put($packingFilePath, $packingPdf->output());
-    //     // $filePaths['packing'] = $packingFilePath;
-
-    //     // ✅ Combined PDF
-    //     $combinedHtml = implode('<div style="page-break-after:always;"></div>', array_merge(
-    //         $dispenseLabels,
-    //         $shippingLabels,
-    //         $packingSlips
-    //     ));
-    //     $combinedPdf = \PDF::loadHTML($combinedHtml)->setPaper('A4');
-    //     $combinedFilePath = "dispense_batches/{$batch->batch_number}_combined.pdf";
-    //     Storage::disk('public')->put($combinedFilePath, $combinedPdf->output());
-    //     $batch->update(['pdf_path' => $combinedFilePath]);
-
-    //     // ✅ Logs
-    //     foreach ($processedOrders as $order) {
-    //         \App\Models\OrderDispense::create([
-    //             'order_id' => $order->order_number,
-    //             'batch_id' => $batch->id,
-    //             'dispensed_at' => now(),
-    //             'reprint_count' => 0,
-    //         ]);
-
-    //         \App\Models\AuditLog::create([
-    //             'user_id' => auth()->id(),
-    //             'action' => 'dispensed',
-    //             'order_id' => $order->order_number,
-    //             'details' => 'Order dispensed by ' . auth()->user()->name . ' on ' . now()->format('d/m/Y H:i'),
-    //         ]);
-    //     }
-
-    //     return redirect()->route('dispenser_orders.index')->with('success', 'Dispensing PDF and all labels generated successfully.');
-    // }
 
 
     public function showQrData()
@@ -489,7 +381,32 @@ class DispenserOrderController extends Controller
         return view('admin.dispenser.batches.list', compact('batches'));
     }
 
-     public function getRoyalMailToken()
+    // public function getRoyalMailToken()
+    // {
+    //     try {
+    //         $client = new \GuzzleHttp\Client();
+
+    //         $response = $client->post('https://api.royalmail.net/shipping/v3/token', [
+    //             'form_params' => [
+    //                 'grant_type' => 'client_credentials',
+    //                 'client_id' => env('ROYALMAIL_CLIENT_ID'),
+    //                 'client_secret' => env('ROYALMAIL_CLIENT_SECRET'),
+    //             ],
+    //             'headers' => [
+    //                 'Content-Type' => 'application/x-www-form-urlencoded',
+    //             ]
+    //         ]);
+
+    //         $data = json_decode($response->getBody(), true);
+    //         dd($data['access_token']);
+    //     } catch (\Exception $e) {
+    //         \Log::error('Royal Mail Token Error: ' . $e->getMessage());
+    //         dd("error");
+
+    //         return null;
+    //     }
+    // }
+    public function getRoyalMailToken()
     {
         try {
             $response = Http::withHeaders([
@@ -499,11 +416,11 @@ class DispenserOrderController extends Controller
                 'X-RMG-Security-Password' => env('ROYALMAIL_PASSWORD'),
                 'accept' => 'application/json',
             ])->post('https://api.royalmail.net/shipping/v3/token');
- 
+
             if ($response->successful()) {
                 return $response->json()['access_token'] ?? null;
             }
- 
+
             \Log::error('Royal Mail token request failed: ' . $response->body());
             return null;
         } catch (\Exception $e) {
@@ -511,7 +428,6 @@ class DispenserOrderController extends Controller
             return null;
         }
     }
-
 
     // private function createDHLShippingLabel($order)
     // {

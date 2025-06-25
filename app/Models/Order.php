@@ -21,4 +21,8 @@ class Order extends Model
     {
         return $this->belongsTo(Store::class, 'store_id', 'id');
     }
+    public function latestOrderAction()
+{
+    return $this->hasOne(OrderAction::class, 'order_id','order_number')->latest('decision_timestamp');
+}
 }
