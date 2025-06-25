@@ -127,8 +127,8 @@
                                         <th>Total Price {{ config('Site.currency') }}</th>
                                         <th>Financial Status</th>
                                         <th>Fulfillment Status</th>
-                                        <th>Status</th>
-                                        <th>Last Action</th>
+                                        {{-- <th>Status</th>
+                                        <th>Last Action</th> --}}
                                         <th>Created At</th>
                                         @role('Checker')
                                         <th>Action</th>
@@ -158,8 +158,8 @@
                                                 </span>
                                             </td>
                                             <td>{{ ucfirst($order->fulfillment_status) ?? 'NA' }}</td>
-                                            <td>{{ $order->orderaction->decision_status ?? 'N/A' }}</td>
-                                            <td>{{ $order->orderaction?->decision_timestamp?->format(config('Reading.date_time_format')) ?? 'N/A' }}
+                                            {{-- <td>{{ $order->orderaction->decision_status ?? 'N/A' }}</td>
+                                            <td>{{ $order->orderaction?->decision_timestamp?->format(config('Reading.date_time_format')) ?? 'N/A' }} --}}
                                             </td>
                                             <td>{{ $order->created_at->format(config('Reading.date_time_format')) }}</td>
                                             @role('Checker')
