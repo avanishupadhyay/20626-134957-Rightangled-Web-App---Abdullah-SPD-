@@ -105,9 +105,11 @@ class PrescriberOrderController extends Controller
             })
             ->pluck('order_id')
             ->toArray();
-
+            
         $query = Order::whereNull('fulfillment_status')
             // Exclude cancelled orders
+            ->whereRaw("JSON_EXTRACT(order_data, '$.company.id') IS NULL")
+            ->whereRaw("JSON_EXTRACT(order_data, '$.company.location_id') IS NULL")
             ->where(function ($q) {
                 $q->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(order_data, '$.cancelled_at')) IS NULL")
                     ->orWhereRaw("JSON_UNQUOTE(JSON_EXTRACT(order_data, '$.cancelled_at')) = 'null'");
