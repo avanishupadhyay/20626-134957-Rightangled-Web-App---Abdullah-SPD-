@@ -22,7 +22,7 @@ class AccuracyCheckerOrderController extends Controller
     public function __construct()
     {
         $this->middleware(function ($request, $next) {
-            if (!auth()->check() || !auth()->user()->hasRole('Admin')) {
+            if (!auth()->check() || !auth()->user()->hasRole('Act')) {
                 abort(403, 'Access denied');
             }
             return $next($request);
