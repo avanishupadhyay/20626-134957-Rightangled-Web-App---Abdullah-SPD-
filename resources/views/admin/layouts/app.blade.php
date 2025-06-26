@@ -27,6 +27,10 @@
 </head>
 
 <body class="sb-nav-fixed">
+    <div id="loaderOverlay">
+        <div class="loader"></div>
+        <p>Processing...</p>
+    </div>
     <nav class="sb-topnav navbar navbar-expand navbar-dark bg-dark">
         <!-- Navbar Brand-->
         <a class="navbar-brand ps-3" href="{{ url('/admin/dashboard') }}">

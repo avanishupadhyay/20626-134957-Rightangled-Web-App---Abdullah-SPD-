@@ -105,7 +105,7 @@ class PrescriberOrderController extends Controller
             })
             ->pluck('order_id')
             ->toArray();
-            
+
         $query = Order::whereNull('fulfillment_status')
             // Exclude cancelled orders
             ->whereRaw("JSON_EXTRACT(order_data, '$.company.id') IS NULL")
@@ -114,7 +114,7 @@ class PrescriberOrderController extends Controller
                 $q->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(order_data, '$.cancelled_at')) IS NULL")
                     ->orWhereRaw("JSON_UNQUOTE(JSON_EXTRACT(order_data, '$.cancelled_at')) = 'null'");
             })->whereNotIn('order_number', $excludedOrderIds);
-            
+
 
         $query = $this->filter_queries($request, $query);
 
@@ -257,9 +257,6 @@ class PrescriberOrderController extends Controller
         return view('admin.prescriber.view', compact('order', 'orderData', 'orderMetafields', 'order_images'));
     }
 
-
-
-
     // public function downloadPDF($orderId)
     // {
     //     $order = Order::findOrFail($orderId);
@@ -296,8 +293,6 @@ class PrescriberOrderController extends Controller
     //     ])->download("Prescription-Order-{$order->id}.pdf");
     // }
 
-
-
     public function prescribe(Request $request, $orderId)
     {
         $request->validate([
@@ -307,19 +302,77 @@ class PrescriberOrderController extends Controller
             'on_hold_reason' => 'required_if:decision_status,on_hold',
         ]);
         $decisionStatus = $request->decision_status;
-      
+        [$shopDomain, $accessToken] = array_values(getShopifyCredentialsByOrderId($orderId));
+
+
+        $order_detail = Order::where('order_number', $orderId)->first();
+
+        if ($order_detail) {
+            $order_data = json_decode($order_detail->order_data, true) ?? [];
+            $check_id = '';
+            $birth_date = '';
+
+            if (isset($order_data['customer']) && !empty($order_data['customer'])) {
+                // Get customer ID from order
+                $customerId = $order_data['customer']['id'] ?? null;
+
+                // Continue only if dob is NOT already set
+                if ($customerId && empty($order_data['customer']['dob'])) {
+
+                    $shopDomain = env('SHOP_DOMAIN');
+                    $accessToken = env('ACCESS_TOKEN');
+
+                    // Fetch metafields from Shopify
+                    $response = Http::withHeaders([
+                        'X-Shopify-Access-Token' => $accessToken
+                    ])->get("{$shopDomain}/admin/api/2023-10/customers/{$customerId}/metafields.json");
+
+                    $data = $response->json();
+
+                    // Extract check_id
+                    if (isset($data['metafields'])) {
+                        foreach ($data['metafields'] as $meta) {
+                            if ($meta['key'] === 'check_id') {
+                                $check_id = $meta['value'];
+                                break;
+                            }
+                        }
+                    }
+
+                    // Fetch Real ID details
+                    if (!empty($check_id)) {
+                        $realIdResponse = Http::withHeaders([
+                            'Authorization' => 'Bearer ' . env('REAL_ID_API_TOKEN'),
+                            'Accept' => 'application/json',
+                        ])->get("https://real-id.getverdict.com/api/v1/checks/{$check_id}");
+
+                        $realIdData = $realIdResponse->json();
+
+                        if (!empty($realIdData['check']['result']['document']['birth_date'])) {
+                            $birth_date = $realIdData['check']['result']['document']['birth_date'];
+
+                            // Update the order_data
+                            $order_data['customer']['dob'] = $birth_date;
+                            $order_detail->order_data = json_encode($order_data);
+                            $order_detail->save();
+                        }
+                    }
+                }
+            }
+        }
+
         // $pdfUrl = $this->generateAndStorePDF($orderId);
         $pdfPath = $this->generateAndStorePDF($orderId);
 
         $pdfUrl = rtrim(config('app.url'), '/') . '/' . ltrim($pdfPath, '/');
         // $metafields = buildCommonMetafields($request, $decisionStatus, $orderId, $pdfUrl);
         $metafieldsInput  = buildCommonMetafields($request, $decisionStatus, $orderId, $pdfUrl);
-           
+
         $roleName = auth()->user()->getRoleNames()->first(); // Returns string or null
-        
+
         // $shopDomain = env('SHOP_DOMAIN');
         // $accessToken = env('ACCESS_TOKEN');
-        [$shopDomain, $accessToken] = array_values(getShopifyCredentialsByOrderId($orderId));
+
 
         DB::beginTransaction();
         try {
@@ -441,8 +494,14 @@ class PrescriberOrderController extends Controller
 
         $filePath = "signature-images/{$prescriberData->signature_image}";
         // $image_path = rtrim(config('app.url'), '/') . '/' . ltrim(Storage::url($filePath), '/');
-
         $image_path = public_path(Storage::url($filePath));
+
+        
+        $order_detail = Order::where('order_number', $orderId)->first();
+        $order_data = json_decode($order_detail->order_data, true) ?? [];
+        $dob = $order_data['customer']['dob'] ?? '';
+       
+
 
         foreach ($orderData['line_items'] as $item) {
             $productId = $item['product_id'];
@@ -464,7 +523,7 @@ class PrescriberOrderController extends Controller
             'order' => $order,
             'prescriber_s_name' => $orderMetafields['prescriber_s_name'] ?? 'N/A',
             'gphc_number' => $prescriberData->gphc_number ?? 'N/A',
-            'patient_s_dob' => $orderMetafields['patient_s_dob'] ?? 'N/A',
+            'patient_s_dob' => $dob ?? 'N/A',
             'approval' => $orderMetafields['approval'] ?? '',
             'prescriber_signature' => $image_path ?? null,
         ]);
