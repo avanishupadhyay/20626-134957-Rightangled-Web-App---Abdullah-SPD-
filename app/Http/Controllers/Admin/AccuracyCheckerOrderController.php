@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Storage;
 use Carbon\Carbon;
 use App\Models\OrderDispense;
 use App\Models\User;
+use Milon\Barcode\DNS1D;
 
 class AccuracyCheckerOrderController extends Controller
 {
@@ -110,17 +111,52 @@ class AccuracyCheckerOrderController extends Controller
 
 
 
+
     // public function ajaxView($id)
     // {
     //     $order = Order::where('order_number', $id)->first();
 
     //     if (!$order) {
-    //         return response()->json(['status' => 'error', 'message' => 'Orders not found']);
+    //         return response()->json(['status' => 'error', 'message' => 'Order not found']);
     //     }
 
+    //     // If fulfilled, return error message with details
+    //     if ($order->fulfillment_status === 'fulfilled') {
+    //         $dispensedAction = OrderAction::where('order_id', $id)
+    //             ->where('decision_status', 'dispensed')
+    //             ->first();
+
+    //         $checkedAction = OrderAction::where('order_id', $id)
+    //             ->where('decision_status', 'accurately_checked')
+    //             ->first();
+
+    //         $messageParts = [];
+
+    //         if ($dispensedAction) {
+    //             $dispensedUser = User::find($dispensedAction->user_id);
+    //             $messageParts[] = "Dispensed on {$dispensedAction->created_at} by " . ($dispensedUser->name ?? 'Unknown');
+    //         }
+
+    //         if ($checkedAction) {
+    //             $checkedUser = User::find($checkedAction->user_id);
+    //             $messageParts[] = "Checked on {$checkedAction->created_at} by " . ($checkedUser->name ?? 'Unknown');
+    //         }
+
+    //         $fullMessage = '';
+    //         if (!empty($messageParts)) {
+    //             $fullMessage .= ' ' . implode(' | ', $messageParts);
+    //         }
+
+    //         return response()->json([
+    //             'status' => 'error',
+    //             'message' => $fullMessage,
+    //         ]);
+    //     }
+
+    //     // Proceed if not fulfilled
     //     $orderData = json_decode($order->order_data, true);
     //     $items = $orderData['line_items'] ?? [];
-
+    //     // dd($items);
     //     $shipping = $orderData['shipping_address'] ?? [];
 
     //     return response()->json([
@@ -141,10 +177,10 @@ class AccuracyCheckerOrderController extends Controller
     //         'items' => array_map(function ($item) {
     //             return [
     //                 'name' => $item['title'] ?? 'N/A',
-    //                 'quantity' => $item['quantity'] ?? 0,
+    //                 'quantity' => $item['current_quantity'] ?? 0,
     //                 'price' => $item['price'] ?? '-',
     //             ];
-    //         }, $items)
+    //         }, $items),
     //     ]);
     // }
 
@@ -158,7 +194,6 @@ class AccuracyCheckerOrderController extends Controller
             return response()->json(['status' => 'error', 'message' => 'Order not found']);
         }
 
-        // If fulfilled, return error message with details
         if ($order->fulfillment_status === 'fulfilled') {
             $dispensedAction = OrderAction::where('order_id', $id)
                 ->where('decision_status', 'dispensed')
@@ -180,22 +215,58 @@ class AccuracyCheckerOrderController extends Controller
                 $messageParts[] = "Checked on {$checkedAction->created_at} by " . ($checkedUser->name ?? 'Unknown');
             }
 
-            $fullMessage = '';
-            if (!empty($messageParts)) {
-                $fullMessage .= ' ' . implode(' | ', $messageParts);
-            }
-
             return response()->json([
                 'status' => 'error',
-                'message' => $fullMessage,
+                'message' => implode(' | ', $messageParts),
             ]);
         }
 
-        // Proceed if not fulfilled
         $orderData = json_decode($order->order_data, true);
         $items = $orderData['line_items'] ?? [];
-        // dd($items);
         $shipping = $orderData['shipping_address'] ?? [];
+
+        $dns = new DNS1D();
+
+        // return response()->json([
+        //     'status' => 'success',
+        //     'order' => [
+        //         'order_number' => $order->order_number,
+        //         'email' => $order->email,
+        //     ],
+        //     'shipping_address' => [
+        //         'name' => $shipping['name'] ?? 'N/A',
+        //         'address1' => $shipping['address1'] ?? '',
+        //         'address2' => $shipping['address2'] ?? '',
+        //         'city' => $shipping['city'] ?? '',
+        //         'zip' => $shipping['zip'] ?? '',
+        //         'country' => $shipping['country'] ?? '',
+        //         'phone' => $shipping['phone'] ?? '',
+        //     ],
+        //     'items' => array_map(function ($item) use ($dns) {
+        //         if (!is_array($item)) {
+        //             return null;
+        //         }
+
+        //         $sku = $item['product_id'] ?? 'UNKNOWN_SKU';
+        //         // $variant_id = $item['variant_id'] ?? 'UNKNOWN_VARIANT';
+
+        //         // $sku = $item['product_id'] ?? null; // fallback if sku missing
+        //         // dd($sku);
+        //         return [
+        //             'name' => $item['title'] ?? 'N/A',
+        //             'quantity' => $item['current_quantity'] ?? 0,
+        //             'price' => $item['price'] ?? '-',
+        //             'sku' => $sku,
+        //             'barcode_base64' => 'data:image/png;base64,' . $dns->getBarcodePNG($sku, 'C128', 2, 60),
+        //             'product_id' => $item['product_id'] ?? null, // ✅ add this
+        //             // 'variant_id'=> $variant_id
+        //         ];
+        //     }, $items),
+        // ]);
+        // Filter items with current_quantity > 0
+        $filteredItems = array_filter($items, function ($item) {
+            return isset($item['current_quantity']) && $item['current_quantity'] > 0;
+        });
 
         return response()->json([
             'status' => 'success',
@@ -212,18 +283,24 @@ class AccuracyCheckerOrderController extends Controller
                 'country' => $shipping['country'] ?? '',
                 'phone' => $shipping['phone'] ?? '',
             ],
-            'items' => array_map(function ($item) {
+            'items' => array_map(function ($item) use ($dns) {
+                if (!is_array($item)) {
+                    return null;
+                }
+
+                $sku = $item['product_id'] ?? 'UNKNOWN_SKU';
+
                 return [
                     'name' => $item['title'] ?? 'N/A',
                     'quantity' => $item['current_quantity'] ?? 0,
                     'price' => $item['price'] ?? '-',
+                    'sku' => $sku,
+                    'barcode_base64' => 'data:image/png;base64,' . $dns->getBarcodePNG($sku, 'C128', 2, 60),
+                    'product_id' => $item['product_id'] ?? null,
                 ];
-            }, $items),
+            }, $filteredItems),
         ]);
     }
-
-
-
 
 
 
@@ -258,6 +335,21 @@ class AccuracyCheckerOrderController extends Controller
                 ]);
             }
 
+            if ($order->fulfillment_status === 'fulfilled') {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Order has already been fulfilled.',
+                ]);
+            }
+
+            if ($order->fulfillment_status === 'cancelled') {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Cannot fulfill a cancelled order.',
+                ]);
+            }
+// dd("stop");
+
             // Step 2: Fulfill via Shopify API
             fulfillShopifyOrder($order->order_number); // Your custom logic
             triggerShopifyTimelineNote($order->order_number);
@@ -289,5 +381,35 @@ class AccuracyCheckerOrderController extends Controller
                 'message' => $e->getMessage(),
             ]);
         }
+    }
+
+
+    public function getProductStock($productId, $orderid)
+    {
+        [$shopDomain, $accessToken] = array_values(getShopifyCredentialsByOrderId($orderid));
+
+
+        $response = Http::withHeaders([
+            'X-Shopify-Access-Token' => $accessToken,
+        ])->get("{$shopDomain}/admin/api/2023-04/products/{$productId}.json");
+
+        if ($response->successful()) {
+            $product = $response->json()['product'];
+
+            // Assume you're using the first variant
+            $variant = $product['variants'][0] ?? null;
+            $stock = $variant['inventory_quantity'] ?? 'N/A';
+
+            return response()->json([
+                'status' => 'success',
+                'stock' => $stock,
+                'product_title' => $product['title'] ?? '',
+            ]);
+        }
+
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Failed to fetch product stock from Shopify.'
+        ]);
     }
 }
