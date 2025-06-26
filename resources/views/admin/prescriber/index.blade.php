@@ -179,10 +179,7 @@
                                             {{-- <td>{{ $order->orderaction->decision_status ?? 'N/A' }}</td>
                                             <td>{{ $order->orderaction->user->name ?? 'N/A' }}</td> --}}
                                             {{-- <td>{{ $order->orderaction?->updated_at?->format(config('Reading.date_time_format')) ?? 'N/A' }} --}}
-                                            <td>{{ $order->latestOrderAction->decision_status ?? 'N/A' }}</td>
-                                            <td>{{ $order->latestOrderAction->user->name ?? 'N/A' }}</td>
-                                            <td>{{ $order->latestOrderAction?->decision_timestamp?->format(config('Reading.date_time_format')) ?? 'N/A' }}
-                                            </td>
+                                           
                                             <td>{{ $order->created_at->format(config('Reading.date_time_format')) }}</td>
                                             @role('Prescriber')
                                             <td>

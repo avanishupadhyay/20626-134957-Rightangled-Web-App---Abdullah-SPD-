@@ -105,9 +105,11 @@ class PrescriberOrderController extends Controller
             })
             ->pluck('order_id')
             ->toArray();
-
+            
         $query = Order::whereNull('fulfillment_status')
             // Exclude cancelled orders
+            ->whereRaw("JSON_EXTRACT(order_data, '$.company.id') IS NULL")
+            ->whereRaw("JSON_EXTRACT(order_data, '$.company.location_id') IS NULL")
             ->where(function ($q) {
                 $q->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(order_data, '$.cancelled_at')) IS NULL")
                     ->orWhereRaw("JSON_UNQUOTE(JSON_EXTRACT(order_data, '$.cancelled_at')) = 'null'");
@@ -240,12 +242,12 @@ class PrescriberOrderController extends Controller
         $orderData = json_decode($order->order_data); // decode JSON string into object
         $order_images = [];
 
-        foreach ($orderData->line_items as $item) {
-            $images = getProductImages($order->order_number, $item->product_id);
-            if (!empty($images)) {
-                $order_images[] = $images[0]; // only store the first image
-            }
-        }
+        // foreach ($orderData->line_items as $item) {
+        //     $images = getProductImages($order->order_number, $item->product_id);
+        //     if (!empty($images)) {
+        //         $order_images[] = $images[0]; // only store the first image
+        //     }
+        // }
 
         $orderMetafields = getOrderMetafields($order->order_number) ?? null;
         // $orderMetafields = [];
@@ -304,17 +306,17 @@ class PrescriberOrderController extends Controller
             'rejection_reason' => 'required_if:decision_status,rejected',
             'on_hold_reason' => 'required_if:decision_status,on_hold',
         ]);
-
         $decisionStatus = $request->decision_status;
+      
         // $pdfUrl = $this->generateAndStorePDF($orderId);
         $pdfPath = $this->generateAndStorePDF($orderId);
 
         $pdfUrl = rtrim(config('app.url'), '/') . '/' . ltrim($pdfPath, '/');
         // $metafields = buildCommonMetafields($request, $decisionStatus, $orderId, $pdfUrl);
         $metafieldsInput  = buildCommonMetafields($request, $decisionStatus, $orderId, $pdfUrl);
-
+           
         $roleName = auth()->user()->getRoleNames()->first(); // Returns string or null
-
+        
         // $shopDomain = env('SHOP_DOMAIN');
         // $accessToken = env('ACCESS_TOKEN');
         [$shopDomain, $accessToken] = array_values(getShopifyCredentialsByOrderId($orderId));
@@ -358,6 +360,10 @@ class PrescriberOrderController extends Controller
             ]);
 
             // -----------------GraphQl---------------------------
+
+            if ($decisionStatus === 'approved') {
+                triggerShopifyTimelineNote($orderId);
+            }
 
             // Step 2: Take action based on decision
             if ($decisionStatus === 'on_hold') {
