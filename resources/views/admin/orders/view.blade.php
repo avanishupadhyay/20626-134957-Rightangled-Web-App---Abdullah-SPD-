@@ -345,7 +345,7 @@
                     </div>
 
                     <div class="modal-footer">
-                        <button class="btn btn-success">Submit Approval</button>
+                        <button class="btn btn-success" id="submit-approval">Submit Approval</button>
                     </div>
                 </div>
             </form>
@@ -368,7 +368,7 @@
                         <textarea name="rejection_reason" class="form-control" placeholder="Rejection reason" required></textarea>
                     </div>
                     <div class="modal-footer">
-                        <button class="btn btn-danger">Submit</button>
+                        <button class="btn btn-danger" id="submit-reject">Submit</button>
                     </div>
                 </div>
             </form>
@@ -390,7 +390,7 @@
                         <textarea name="on_hold_reason" class="form-control" placeholder="Reason for putting on hold" required></textarea>
                     </div>
                     <div class="modal-footer">
-                        <button class="btn btn-warning">Submit</button>
+                        <button class="btn btn-warning" id="submit-hold">Submit</button>
                     </div>
                 </div>
             </form>
@@ -412,11 +412,25 @@
                         <textarea name="release_hold_reason" class="form-control" placeholder="Reason for releasing hold" required></textarea>
                     </div>
                     <div class="modal-footer">
-                        <button class="btn btn-warning">Submit</button>
+                        <button class="btn btn-warning" id="submit-release">Submit</button>
                     </div>
                 </div>
             </form>
         </div>
     </div>
 
+@endsection
+@section('custom_js_scripts')
+<script>
+    const loader = document.getElementById('loaderOverlay');
+
+    ['submit-approval', 'submit-reject', 'submit-hold', 'submit-release'].forEach(id => {
+        const button = document.getElementById(id);
+        if (button) {
+            button.addEventListener('click', function () {
+                loader.style.display = 'flex';
+            });
+        }
+    });
+</script>
 @endsection

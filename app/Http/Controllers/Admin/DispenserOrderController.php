@@ -28,7 +28,7 @@ class DispenserOrderController extends Controller
     public function __construct()
     {
         $this->middleware(function ($request, $next) {
-            if (!auth()->check() || !auth()->user()->hasRole('Admin')) {
+            if (!auth()->check() || !auth()->user()->hasRole('Dispenser')) {
                 abort(403, 'Access denied');
             }
             return $next($request);
@@ -62,6 +62,10 @@ class DispenserOrderController extends Controller
                 $q->where('name', 'like', '%' . $request->search . '%')
                     ->orWhere('email', 'like', '%' . $request->search . '%')
                     ->orWhere('order_number', 'like', '%' . $request->search . '%');
+            })
+             ->where(function ($q) {
+                $q->whereRaw("JSON_EXTRACT(order_data, '$.cancelled_at') IS NULL")
+                    ->orWhereRaw("JSON_UNQUOTE(JSON_EXTRACT(order_data, '$.cancelled_at')) = 'null'");
             });
         }
 
