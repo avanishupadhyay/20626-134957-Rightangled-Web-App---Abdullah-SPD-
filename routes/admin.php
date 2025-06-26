@@ -95,5 +95,6 @@ Route::get('/dispenser/batches/{batch}/download', [DispenserOrderController::cla
 Route::get('Accuracy-checker/orders', [AccuracyCheckerOrderController::class, 'index'])->name('accuracychecker_orders.index');
 Route::get('Accuracy-checker/orders/ajax/{id}', [AccuracyCheckerOrderController::class, 'ajaxView']);
 Route::post('/Accuracy-checker/orders/fulfill/{id}', [AccuracyCheckerOrderController::class, 'fulfill'])->name('accuracychecker_orders.fulfill');
+Route::get('/Accuracy-checker/product-stock/{productId}/{orderid}', [AccuracyCheckerOrderController::class, 'getProductStock']);
 
 });
