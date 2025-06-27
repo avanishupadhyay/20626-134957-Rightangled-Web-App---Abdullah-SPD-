@@ -571,27 +571,97 @@ function getShopifyCredentialsByOrderId($orderId)
 }
 
 
+// function getProductMetafield($productId, $orderId)
+// {
+// 	// $shopDomain = env('SHOP_DOMAIN');
+// 	// $accessToken = env('ACCESS_TOKEN');
+// 	[$shopDomain, $accessToken] = array_values(getShopifyCredentialsByOrderId($orderId));
+
+// 	$response = Http::withHeaders([
+// 		'X-Shopify-Access-Token' => $accessToken,
+// 	])->get("{$shopDomain}/admin/api/2024-10/products/{$productId}/metafields.json");
+
+// 	if ($response->successful()) {
+// 		$metafields = $response->json('metafields');
+
+// 		return collect($metafields)->firstWhere('key', 'direction_of_use_single_line')['value'] ?? null;
+// 	}
+
+// 	return null;
+// }
 function getProductMetafield($productId, $orderId)
 {
-	// $shopDomain = env('SHOP_DOMAIN');
-	// $accessToken = env('ACCESS_TOKEN');
-	[$shopDomain, $accessToken] = array_values(getShopifyCredentialsByOrderId($orderId));
+    [$shopDomain, $accessToken] = array_values(getShopifyCredentialsByOrderId($orderId));
 
-	$response = Http::withHeaders([
-		'X-Shopify-Access-Token' => $accessToken,
-	])->get("{$shopDomain}/admin/api/2024-10/products/{$productId}/metafields.json");
+    $productGid = "gid://shopify/Product/{$productId}";
 
-	if ($response->successful()) {
-		$metafields = $response->json('metafields');
+    $query = <<<'GRAPHQL'
+    query($productId: ID!) {
+      product(id: $productId) {
+        metafield(namespace: "global", key: "direction_of_use_single_line") {
+          value
+        }
+      }
+    }
+    GRAPHQL;
 
-		return collect($metafields)->firstWhere('key', 'direction_of_use_single_line')['value'] ?? null;
-	}
+    $variables = [
+        'productId' => $productGid,
+    ];
 
-	return null;
+    $response = Http::withHeaders([
+        'X-Shopify-Access-Token' => $accessToken,
+        'Content-Type' => 'application/json',
+    ])->post("{$shopDomain}/admin/api/2024-10/graphql.json", [
+        'query' => $query,
+        'variables' => $variables,
+    ]);
+
+    if ($response->successful()) {
+        return data_get($response->json(), 'data.product.metafield.value');
+    }
+
+    return null;
 }
 
 
 
+// function getOrderMetafields($orderId)
+// {
+
+// 	// $shopDomain = env('SHOP_DOMAIN');
+// 	// $accessToken = env('ACCESS_TOKEN');
+// 	[$shopDomain, $accessToken] = array_values(getShopifyCredentialsByOrderId($orderId));
+// 	// ['shopDomain' => $shopDomain, 'accessToken' => $accessToken] = getShopifyCredentialsByOrderId($orderId);
+
+
+// 	$apiVersion = '2024-10';
+
+// 	$response = Http::withHeaders([
+// 		'X-Shopify-Access-Token' => $accessToken,
+// 	])->get("{$shopDomain}/admin/api/{$apiVersion}/orders/{$orderId}/metafields.json");
+
+// 	if ($response->successful()) {
+// 		$metafields = collect($response->json('metafields'));
+// 		// dd($metafields);
+
+// 		return [
+// 			'prescriber_s_name' => $metafields->firstWhere('key', 'prescriber_s_name')['value'] ?? null,
+// 			'gphc_number_' => $metafields->firstWhere('key', 'gphc_number_')['value'] ?? null,
+// 			'patient_s_dob' => $metafields->firstWhere('key', 'patient_s_dob')['value'] ?? null,
+// 			'approval' => $metafields->firstWhere('key', 'approval')['value'] ?? null,
+// 			'prescriber_s_signature' => $metafields->firstWhere('key', 'prescriber_s_signature')['value'] ?? null, // optional image URL
+// 			'on_hold_reason' => $metafields->firstWhere('key', 'on_hold_reason')['value'] ?? null, // optional image URL
+// 			'prescriber_pdf' => $metafields->firstWhere('key', 'prescriber_pdf')['value'] ?? null, // optional image URL
+// 			'checker_name' => $metafields->firstWhere('key', 'checker_name')['value'] ?? null, // optional image URL
+// 			'checker_approval' => $metafields->firstWhere('key', 'checker_approval')['value'] ?? null, // optional image URL
+// 			'checker_notes' => $metafields->firstWhere('key', 'checker_notes')['value'] ?? null, // optional image URL
+
+// 		];
+// 	}
+
+// 	return [];
+// }
 function getOrderMetafields($orderId)
 {
 
@@ -599,34 +669,52 @@ function getOrderMetafields($orderId)
 	// $accessToken = env('ACCESS_TOKEN');
 	[$shopDomain, $accessToken] = array_values(getShopifyCredentialsByOrderId($orderId));
 	// ['shopDomain' => $shopDomain, 'accessToken' => $accessToken] = getShopifyCredentialsByOrderId($orderId);
+	$apiVersion = '2025-04';
 
+	 // Convert REST order ID to GraphQL format
+    $gid = "gid://shopify/Order/{$orderId}";
 
-	$apiVersion = '2024-10';
+    $query = <<<GQL
+    {
+      order(id: "{$gid}") {
+        metafields(first: 20) {
+          edges {
+            node {
+              namespace
+              key
+              value
+            }
+          }
+        }
+      }
+    }
+    GQL;
 
-	$response = Http::withHeaders([
-		'X-Shopify-Access-Token' => $accessToken,
-	])->get("{$shopDomain}/admin/api/{$apiVersion}/orders/{$orderId}/metafields.json");
+    $response = Http::withHeaders([
+        'X-Shopify-Access-Token' => $accessToken,
+        'Content-Type' => 'application/json',
+    ])->post("{$shopDomain}/admin/api/{$apiVersion}/graphql.json", [
+        'query' => $query,
+    ]);
 
-	if ($response->successful()) {
-		$metafields = collect($response->json('metafields'));
-		// dd($metafields);
+ 	if ($response->successful()) {
+        $metafields = collect($response->json('data.order.metafields.edges'))->pluck('node');
 
-		return [
-			'prescriber_s_name' => $metafields->firstWhere('key', 'prescriber_s_name')['value'] ?? null,
-			'gphc_number_' => $metafields->firstWhere('key', 'gphc_number_')['value'] ?? null,
-			'patient_s_dob' => $metafields->firstWhere('key', 'patient_s_dob')['value'] ?? null,
-			'approval' => $metafields->firstWhere('key', 'approval')['value'] ?? null,
-			'prescriber_s_signature' => $metafields->firstWhere('key', 'prescriber_s_signature')['value'] ?? null, // optional image URL
-			'on_hold_reason' => $metafields->firstWhere('key', 'on_hold_reason')['value'] ?? null, // optional image URL
-			'prescriber_pdf' => $metafields->firstWhere('key', 'prescriber_pdf')['value'] ?? null, // optional image URL
-			'checker_name' => $metafields->firstWhere('key', 'checker_name')['value'] ?? null, // optional image URL
-			'checker_approval' => $metafields->firstWhere('key', 'checker_approval')['value'] ?? null, // optional image URL
-			'checker_notes' => $metafields->firstWhere('key', 'checker_notes')['value'] ?? null, // optional image URL
+        return [
+            'prescriber_s_name'     => optional($metafields->firstWhere('key', 'prescriber_s_name'))['value'] ?? null,
+            'gphc_number_'          => optional($metafields->firstWhere('key', 'gphc_number_'))['value'] ?? null,
+            'patient_s_dob'         => optional($metafields->firstWhere('key', 'patient_s_dob'))['value'] ?? null,
+            'approval'              => optional($metafields->firstWhere('key', 'approval'))['value'] ?? null,
+            'prescriber_s_signature'=> optional($metafields->firstWhere('key', 'prescriber_s_signature'))['value'] ?? null,
+            'on_hold_reason'        => optional($metafields->firstWhere('key', 'on_hold_reason'))['value'] ?? null,
+            'prescriber_pdf'        => optional($metafields->firstWhere('key', 'prescriber_pdf'))['value'] ?? null,
+            'checker_name'          => optional($metafields->firstWhere('key', 'checker_name'))['value'] ?? null,
+            'checker_approval'      => optional($metafields->firstWhere('key', 'checker_approval'))['value'] ?? null,
+            'checker_notes'         => optional($metafields->firstWhere('key', 'checker_notes'))['value'] ?? null,
+        ];
+    }
 
-		];
-	}
-
-	return [];
+    return [];
 }
 
 function buildCommonMetafields(Request $request, string $decisionStatus, $orderId, $pdfUrl = null): array

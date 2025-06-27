@@ -318,6 +318,7 @@ class PrescriberOrderController extends Controller
 
                 // Continue only if dob is NOT already set
                 if ($customerId && empty($order_data['customer']['dob'])) {
+
                     // Fetch metafields from Shopify
                     $response = Http::withHeaders([
                         'X-Shopify-Access-Token' => $accessToken
@@ -495,6 +496,7 @@ class PrescriberOrderController extends Controller
 
 
         foreach ($orderData['line_items'] as $item) {
+
             if ($item['current_quantity'] > 0) {
                 $productId = $item['product_id'];
                 $title = $item['title'];

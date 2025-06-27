@@ -258,41 +258,11 @@ class AccuracyCheckerOrderController extends Controller
         }
     }
 
-
-    // public function getProductStock($productId, $orderid)
-    // {
-    //     [$shopDomain, $accessToken] = array_values(getShopifyCredentialsByOrderId($orderid));
-
-
-    //     $response = Http::withHeaders([
-    //         'X-Shopify-Access-Token' => $accessToken,
-    //     ])->get("{$shopDomain}/admin/api/2023-04/products/{$productId}.json");
-
-    //     if ($response->successful()) {
-    //         $product = $response->json()['product'];
-
-    //         // Assume you're using the first variant
-    //         $variant = $product['variants'][0] ?? null;
-    //         $stock = $variant['inventory_quantity'] ?? 'N/A';
-
-    //         return response()->json([
-    //             'status' => 'success',
-    //             'stock' => $stock,
-    //             'product_title' => $product['title'] ?? '',
-    //         ]);
-    //     }
-
-    //     return response()->json([
-    //         'status' => 'error',
-    //         'message' => 'Failed to fetch product stock from Shopify.'
-    //     ]);
-    // }
-
     public function getProductStock($productId, $orderid)
-    {
-        [$shopDomain, $accessToken] = array_values(getShopifyCredentialsByOrderId($orderid));
-
-        $query = <<<GQL
+{
+    [$shopDomain, $accessToken] = array_values(getShopifyCredentialsByOrderId($orderid));
+ 
+    $query = <<<GQL
     {
       product(id: "gid://shopify/Product/{$productId}") {
         title
@@ -306,31 +276,31 @@ class AccuracyCheckerOrderController extends Controller
       }
     }
     GQL;
-
-        $response = Http::withHeaders([
-            'X-Shopify-Access-Token' => $accessToken,
-            'Content-Type' => 'application/json',
-        ])->post("{$shopDomain}/admin/api/2023-04/graphql.json", [
-            'query' => $query
-        ]);
-
-        if ($response->successful()) {
-            $body = $response->json();
-            $product = $body['data']['product'] ?? null;
-
-            if ($product) {
-                $stock = $product['variants']['edges'][0]['node']['inventoryQuantity'] ?? 'N/A';
-                return response()->json([
-                    'status' => 'success',
-                    'stock' => $stock,
-                    'product_title' => $product['title'] ?? '',
-                ]);
-            }
+ 
+    $response = Http::withHeaders([
+        'X-Shopify-Access-Token' => $accessToken,
+        'Content-Type' => 'application/json',
+    ])->post("{$shopDomain}/admin/api/2023-04/graphql.json", [
+        'query' => $query
+    ]);
+ 
+    if ($response->successful()) {
+        $body = $response->json();
+        $product = $body['data']['product'] ?? null;
+ 
+        if ($product) {
+            $stock = $product['variants']['edges'][0]['node']['inventoryQuantity'] ?? 'N/A';
+            return response()->json([
+                'status' => 'success',
+                'stock' => $stock,
+                'product_title' => $product['title'] ?? '',
+            ]);
         }
-
-        return response()->json([
-            'status' => 'error',
-            'message' => 'Failed to fetch product stock from Shopify.'
-        ]);
     }
+ 
+    return response()->json([
+        'status' => 'error',
+        'message' => 'Failed to fetch product stock from Shopify.'
+    ]);
+}
 }

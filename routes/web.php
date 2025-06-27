@@ -101,3 +101,8 @@ Route::get('/barcode/{orderId}', function ($orderId) {
     return response(base64_decode($pngData))->header('Content-Type', 'image/png');
 });
 ;
+
+
+Route::get('/phpinfo',function(){
+	return phpinfo();
+});
