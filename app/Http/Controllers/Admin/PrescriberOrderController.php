@@ -319,9 +319,6 @@ class PrescriberOrderController extends Controller
                 // Continue only if dob is NOT already set
                 if ($customerId && empty($order_data['customer']['dob'])) {
 
-                    $shopDomain = env('SHOP_DOMAIN');
-                    $accessToken = env('ACCESS_TOKEN');
-
                     // Fetch metafields from Shopify
                     $response = Http::withHeaders([
                         'X-Shopify-Access-Token' => $accessToken
@@ -508,6 +505,7 @@ class PrescriberOrderController extends Controller
             $title = $item['title'];
             $quantity = $item['quantity'];
             $directionOfUse = getProductMetafield($productId, $orderId);
+            // $directionOfUse = '';
 
             $items[] = [
                 'title' => $title,
