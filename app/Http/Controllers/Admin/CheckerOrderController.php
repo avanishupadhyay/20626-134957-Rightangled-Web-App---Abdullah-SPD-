@@ -237,13 +237,9 @@ class CheckerOrderController extends Controller
         $decisionStatus = $request->decision_status;
 
         $metafieldsInput = buildCommonMetafieldsChecker($request, $decisionStatus);
-        // dd($metafields);
-
-        // $shopDomain = env('SHOP_DOMAIN');
-        // $accessToken = env('ACCESS_TOKEN');
+      
           [$shopDomain, $accessToken] = array_values(getShopifyCredentialsByOrderId($orderId));
-        // $shopDomain = env('SHOP_DOMAIN');
-        // $accessToken = env('ACCESS_TOKEN');
+     
         $roleName = auth()->user()->getRoleNames()->first(); // Returns string or null
 
         ['shopDomain' => $shopDomain, 'accessToken' => $accessToken] = getShopifyCredentialsByOrderId($orderId);

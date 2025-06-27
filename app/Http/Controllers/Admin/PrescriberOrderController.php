@@ -367,10 +367,6 @@ class PrescriberOrderController extends Controller
 
         $roleName = auth()->user()->getRoleNames()->first(); // Returns string or null
 
-        // $shopDomain = env('SHOP_DOMAIN');
-        // $accessToken = env('ACCESS_TOKEN');
-
-
         DB::beginTransaction();
         try {
             // Step 1: Push metafields to Shopify
@@ -493,25 +489,26 @@ class PrescriberOrderController extends Controller
         // $image_path = rtrim(config('app.url'), '/') . '/' . ltrim(Storage::url($filePath), '/');
         $image_path = public_path(Storage::url($filePath));
 
-        
+
         $order_detail = Order::where('order_number', $orderId)->first();
         $order_data = json_decode($order_detail->order_data, true) ?? [];
         $dob = $order_data['customer']['dob'] ?? '';
-       
 
 
         foreach ($orderData['line_items'] as $item) {
-            $productId = $item['product_id'];
-            $title = $item['title'];
-            $quantity = $item['quantity'];
-            $directionOfUse = getProductMetafield($productId, $orderId);
-            // $directionOfUse = '';
 
-            $items[] = [
-                'title' => $title,
-                'quantity' => $quantity,
-                'direction_of_use' => $directionOfUse,
-            ];
+            if ($item['current_quantity'] > 0) {
+                $productId = $item['product_id'];
+                $title = $item['title'];
+                $quantity = $item['current_quantity'];
+                $directionOfUse = getProductMetafield($productId, $orderId);
+
+                $items[] = [
+                    'title' => $title,
+                    'quantity' => $quantity,
+                    'direction_of_use' => $directionOfUse,
+                ];
+            }
         }
         $pdf = Pdf::loadView('admin.orders.prescription_pdf', [
             'orderData' => $orderData,

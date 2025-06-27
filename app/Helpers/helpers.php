@@ -549,31 +549,6 @@ function getCountryISDByCode($country_code)
 }
 
 
-// function getProductMetafield($productId)
-// {
-// 	// $shopDomain = config('shopify.domain');
-// 	// $accessToken = config('shopify.access_token');
-// 	$shopDomain = 'rightangled-store.myshopify.com'; // e.g., yourstore.myshopify.com
-// 	$accessToken = '';
-
-// 	$url = "https://{$shopDomain}/admin/api/2024-01/products/{$productId}/metafields.json";
-
-// 	$response = Http::withHeaders([
-// 		'X-Shopify-Access-Token' => $accessToken,
-// 		'Content-Type' => 'application/json',
-// 	])->get($url);
-
-// 	if ($response->successful()) {
-// 		foreach ($response['metafields'] as $field) {
-// 			if ($field['key'] === $namespaceKey) {
-// 				return $field['value'];
-// 			}
-// 		}
-// 	}
-
-// 	return 'N/A';
-// }
-// helpers.php
 
 function getShopifyCredentialsByOrderId($orderId)
 {
@@ -742,113 +717,6 @@ function getOrderMetafields($orderId)
     return [];
 }
 
-// function buildCommonMetafields(Request $request, string $decisionStatus, $orderId, $pdfUrl = null): array
-// {
-// 	$user = auth()->user();
-// 	$prescriberData = $user->prescriber;
-
-// 	$resourceGid = 'gid://shopify/Order/'.$orderId;
-// 	if(empty($prescriberData->signature_image)){
-// 		$imageUrl = asset('admin/signature-images/signature.png');
-// 	}else{
-// 		$filePath = "signature-images/{$prescriberData->signature_image}";
-// 		$imageUrl = rtrim(config('app.url'), '/') . '/' . ltrim(Storage::url($filePath), '/');
-// 		// $imageUrl = asset('admin/signature-images/' . $prescriberData->signature_image);
-// 	}
-// 	$file_id = uploadImageAndSaveMetafield($imageUrl);
-
-// 	$metafields = [
-// 		[
-// 			'ownerId' => $resourceGid,
-// 			'namespace' => 'custom',
-// 			'key' => 'prescriber_id',
-// 			'type' => 'number_integer',
-// 			'value' => $user->id,
-// 		],
-// 		[
-// 			'namespace' => 'custom',
-// 			'key' => 'prescriber_s_name',
-// 			'type' => 'single_line_text_field',
-// 			'value' => $user->name ?? 'admin_user',
-// 		],
-// 		[
-// 			'namespace' => 'custom',
-// 			'key' => 'gphc_number_',
-// 			'type' => 'single_line_text_field',
-// 			'value' => $prescriberData->gphc_number ?? 'marked_by admin',
-// 		],
-// 		// [
-// 		// 	'namespace' => 'custom',
-// 		// 	'key' => 'prescriber_s_signature',
-// 		// 	'type' => 'single_line_text_field',
-// 		// 	'value' => $prescriberData->signature_image ?? 'Signed by ' . $user->name,
-// 		// ],
-// 		[
-// 			'ownerId' => $resourceGid,
-// 			'namespace' => 'custom',
-// 			'key' => 'prescriber_s_signatures',
-// 			'type' => 'file_reference',
-// 			'value' => $file_id ?? '',
-// 		],
-// 		[
-// 			'namespace' => 'custom',
-// 			'key' => 'decision_status',
-// 			'type' => 'single_line_text_field',
-// 			'value' => $decisionStatus,
-// 		],
-// 		[
-// 			'namespace' => 'custom',
-// 			'key' => 'decision_timestamp',
-// 			'type' => 'date_time',
-// 			'value' => now()->toIso8601String(),
-// 		],
-
-// 	];
-
-// 	if ($decisionStatus === 'approved') {
-// 		$metafields[] = [
-// 			'namespace' => 'custom',
-// 			'key' => 'clinical_reasoning',
-// 			'type' => 'multi_line_text_field',
-// 			'value' => $request->clinical_reasoning,
-// 		];
-// 		$metafields[] = [
-// 			'namespace' => 'custom',
-// 			'key' => 'patient_s_dob',
-// 			'type' => 'date',
-// 			'value' => $request->patient_s_dob,
-// 		];
-// 		$metafields[] = [
-// 			'namespace' => 'custom',
-// 			'key' => 'approval',
-// 			'type' => 'boolean',
-// 			'value' => true,
-// 		];
-// 		$metafields[] = [
-// 			'namespace' => 'custom',
-// 			'key' => 'prescriber_pdf',
-// 			'type' => 'url',
-// 			'value' => $pdfUrl,
-// 		];
-// 	} elseif ($decisionStatus === 'rejected') {
-// 		$metafields[] = [
-// 			'namespace' => 'custom',
-// 			'key' => 'rejection_reason',
-// 			'type' => 'multi_line_text_field',
-// 			'value' => $request->rejection_reason,
-// 		];
-// 	} elseif ($decisionStatus === 'on_hold') {
-// 		$metafields[] = [
-// 			'namespace' => 'custom',
-// 			'key' => 'on_hold_reason',
-// 			'type' => 'multi_line_text_field',
-// 			'value' => $request->on_hold_reason,
-// 		];
-// 	}
-
-// 	return $metafields;
-// }
-
 function buildCommonMetafields(Request $request, string $decisionStatus, $orderId, $pdfUrl = null): array
 {
 	$user = auth()->user();
@@ -863,9 +731,9 @@ function buildCommonMetafields(Request $request, string $decisionStatus, $orderI
 		$imageUrl = rtrim(config('app.url'), '/') . '/' . ltrim(Storage::url($filePath), '/');
 		// $imageUrl = asset('admin/signature-images/' . $prescriberData->signature_image);
 	}
-	
+
 	$file_id = uploadImageAndSaveMetafield($imageUrl, $orderId);
-	
+
 	$metafields = [
 		[
 			'ownerId' => $resourceGid,
@@ -975,10 +843,10 @@ function metaiFieldAdmin(Request $request, string $decisionStatus)
 			'namespace' => 'custom',
 			'key' => 'admin_notes',
 			'type' => 'multi_line_text_field',
-			'value' => $decisionStatus .' - '. $request->clinical_reasoning,
+			'value' => $decisionStatus . ' - ' . $request->clinical_reasoning,
 		],
 	];
-	
+
 	return $metafields;
 }
 
@@ -1083,48 +951,92 @@ function buildCommonMetafieldsChecker(Request $request, string $decisionStatus):
 // }
 
 
+
 function markFulfillmentOnHold($orderId, $reason)
 {
-	// $shopDomain = env('SHOP_DOMAIN');
-	// $accessToken = env('ACCESS_TOKEN');
 	[$shopDomain, $accessToken] = array_values(getShopifyCredentialsByOrderId($orderId));
 
-	// ['shopDomain' => $shopDomain, 'accessToken' => $accessToken] = getShopifyCredentialsByOrderId($orderId);
+	// Step 1: Get fulfillment orders using GraphQL
+	$query = <<<GQL
+    {
+        order(id: "gid://shopify/Order/{$orderId}") {
+            fulfillmentOrders(first: 10) {
+                nodes {
+                    id
+                }
+            }
+        }
+    }
+    GQL;
 
-	// Step 1: Get all fulfillment orders
-	$response = Http::withHeaders([
+	$fetchResponse = Http::withHeaders([
 		'X-Shopify-Access-Token' => $accessToken,
-	])->get("{$shopDomain}/admin/api/2023-10/orders/{$orderId}/fulfillment_orders.json");
+		'Content-Type' => 'application/json',
+	])->post("{$shopDomain}/admin/api/2023-10/graphql.json", [
+		'query' => $query,
+	]);
 
-	$fulfillmentOrders = $response->json('fulfillment_orders');
+	if (!$fetchResponse->successful()) {
+		\Log::error("Failed to fetch fulfillment orders for order {$orderId}: " . $fetchResponse->body());
+		return response()->json(['error' => 'Failed to fetch fulfillment orders.'], 500);
+	}
+
+	$fulfillmentOrders = $fetchResponse->json('data.order.fulfillmentOrders.nodes') ?? [];
 	if (empty($fulfillmentOrders)) {
+		\Log::warning("No fulfillment orders found for order {$orderId}");
 		return response()->json(['error' => 'No fulfillment orders found.'], 404);
 	}
 
-	// Step 2: Loop through each fulfillment order and put it on hold
-	foreach ($fulfillmentOrders as $fulfillmentOrder) {
-		$fulfillmentOrderId = $fulfillmentOrder['id'];
-
-		$holdResponse = Http::withHeaders([
-			'X-Shopify-Access-Token' => $accessToken,
-			'Content-Type' => 'application/json',
-		])->post("{$shopDomain}/admin/api/2023-10/fulfillment_orders/{$fulfillmentOrderId}/hold.json", [
-			'fulfillment_hold' => [
-				'reason' => 'other',
-				'reason_notes' => $reason ?? 'Order placed on hold during review.',
-			],
-		]);
-
-		if ($holdResponse->failed()) {
-			return response()->json([
-				'error' => 'Failed to put fulfillment on hold for fulfillment order ' . $fulfillmentOrderId,
-				'details' => $holdResponse->json()
-			], 500);
-		}
+	// Step 2: Build batched GraphQL mutation with correct structure
+	$batchedMutations = '';
+	foreach ($fulfillmentOrders as $index => $order) {
+		$mutationName = "hold{$index}";
+		$escapedReason = addslashes($reason); // Escape quotes
+		$batchedMutations .= <<<GQL
+        {$mutationName}: fulfillmentOrderHold(
+            id: "{$order['id']}", 
+            fulfillmentHold: {
+                reason: OTHER, 
+                reasonNotes: "{$escapedReason}"
+            }
+        ) {
+            fulfillmentOrder {
+                id
+                status
+            }
+            userErrors {
+                field
+                message
+            }
+        }
+        GQL;
 	}
+
+	$mutation = <<<GQL
+    mutation {
+        {$batchedMutations}
+    }
+    GQL;
+
+	\Log::info("Sending hold mutation for order {$orderId}:", ['mutation' => $mutation]);
+
+	$holdResponse = Http::withHeaders([
+		'X-Shopify-Access-Token' => $accessToken,
+		'Content-Type' => 'application/json',
+	])->post("{$shopDomain}/admin/api/2023-10/graphql.json", [
+		'query' => $mutation,
+	]);
+
+	if (!$holdResponse->successful()) {
+		\Log::error("Failed to apply fulfillment holds for order {$orderId}: " . $holdResponse->body());
+		return response()->json(['error' => 'Failed to apply fulfillment holds.', 'details' => $holdResponse->json()], 500);
+	}
+
+	\Log::info("Fulfillment hold response for order {$orderId}:", $holdResponse->json());
 
 	return true;
 }
+
 
 
 function cancelOrder($orderId, $reason)
@@ -1192,100 +1104,110 @@ function getOrderDecisionStatus($orderId)
 }
 
 
-// function releaseFulfillmentHold($orderId, $reason)
-// {
-// 	// $shopDomain = env('SHOP_DOMAIN');
-// 	// $accessToken = env('ACCESS_TOKEN');
-// 	[$shopDomain, $accessToken] = array_values(getShopifyCredentialsByOrderId($orderId));
-
-// 	// ['shopDomain' => $shopDomain, 'accessToken' => $accessToken] = getShopifyCredentialsByOrderId($orderId);
-
-// 	// Step 1: Get fulfillment orders for the order
-// 	$response = Http::withHeaders([
-// 		'X-Shopify-Access-Token' => $accessToken,
-// 	])->get("{$shopDomain}/admin/api/2023-10/orders/{$orderId}/fulfillment_orders.json");
-
-// 	if ($response->failed()) {
-// 		return response()->json([
-// 			'error' => 'Failed to fetch fulfillment orders',
-// 			'details' => $response->json()
-// 		], 500);
-// 	}
-
-// 	$fulfillmentOrders = $response->json('fulfillment_orders');
-
-// 	if (empty($fulfillmentOrders)) {
-// 		return response()->json(['error' => 'No fulfillment orders found.'], 404);
-// 	}
-
-// 	$fulfillmentOrderId = $fulfillmentOrders[0]['id'];
-
-// 	// Step 2: Release hold
-// 	$releaseResponse = Http::withHeaders([
-// 		'X-Shopify-Access-Token' => $accessToken,
-// 		'Content-Type' => 'application/json',
-// 	])->post("{$shopDomain}/admin/api/2023-10/fulfillment_orders/{$fulfillmentOrderId}/release_hold.json");
-
-// 	if ($releaseResponse->failed()) {
-// 		return response()->json([
-// 			'error' => 'Failed to release fulfillment hold',
-// 			'details' => $releaseResponse->json()
-// 		], 500);
-// 	}
-
-// 	return true;
-// }
 
 function releaseFulfillmentHold($orderId, $reason)
 {
-    [$shopDomain, $accessToken] = array_values(getShopifyCredentialsByOrderId($orderId));
+	[$shopDomain, $accessToken] = array_values(getShopifyCredentialsByOrderId($orderId));
 
-    // Step 1: Get all fulfillment orders for this order
-    $response = Http::withHeaders([
-        'X-Shopify-Access-Token' => $accessToken,
-    ])->get("{$shopDomain}/admin/api/2023-10/orders/{$orderId}/fulfillment_orders.json");
-
-    if ($response->failed()) {
-        return response()->json([
-            'error' => 'Failed to fetch fulfillment orders',
-            'details' => $response->json(),
-        ], 500);
-    }
-
-    $fulfillmentOrders = $response->json('fulfillment_orders');
-
-    if (empty($fulfillmentOrders)) {
-        return response()->json(['error' => 'No fulfillment orders found.'], 404);
-    }
-
-    $errors = [];
-
-    // Step 2: Loop through each fulfillment order and release hold
-    foreach ($fulfillmentOrders as $fulfillmentOrder) {
-        $fulfillmentOrderId = $fulfillmentOrder['id'];
-
-        $releaseResponse = Http::withHeaders([
-            'X-Shopify-Access-Token' => $accessToken,
-            'Content-Type' => 'application/json',
-        ])->post("{$shopDomain}/admin/api/2023-10/fulfillment_orders/{$fulfillmentOrderId}/release_hold.json");
-
-        if ($releaseResponse->failed()) {
-            $errors[] = [
-                'fulfillment_order_id' => $fulfillmentOrderId,
-                'details' => $releaseResponse->json()
-            ];
+	// Step 1: Fetch fulfillment orders via GraphQL
+	$query = <<<GQL
+    {
+        order(id: "gid://shopify/Order/{$orderId}") {
+            fulfillmentOrders(first: 10) {
+                nodes {
+                    id
+                }
+            }
         }
     }
+    GQL;
 
-    if (!empty($errors)) {
-        return response()->json([
-            'error' => 'Some fulfillment holds could not be released.',
-            'details' => $errors,
-        ], 500);
+	$fetchResponse = Http::withHeaders([
+		'X-Shopify-Access-Token' => $accessToken,
+		'Content-Type' => 'application/json',
+	])->post("{$shopDomain}/admin/api/2023-10/graphql.json", [
+		'query' => $query,
+	]);
+
+	if ($fetchResponse->failed()) {
+		\Log::error("Failed to fetch fulfillment orders for release: " . $fetchResponse->body());
+		return response()->json([
+			'error' => 'Failed to fetch fulfillment orders.',
+			'details' => $fetchResponse->json(),
+		], 500);
+	}
+
+	$fulfillmentOrders = $fetchResponse->json('data.order.fulfillmentOrders.nodes') ?? [];
+
+	if (empty($fulfillmentOrders)) {
+		return response()->json(['error' => 'No fulfillment orders found.'], 404);
+	}
+
+	// Step 2: Build single GraphQL mutation (release + note)
+	$batchedMutations = '';
+	foreach ($fulfillmentOrders as $index => $order) {
+		$mutationName = "release{$index}";
+		$batchedMutations .= <<<GQL
+        {$mutationName}: fulfillmentOrderReleaseHold(id: "{$order['id']}") {
+            fulfillmentOrder {
+                id
+                status
+            }
+            userErrors {
+                field
+                message
+            }
+        }
+        GQL;
+	}
+
+	// Timeline note mutation
+	$userName = auth()->user()?->name ?? 'Admin';
+	$timestamp = now()->format('Y-m-d H:i:s');
+	$note = addslashes("Hold released by: {$userName} on {$timestamp}. Reason: {$reason}");
+
+	$batchedMutations .= <<<GQL
+    addNote: orderUpdate(input: {
+        id: "gid://shopify/Order/{$orderId}",
+        note: "{$note}"
+    }) {
+        order {
+            id
+        }
+        userErrors {
+            field
+            message
+        }
     }
+    GQL;
 
-    return true;
+	$mutation = <<<GQL
+    mutation {
+        {$batchedMutations}
+    }
+    GQL;
+
+	// Final single API call
+	$response = Http::withHeaders([
+		'X-Shopify-Access-Token' => $accessToken,
+		'Content-Type' => 'application/json',
+	])->post("{$shopDomain}/admin/api/2023-10/graphql.json", [
+		'query' => $mutation,
+	]);
+
+	if ($response->failed()) {
+		\Log::error("Combined mutation failed for release + note: " . $response->body());
+		return response()->json([
+			'error' => 'Failed to release fulfillment hold or add note.',
+			'details' => $response->json(),
+		], 500);
+	}
+
+	\Log::info("Successfully released hold and added timeline note for order {$orderId}", $response->json());
+
+	return true;
 }
+
 
 
 
@@ -1679,69 +1601,120 @@ function buildVariableDeclarations(array $orderGIDs): string
 // 	}
 // }
 
+//27-06-25
+
 if (!function_exists('fulfillShopifyOrder')) {
-    function fulfillShopifyOrder($shopifyOrderId)
-    {
-       	[$shopDomain, $accessToken] = array_values(getShopifyCredentialsByOrderId($shopifyOrderId));
+	function fulfillShopifyOrder($shopifyOrderId)
+	{
+		[$shopDomain, $accessToken] = array_values(getShopifyCredentialsByOrderId($shopifyOrderId));
 
+		// Step 1: Get Fulfillment Orders using GraphQL
+		$query = <<<GQL
+		{
+			order(id: "gid://shopify/Order/{$shopifyOrderId}") {
+				fulfillmentOrders(first: 10) {
+					nodes {
+						id
+						lineItems(first: 10) {
+							edges {
+								node {
+									id
+									quantity
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+		GQL;
 
-        // Step 1: Get Fulfillment Order ID and its line items
-        $orderResponse = Http::withHeaders([
-            'X-Shopify-Access-Token' => $accessToken
-        ])->get("{$shopDomain}/admin/api/2023-10/orders/{$shopifyOrderId}/fulfillment_orders.json");
+		$response = Http::withHeaders([
+			'X-Shopify-Access-Token' => $accessToken,
+			'Content-Type' => 'application/json',
+		])->post("{$shopDomain}/admin/api/2023-10/graphql.json", [
+			'query' => $query,
+		]);
 
-        if (!$orderResponse->successful()) {
-            throw new \Exception('Failed to fetch fulfillment orders');
-        }
+		if (!$response->successful()) {
+			throw new \Exception('Failed to fetch fulfillment orders');
+		}
 
-        $fulfillmentOrders = $orderResponse['fulfillment_orders'] ?? [];
+		$fulfillmentOrders = $response->json('data.order.fulfillmentOrders.nodes') ?? [];
 
-        if (empty($fulfillmentOrders)) {
-            throw new \Exception('No fulfillment orders found');
-        }
+		if (empty($fulfillmentOrders)) {
+			throw new \Exception('No fulfillment orders found');
+		}
 
-        $lineItemsPayload = [];
+		// Step 2: Build lineItemsByFulfillmentOrder payload
+		$lineItemsByFulfillmentOrderString = '';
 
-        foreach ($fulfillmentOrders as $fulfillmentOrder) {
-            $lineItems = $fulfillmentOrder['line_items'] ?? [];
+		foreach ($fulfillmentOrders as $fulfillmentOrder) {
+			$fulfillmentOrderId = $fulfillmentOrder['id'];
+			$lineItems = $fulfillmentOrder['lineItems']['edges'] ?? [];
 
-            $itemsToFulfill = array_map(function ($item) {
-                return [
-                    'id' => $item['id'],
-                    'quantity' => $item['quantity'], // fulfill full quantity
-                ];
-            }, $lineItems);
+			$lineItemsStr = '';
+			foreach ($lineItems as $itemEdge) {
+				$item = $itemEdge['node'];
+				$lineItemsStr .= '{ fulfillmentOrderLineItemId: "' . $item['id'] . '", quantity: ' . $item['quantity'] . ' },';
+			}
+			$lineItemsStr = rtrim($lineItemsStr, ',');
 
-            $lineItemsPayload[] = [
-                'fulfillment_order_id' => $fulfillmentOrder['id'],
-                'fulfillment_order_line_items' => $itemsToFulfill
-            ];
-        }
+			$lineItemsByFulfillmentOrderString .= '{
+				fulfillmentOrderId: "' . $fulfillmentOrderId . '",
+				fulfillmentOrderLineItems: [' . $lineItemsStr . ']
+			},';
+		}
+		$lineItemsByFulfillmentOrderString = rtrim($lineItemsByFulfillmentOrderString, ',');
 
-        // Step 2: Fulfill with all items
-        $fulfillResponse = Http::withHeaders([
-            'X-Shopify-Access-Token' => $accessToken,
-            'Content-Type' => 'application/json',
-        ])->post("{$shopDomain}/admin/api/2023-10/fulfillments.json", [
-            'fulfillment' => [
-                'message' => 'Order fulfilled via Accuracy Checker',
-                'notify_customer' => true,
-                'tracking_info' => [
-                    'number' => null,
-                    'url' => null,
-                    'company' => null
-                ],
-                'line_items_by_fulfillment_order' => $lineItemsPayload
-            ]
-        ]);
+		// Step 3: Perform fulfillment using fulfillmentCreateV2
+		$mutation = <<<GQL
+		mutation {
+			fulfillmentCreateV2(input: {
+				message: "Order fulfilled via Accuracy Checker",
+				notifyCustomer: true,
+				trackingInfo: {
+					number: "",
+					url: "",
+					company: ""
+				},
+				lineItemsByFulfillmentOrder: [
+					{$lineItemsByFulfillmentOrderString}
+				]
+			}) {
+				fulfillment {
+					id
+					status
+				}
+				userErrors {
+					field
+					message
+				}
+			}
+		}
+		GQL;
 
-        if (!$fulfillResponse->successful()) {
-            throw new \Exception('Failed to fulfill order: ' . $fulfillResponse->body());
-        }
+		$fulfillResponse = Http::withHeaders([
+			'X-Shopify-Access-Token' => $accessToken,
+			'Content-Type' => 'application/json',
+		])->post("{$shopDomain}/admin/api/2023-10/graphql.json", [
+			'query' => $mutation,
+		]);
 
-        return $fulfillResponse->json();
-    }
+		if (!$fulfillResponse->successful()) {
+			throw new \Exception('Failed to fulfill order: ' . $fulfillResponse->body());
+		}
+
+		$data = $fulfillResponse->json('data.fulfillmentCreateV2');
+
+		if (!empty($data['userErrors'])) {
+			throw new \Exception('Fulfillment errors: ' . json_encode($data['userErrors']));
+		}
+
+		return $data['fulfillment'];
+	}
 }
+
 
 
 // function getProductImages($shopifyOrderId, $productId)
@@ -1767,11 +1740,11 @@ if (!function_exists('fulfillShopifyOrder')) {
 
 function getProductImages($shopifyOrderId, $productId)
 {
-    [$shopDomain, $accessToken] = array_values(getShopifyCredentialsByOrderId($shopifyOrderId));
+	[$shopDomain, $accessToken] = array_values(getShopifyCredentialsByOrderId($shopifyOrderId));
 
-    $url = "{$shopDomain}/admin/api/2024-01/graphql.json";
+	$url = "{$shopDomain}/admin/api/2024-01/graphql.json";
 
-    $query = <<<GRAPHQL
+	$query = <<<GRAPHQL
     {
       product(id: "gid://shopify/Product/{$productId}") {
         images(first: 10) {
@@ -1785,23 +1758,23 @@ function getProductImages($shopifyOrderId, $productId)
     }
     GRAPHQL;
 
-    $response = Http::withHeaders([
-        'X-Shopify-Access-Token' => $accessToken,
-        'Content-Type' => 'application/json',
-    ])->post($url, [
-        'query' => $query,
-    ]);
+	$response = Http::withHeaders([
+		'X-Shopify-Access-Token' => $accessToken,
+		'Content-Type' => 'application/json',
+	])->post($url, [
+		'query' => $query,
+	]);
 
-    if ($response->successful()) {
-        $edges = $response->json('data.product.images.edges') ?? [];
+	if ($response->successful()) {
+		$edges = $response->json('data.product.images.edges') ?? [];
 
-        return collect($edges)->pluck('node.src')->all();
-    } else {
-        throw new \Exception('Failed to fetch product images: ' . $response->body());
-    }
+		return collect($edges)->pluck('node.src')->all();
+	} else {
+		throw new \Exception('Failed to fetch product images: ' . $response->body());
+	}
 }
 
-//add timeline notes on orders when approveduse Illuminate\Support\Facades\Http;
+
 
 if (!function_exists('triggerShopifyTimelineNote')) {
 	function triggerShopifyTimelineNote($shopifyOrderId)
@@ -1810,7 +1783,7 @@ if (!function_exists('triggerShopifyTimelineNote')) {
 
 		$user = Auth::user();
 		$userName = $user?->name ?? 'System';
-		$roleName =	$user?->roles?->first()?->name;
+		$roleName = $user?->roles?->first()?->name;
 		$timestamp = now()->format('Y-m-d H:i:s');
 
 		if ($roleName === 'ACT') {
@@ -1819,29 +1792,52 @@ if (!function_exists('triggerShopifyTimelineNote')) {
 			$note = "Order approved by: {$userName} on {$timestamp}";
 		}
 
+		// GraphQL mutation for updating the order note
+		$query = <<<GQL
+		mutation {
+			orderUpdate(input: {
+				id: "gid://shopify/Order/{$shopifyOrderId}",
+				note: "{$note}"
+			}) {
+				order {
+					id
+				}
+				userErrors {
+					field
+					message
+				}
+			}
+		}
+		GQL;
+
 		try {
 			$response = Http::withHeaders([
 				'X-Shopify-Access-Token' => $accessToken,
 				'Content-Type' => 'application/json',
-			])->put("{$shopDomain}/admin/api/2023-10/orders/{$shopifyOrderId}.json", [
-				'order' => [
-					'id' => $shopifyOrderId,
-					'note' => $note,
-				],
+			])->post("{$shopDomain}/admin/api/2023-10/graphql.json", [
+				'query' => $query
 			]);
 
-			if (!$response->successful()) {
-				\Log::error("Shopify note update failed for Order {$shopifyOrderId}: " . $response->body());
-				return false;
-			}
+			if ($response->successful()) {
+				$body = $response->json();
+				$errors = $body['data']['orderUpdate']['userErrors'] ?? [];
 
-			return true;
+				if (empty($errors)) {
+					return true;
+				} else {
+					\Log::error("Shopify GraphQL note update error for Order {$shopifyOrderId}: " . json_encode($errors));
+				}
+			} else {
+				\Log::error("Shopify GraphQL note update failed for Order {$shopifyOrderId}: " . $response->body());
+			}
 		} catch (\Exception $e) {
-			\Log::error("Shopify note update exception for Order {$shopifyOrderId}: " . $e->getMessage());
-			return false;
+			\Log::error("Shopify GraphQL note update exception for Order {$shopifyOrderId}: " . $e->getMessage());
 		}
+
+		return false;
 	}
 }
+
 
 
 // function getPrescriberStatus($order_id){
@@ -1861,23 +1857,24 @@ if (!function_exists('triggerShopifyTimelineNote')) {
 // 	return $response && isset($response->decision_status) ? $response->decision_status : '-';
 // }
 
-function getPrescriberData($order_id){
-	$response = OrderAction::where(['order_id'=>$order_id,'role'=>'Prescriber'])->orderBy('id', 'DESC')->first();
+function getPrescriberData($order_id)
+{
+	$response = OrderAction::where(['order_id' => $order_id, 'role' => 'Prescriber'])->orderBy('id', 'DESC')->first();
 	return $response;
 }
 
 if (!function_exists('getUserName')) {
-    function getUserName($userId)
-    {
-        $user = User::find($userId);
-      	return $user ? $user->name : null;
-    }
+	function getUserName($userId)
+	{
+		$user = User::find($userId);
+		return $user ? $user->name : null;
+	}
 }
 
 if (!function_exists('getStoreId')) {
-    function getStoreId($order_id)
-    {
-        $order = Order::where('order_number',$order_id)->first();
-      	return $order ? $order->store_id : null;
-    }
+	function getStoreId($order_id)
+	{
+		$order = Order::where('order_number', $order_id)->first();
+		return $order ? $order->store_id : null;
+	}
 }

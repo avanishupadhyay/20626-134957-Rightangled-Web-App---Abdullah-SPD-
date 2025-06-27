@@ -49,18 +49,20 @@
 
     {{-- 1. Dispensing Labels Section --}}
     @foreach ($processedOrders as $order)
-    @php 
-    $prescriber_data = getPrescriberData($order->order_number);
-    @endphp
+        @php
+            $prescriber_data = getPrescriberData($order->order_number);
+        @endphp
         <div class="order-block">
             <div style="text-align: center; margin-top: 10px;">
-            <h4>Dispensing Label</h4>
-            <p><strong>Order Number:</strong> {{ $order->order_number }}</p>
-            <p><strong>Prescription Date:</strong> {{ isset($prescriber_data->updated_at) ? $prescriber_data->updated_at : '' }}</p>
-            <p><strong>Customer:</strong> {{ $order->order_data['customer']['first_name'] ?? '' }}
-                {{ $order->order_data['customer']['last_name'] ?? '' }}</p>
-            <p><strong>DOB:</strong> {{ $order->order_data['customer']['dob'] ?? 'N/A' }}</p>
-            <p><strong>Prescriber:</strong>   {{ isset($prescriber_data->id) ? (ucfirst(getUserName($prescriber_data->id)) ?? '-') : '-' }}</p>
+                <h4>Dispensing Label</h4>
+                <p><strong>Order Number:</strong> {{ $order->order_number }}</p>
+                <p><strong>Prescription Date:</strong>
+                    {{ isset($prescriber_data->updated_at) ? $prescriber_data->updated_at : '' }}</p>
+                <p><strong>Customer:</strong> {{ $order->order_data['customer']['first_name'] ?? '' }}
+                    {{ $order->order_data['customer']['last_name'] ?? '' }}</p>
+                <p><strong>DOB:</strong> {{ $order->order_data['customer']['dob'] ?? 'N/A' }}</p>
+                <p><strong>Prescriber:</strong>
+                    {{ isset($prescriber_data->id) ? ucfirst(getUserName($prescriber_data->id)) ?? '-' : '-' }}</p>
             </div>
 
             {{-- Line Items --}}
@@ -75,13 +77,16 @@
                     </thead>
                     <tbody>
                         @foreach ($order->line_items as $item)
-                            <tr>
-                                <td>{{ $item['title'] ?? 'N/A' }}</td>
-                                <td>{{ $item['direction_of_use'] ?? 'Not available' }}</td>
-                                <td>x {{ $item['quantity'] ?? 0 }}</td>
-                            </tr>
+                            @if (!empty($item['current_quantity']) && $item['current_quantity'] > 0)
+                                <tr>
+                                    <td>{{ $item['title'] ?? 'N/A' }}</td>
+                                    <td>{{ $item['direction_of_use'] ?? 'Not available' }}</td>
+                                    <td>x {{ $item['current_quantity'] }}</td>
+                                </tr>
+                            @endif
                         @endforeach
                     </tbody>
+
                 </table>
             </div>
             <br>
@@ -152,10 +157,12 @@
                     </thead>
                     <tbody>
                         @foreach ($order->line_items as $item)
-                            <tr>
-                                <td>{{ $item['title'] ?? 'N/A' }}</td>
-                                <td>{{ $item['quantity'] ?? 0 }} Tablets</td>
-                            </tr>
+                            @if (!empty($item['current_quantity']) && $item['current_quantity'] > 0)
+                                <tr>
+                                    <td>{{ $item['title'] ?? 'N/A' }}</td>
+                                    <td>{{ $item['current_quantity'] ?? 0 }} Tablets</td>
+                                </tr>
+                            @endif
                         @endforeach
                     </tbody>
                 </table>
@@ -225,10 +232,12 @@
                     </thead>
                     <tbody>
                         @foreach ($order->line_items as $item)
-                            <tr>
-                                <td>{{ $item['title'] ?? 'N/A' }}</td>
-                                <td>{{ $item['quantity'] ?? 0 }} Tablets</td>
-                            </tr>
+                            @if (!empty($item['current_quantity']) && $item['current_quantity'] > 0)
+                                <tr>
+                                    <td>{{ $item['title'] ?? 'N/A' }}</td>
+                                    <td>{{ $item['current_quantity'] ?? 0 }} </td>
+                                </tr>
+                            @endif
                         @endforeach
                     </tbody>
                 </table>
