@@ -463,7 +463,7 @@ class PrescriberOrderController extends Controller
             ]);
 
             DB::commit();
-            return back()->with('success', 'Order status changed successfully.');
+            return redirect()->route('prescriber_orders.index')->with('success', 'Order status changed successfully.');
         } catch (\Throwable $e) {
             DB::rollBack();
             return back()->withErrors('Failed to update order: ' . $e->getMessage());
