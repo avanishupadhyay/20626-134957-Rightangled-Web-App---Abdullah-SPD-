@@ -495,6 +495,7 @@ class PrescriberOrderController extends Controller
 
 
         foreach ($orderData['line_items'] as $item) {
+
             if ($item['current_quantity'] > 0) {
                 $productId = $item['product_id'];
                 $title = $item['title'];
