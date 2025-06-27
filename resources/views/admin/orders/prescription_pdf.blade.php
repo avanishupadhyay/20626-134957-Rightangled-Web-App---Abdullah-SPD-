@@ -117,7 +117,7 @@
                     <strong>Rightangled Clinic</strong><br>
                     {{ config('Site.location') }}<br>
                     Zip: W6 0LT<br>
-                    Gphc number: {{$gphc_number}}<br>
+                    Gphc number: {{ $gphc_number }}<br>
                     Tel: {{ config('Site.contact') }}<br>
                     Email: {{ config('Site.email') }}
                 </td>
@@ -136,11 +136,14 @@
             </thead>
             <tbody>
                 @foreach ($items as $item)
+                    @if (!empty($item['current_quantity']) && $item['current_quantity'] > 0)
+                        <tr>
+                            <td>{{ $item['title'] ?? 'N/A' }}</td>
+                            <td>{{ $item['direction_of_use'] ?? 'Not available' }}</td>
+                            <td>{{ $item['current_quantity'] ?? 0 }} Tablets</td>
+                        </tr>
+                    @endif
                     <tr>
-                        <td>{{ $item['title'] }}</td>
-                        <td>{{ $item['direction_of_use'] ?? 'Not available' }}</td>
-                        <td>x {{ $item['quantity'] }}</td>
-                    </tr>
                 @endforeach
             </tbody>
         </table>

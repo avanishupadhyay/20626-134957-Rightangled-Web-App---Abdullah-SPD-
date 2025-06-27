@@ -22,7 +22,7 @@ class AccuracyCheckerOrderController extends Controller
     public function __construct()
     {
         $this->middleware(function ($request, $next) {
-            if (!auth()->check() || !auth()->user()->hasRole('Act')) {
+            if (!auth()->check() || !auth()->user()->hasRole('ACT')) {
                 abort(403, 'Access denied');
             }
             return $next($request);
@@ -98,94 +98,6 @@ class AccuracyCheckerOrderController extends Controller
 
 
 
-
-    // public function view($id)
-    // {
-    //     $order = Order::where('order_number',$id)->get();
-    //     $orderMetafields = getOrderMetafields($order->order_number) ?? null;
-    //     // dd($orderMetafields);
-
-    //     $orderData = json_decode($order->order_data, true);
-    //     return view('admin.accuracy_checker.view', compact('order', 'orderData', 'orderMetafields'));
-    // }
-
-
-
-
-    // public function ajaxView($id)
-    // {
-    //     $order = Order::where('order_number', $id)->first();
-
-    //     if (!$order) {
-    //         return response()->json(['status' => 'error', 'message' => 'Order not found']);
-    //     }
-
-    //     // If fulfilled, return error message with details
-    //     if ($order->fulfillment_status === 'fulfilled') {
-    //         $dispensedAction = OrderAction::where('order_id', $id)
-    //             ->where('decision_status', 'dispensed')
-    //             ->first();
-
-    //         $checkedAction = OrderAction::where('order_id', $id)
-    //             ->where('decision_status', 'accurately_checked')
-    //             ->first();
-
-    //         $messageParts = [];
-
-    //         if ($dispensedAction) {
-    //             $dispensedUser = User::find($dispensedAction->user_id);
-    //             $messageParts[] = "Dispensed on {$dispensedAction->created_at} by " . ($dispensedUser->name ?? 'Unknown');
-    //         }
-
-    //         if ($checkedAction) {
-    //             $checkedUser = User::find($checkedAction->user_id);
-    //             $messageParts[] = "Checked on {$checkedAction->created_at} by " . ($checkedUser->name ?? 'Unknown');
-    //         }
-
-    //         $fullMessage = '';
-    //         if (!empty($messageParts)) {
-    //             $fullMessage .= ' ' . implode(' | ', $messageParts);
-    //         }
-
-    //         return response()->json([
-    //             'status' => 'error',
-    //             'message' => $fullMessage,
-    //         ]);
-    //     }
-
-    //     // Proceed if not fulfilled
-    //     $orderData = json_decode($order->order_data, true);
-    //     $items = $orderData['line_items'] ?? [];
-    //     // dd($items);
-    //     $shipping = $orderData['shipping_address'] ?? [];
-
-    //     return response()->json([
-    //         'status' => 'success',
-    //         'order' => [
-    //             'order_number' => $order->order_number,
-    //             'email' => $order->email,
-    //         ],
-    //         'shipping_address' => [
-    //             'name' => $shipping['name'] ?? 'N/A',
-    //             'address1' => $shipping['address1'] ?? '',
-    //             'address2' => $shipping['address2'] ?? '',
-    //             'city' => $shipping['city'] ?? '',
-    //             'zip' => $shipping['zip'] ?? '',
-    //             'country' => $shipping['country'] ?? '',
-    //             'phone' => $shipping['phone'] ?? '',
-    //         ],
-    //         'items' => array_map(function ($item) {
-    //             return [
-    //                 'name' => $item['title'] ?? 'N/A',
-    //                 'quantity' => $item['current_quantity'] ?? 0,
-    //                 'price' => $item['price'] ?? '-',
-    //             ];
-    //         }, $items),
-    //     ]);
-    // }
-
-
-
     public function ajaxView($id)
     {
         $order = Order::where('order_number', $id)->first();
@@ -227,43 +139,6 @@ class AccuracyCheckerOrderController extends Controller
 
         $dns = new DNS1D();
 
-        // return response()->json([
-        //     'status' => 'success',
-        //     'order' => [
-        //         'order_number' => $order->order_number,
-        //         'email' => $order->email,
-        //     ],
-        //     'shipping_address' => [
-        //         'name' => $shipping['name'] ?? 'N/A',
-        //         'address1' => $shipping['address1'] ?? '',
-        //         'address2' => $shipping['address2'] ?? '',
-        //         'city' => $shipping['city'] ?? '',
-        //         'zip' => $shipping['zip'] ?? '',
-        //         'country' => $shipping['country'] ?? '',
-        //         'phone' => $shipping['phone'] ?? '',
-        //     ],
-        //     'items' => array_map(function ($item) use ($dns) {
-        //         if (!is_array($item)) {
-        //             return null;
-        //         }
-
-        //         $sku = $item['product_id'] ?? 'UNKNOWN_SKU';
-        //         // $variant_id = $item['variant_id'] ?? 'UNKNOWN_VARIANT';
-
-        //         // $sku = $item['product_id'] ?? null; // fallback if sku missing
-        //         // dd($sku);
-        //         return [
-        //             'name' => $item['title'] ?? 'N/A',
-        //             'quantity' => $item['current_quantity'] ?? 0,
-        //             'price' => $item['price'] ?? '-',
-        //             'sku' => $sku,
-        //             'barcode_base64' => 'data:image/png;base64,' . $dns->getBarcodePNG($sku, 'C128', 2, 60),
-        //             'product_id' => $item['product_id'] ?? null, // ✅ add this
-        //             // 'variant_id'=> $variant_id
-        //         ];
-        //     }, $items),
-        // ]);
-        // Filter items with current_quantity > 0
         $filteredItems = array_filter($items, function ($item) {
             return isset($item['current_quantity']) && $item['current_quantity'] > 0;
         });
@@ -348,7 +223,7 @@ class AccuracyCheckerOrderController extends Controller
                     'message' => 'Cannot fulfill a cancelled order.',
                 ]);
             }
-// dd("stop");
+            // dd("stop");
 
             // Step 2: Fulfill via Shopify API
             fulfillShopifyOrder($order->order_number); // Your custom logic
@@ -384,27 +259,73 @@ class AccuracyCheckerOrderController extends Controller
     }
 
 
+    // public function getProductStock($productId, $orderid)
+    // {
+    //     [$shopDomain, $accessToken] = array_values(getShopifyCredentialsByOrderId($orderid));
+
+
+    //     $response = Http::withHeaders([
+    //         'X-Shopify-Access-Token' => $accessToken,
+    //     ])->get("{$shopDomain}/admin/api/2023-04/products/{$productId}.json");
+
+    //     if ($response->successful()) {
+    //         $product = $response->json()['product'];
+
+    //         // Assume you're using the first variant
+    //         $variant = $product['variants'][0] ?? null;
+    //         $stock = $variant['inventory_quantity'] ?? 'N/A';
+
+    //         return response()->json([
+    //             'status' => 'success',
+    //             'stock' => $stock,
+    //             'product_title' => $product['title'] ?? '',
+    //         ]);
+    //     }
+
+    //     return response()->json([
+    //         'status' => 'error',
+    //         'message' => 'Failed to fetch product stock from Shopify.'
+    //     ]);
+    // }
+
     public function getProductStock($productId, $orderid)
     {
         [$shopDomain, $accessToken] = array_values(getShopifyCredentialsByOrderId($orderid));
 
+        $query = <<<GQL
+    {
+      product(id: "gid://shopify/Product/{$productId}") {
+        title
+        variants(first: 1) {
+          edges {
+            node {
+              inventoryQuantity
+            }
+          }
+        }
+      }
+    }
+    GQL;
 
         $response = Http::withHeaders([
             'X-Shopify-Access-Token' => $accessToken,
-        ])->get("{$shopDomain}/admin/api/2023-04/products/{$productId}.json");
+            'Content-Type' => 'application/json',
+        ])->post("{$shopDomain}/admin/api/2023-04/graphql.json", [
+            'query' => $query
+        ]);
 
         if ($response->successful()) {
-            $product = $response->json()['product'];
+            $body = $response->json();
+            $product = $body['data']['product'] ?? null;
 
-            // Assume you're using the first variant
-            $variant = $product['variants'][0] ?? null;
-            $stock = $variant['inventory_quantity'] ?? 'N/A';
-
-            return response()->json([
-                'status' => 'success',
-                'stock' => $stock,
-                'product_title' => $product['title'] ?? '',
-            ]);
+            if ($product) {
+                $stock = $product['variants']['edges'][0]['node']['inventoryQuantity'] ?? 'N/A';
+                return response()->json([
+                    'status' => 'success',
+                    'stock' => $stock,
+                    'product_title' => $product['title'] ?? '',
+                ]);
+            }
         }
 
         return response()->json([

@@ -73,16 +73,19 @@
                         </p>
 
                         @foreach ($orderData['line_items'] as $item)
-                            <div class="row mb-2">
-                                <div class="col-md-6">
-                                    <strong>Product:</strong> {{ $item['title'] }} ({{ $item['variant_title'] ?? '' }})
+                            @if ($item['current_quantity'] > 0)
+                                <div class="row mb-2">
+                                    <div class="col-md-6">
+                                        <strong>Product:</strong> {{ $item['title'] }} ({{ $item['variant_title'] ?? '' }})
+                                    </div>
+                                    <div class="col-md-6 text-end">
+                                        <strong>£{{ number_format($item['price'], 2) }}</strong> ×
+                                        {{ $item['current_quantity'] }}
+                                        =
+                                        <strong>£{{ number_format($item['price'] * $item['current_quantity'], 2) }}</strong>
+                                    </div>
                                 </div>
-                                <div class="col-md-6 text-end">
-                                    <strong>£{{ number_format($item['price'], 2) }}</strong> ×
-                                    {{ $item['current_quantity'] }}
-                                    = <strong>£{{ number_format($item['price'] * $item['current_quantity'], 2) }}</strong>
-                                </div>
-                            </div>
+                            @endif
                         @endforeach
                     </div>
                 </div>
@@ -209,8 +212,8 @@
                                     @elseif (Str::startsWith($value, 'gid://shopify/MediaImage/'))
                                         <p><em>(Image GID: {{ $value }})</em></p>
                                     @elseif (filter_var($value, FILTER_VALIDATE_URL))
-                                        <a href="{{ $value }}" target="_blank"
-                                            rel="noopener noreferrer">Click Here <i class="fa-solid fa-up-right-from-square"></i></a>
+                                        <a href="{{ $value }}" target="_blank" rel="noopener noreferrer">Click Here
+                                            <i class="fa-solid fa-up-right-from-square"></i></a>
                                     @else
                                         {{ $value }}
                                     @endif
@@ -385,16 +388,16 @@
 
 @endsection
 @section('custom_js_scripts')
-<script>
-    const loader = document.getElementById('loaderOverlay');
+    <script>
+        const loader = document.getElementById('loaderOverlay');
 
-    ['submit-approval', 'submit-reject', 'submit-hold'].forEach(id => {
-        const button = document.getElementById(id);
-        if (button) {
-            button.addEventListener('click', function () {
-                loader.style.display = 'flex';
-            });
-        }
-    });
-</script>
+        ['submit-approval', 'submit-reject', 'submit-hold'].forEach(id => {
+            const button = document.getElementById(id);
+            if (button) {
+                button.addEventListener('click', function() {
+                    loader.style.display = 'flex';
+                });
+            }
+        });
+    </script>
 @endsection
