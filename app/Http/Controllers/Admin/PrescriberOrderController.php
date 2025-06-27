@@ -305,63 +305,69 @@ class PrescriberOrderController extends Controller
         [$shopDomain, $accessToken] = array_values(getShopifyCredentialsByOrderId($orderId));
 
 
-        $order_detail = Order::where('order_number', $orderId)->first();
+        // $order_detail = Order::where('order_number', $orderId)->first();
 
-        if ($order_detail) {
-            $order_data = json_decode($order_detail->order_data, true) ?? [];
-            $check_id = '';
-            $birth_date = '';
+        // if ($order_detail) {
+        //     $order_data = json_decode($order_detail->order_data, true) ?? [];
+        //     $check_id = '';
+        //     $birth_date = '';
 
-            if (isset($order_data['customer']) && !empty($order_data['customer'])) {
-                // Get customer ID from order
-                $customerId = $order_data['customer']['id'] ?? null;
+        //     if (isset($order_data['customer']) && !empty($order_data['customer'])) {
+        //         // Get customer ID from order
+        //         $customerId = $order_data['customer']['id'] ?? null;
 
-                // Continue only if dob is NOT already set
-                if ($customerId && empty($order_data['customer']['dob'])) {
+        //         // Continue only if dob is NOT already set
+        //         if ($customerId && empty($order_data['customer']['dob'])) {
+        //             // Fetch metafields from Shopify
+        //             $response = Http::withHeaders([
+        //                 'X-Shopify-Access-Token' => $accessToken
+        //             ])->get("{$shopDomain}/admin/api/2023-10/customers/{$customerId}/metafields.json");
 
-                    // Fetch metafields from Shopify
-                    $response = Http::withHeaders([
-                        'X-Shopify-Access-Token' => $accessToken
-                    ])->get("{$shopDomain}/admin/api/2023-10/customers/{$customerId}/metafields.json");
+        //             $data = $response->json();
 
-                    $data = $response->json();
+        //             // Extract check_id
+        //             if (isset($data['metafields'])) {
+        //                 foreach ($data['metafields'] as $meta) {
+        //                     if ($meta['key'] === 'check_id') {
+        //                         $check_id = $meta['value'];
+        //                         break;
+        //                     }
+        //                 }
+        //             }
 
-                    // Extract check_id
-                    if (isset($data['metafields'])) {
-                        foreach ($data['metafields'] as $meta) {
-                            if ($meta['key'] === 'check_id') {
-                                $check_id = $meta['value'];
-                                break;
-                            }
-                        }
-                    }
+        //             // Fetch Real ID details
+        //             if (!empty($check_id)) {
+        //                 $realIdResponse = Http::withHeaders([
+        //                     'Authorization' => 'Bearer ' . env('REAL_ID_API_TOKEN'),
+        //                     'Accept' => 'application/json',
+        //                 ])->get("https://real-id.getverdict.com/api/v1/checks/{$check_id}");
 
-                    // Fetch Real ID details
-                    if (!empty($check_id)) {
-                        $realIdResponse = Http::withHeaders([
-                            'Authorization' => 'Bearer ' . env('REAL_ID_API_TOKEN'),
-                            'Accept' => 'application/json',
-                        ])->get("https://real-id.getverdict.com/api/v1/checks/{$check_id}");
+        //                 $realIdData = $realIdResponse->json();
 
-                        $realIdData = $realIdResponse->json();
+        //                 if (!empty($realIdData['check']['result']['document']['birth_date'])) {
+        //                     $birth_date = $realIdData['check']['result']['document']['birth_date'];
 
-                        if (!empty($realIdData['check']['result']['document']['birth_date'])) {
-                            $birth_date = $realIdData['check']['result']['document']['birth_date'];
+        //                     // Update the order_data
+        //                     $order_data['customer']['dob'] = $birth_date;
+        //                     $order_detail->order_data = json_encode($order_data);
+        //                     $order_detail->save();
+        //                 }
+        //             }
+        //         }
+        //     }
+        // }
 
-                            // Update the order_data
-                            $order_data['customer']['dob'] = $birth_date;
-                            $order_detail->order_data = json_encode($order_data);
-                            $order_detail->save();
-                        }
-                    }
-                }
-            }
+        // // $pdfUrl = $this->generateAndStorePDF($orderId);
+        // $pdfPath = $this->generateAndStorePDF($orderId);
+
+        // $pdfUrl = rtrim(config('app.url'), '/') . '/' . ltrim($pdfPath, '/');
+        $pdfPath = null;
+        $pdfUrl = null;
+
+        if ($decisionStatus === 'approved') {
+            $pdfPath = $this->generateAndStorePDF($orderId); // passing `true` for approved
+            $pdfUrl = rtrim(config('app.url'), '/') . '/' . ltrim($pdfPath, '/');
         }
-
-        // $pdfUrl = $this->generateAndStorePDF($orderId);
-        $pdfPath = $this->generateAndStorePDF($orderId);
-
-        $pdfUrl = rtrim(config('app.url'), '/') . '/' . ltrim($pdfPath, '/');
         // $metafields = buildCommonMetafields($request, $decisionStatus, $orderId, $pdfUrl);
         $metafieldsInput  = buildCommonMetafields($request, $decisionStatus, $orderId, $pdfUrl);
 
@@ -369,16 +375,7 @@ class PrescriberOrderController extends Controller
 
         DB::beginTransaction();
         try {
-            // Step 1: Push metafields to Shopify
-            // foreach ($metafields as $field) {
-            //     Http::withHeaders([
-            //         'X-Shopify-Access-Token' => $accessToken,
-            //         'Content-Type' => 'application/json',
-            //     ])->post("https://{$shopDomain}/admin/api/2023-10/orders/{$orderId}/metafields.json", [
-            //         'metafield' => $field
-            //     ]);
-            // }
-
+          
             // -----------------GraphQl---------------------------
             $query = <<<'GRAPHQL'
                     mutation metafieldsSet($metafields: [MetafieldsSetInput!]!) {
@@ -433,7 +430,7 @@ class PrescriberOrderController extends Controller
 
                 // Update the order
                 $order->update([
-                    'fulfillment_status' => '',
+                    'fulfillment_status' => null,
                     'order_data' => json_encode($orderData),
                     // 'cancelled_at' => $cancelTime,
                 ]);
@@ -480,9 +477,11 @@ class PrescriberOrderController extends Controller
         $order = Order::where('order_number', $orderId)->first();
         $orderData = json_decode($order->order_data, true);
         $items = [];
-        $orderMetafields = getOrderMetafields($order->order_number);
+        // $orderMetafields = getOrderMetafields($order->order_number);
         //  $orderMetafields = [];
         $user = auth()->user();
+        $prescriber_s_name = $user->name ?? 'N/A';
+        $approval ='true';
         $prescriberData = $user->prescriber;
 
         $filePath = "signature-images/{$prescriberData->signature_image}";
@@ -516,10 +515,10 @@ class PrescriberOrderController extends Controller
             // 'prescriber_name' => 'Abdullah Sabyah',
             'prescriber_reg' => '2224180',
             'order' => $order,
-            'prescriber_s_name' => $orderMetafields['prescriber_s_name'] ?? 'N/A',
+            'prescriber_s_name' => $prescriber_s_name,
             'gphc_number' => $prescriberData->gphc_number ?? 'N/A',
             'patient_s_dob' => $dob ?? 'N/A',
-            'approval' => $orderMetafields['approval'] ?? '',
+            'approval' => $approval,
             'prescriber_signature' => $image_path ?? null,
         ]);
 
