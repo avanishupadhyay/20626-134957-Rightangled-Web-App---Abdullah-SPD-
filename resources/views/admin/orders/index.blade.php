@@ -129,16 +129,26 @@
                                                 </span>
                                             </td>
                                             <td>{{ ucfirst($order->fulfillment_status) ?? 'NA' }}</td>
-                                           @php
+                                            @php
                                                 $action = $order->orderaction;
 
-                                                $prescriberStatus = ($action && $action->role === 'Prescriber') ? $action->decision_status : '-';
-                                                $checkerStatus    = ($action && $action->role === 'Checker') ? $action->decision_status : '-';
-                                                $dispenserStatus  = ($action && $action->role === 'Dispenser') ? $action->decision_status : '-';
-                                                $actStatus        = ($action && $action->role === 'ACT') ? $action->decision_status : '-';
-                                            @endphp 
+                                                $prescriberStatus =
+                                                    $action && $action->role === 'Prescriber'
+                                                        ? $action->decision_status
+                                                        : '-';
+                                                $checkerStatus =
+                                                    $action && $action->role === 'Checker'
+                                                        ? $action->decision_status
+                                                        : '-';
+                                                $dispenserStatus =
+                                                    $action && $action->role === 'Dispenser'
+                                                        ? $action->decision_status
+                                                        : '-';
+                                                $actStatus =
+                                                    $action && $action->role === 'ACT' ? $action->decision_status : '-';
+                                            @endphp
                                             {{-- <td>{{ ucfirst(getStoreName($order->store_id)) }}</td> --}}
-                                            <td>{{ ucfirst($order->store->name) }}</td>
+                                            <td>{{ ucfirst($order->store->name ?? 'NA') }}</td>
                                             <td>{{ ucfirst($prescriberStatus) }}</td>
                                             <td>{{ ucfirst($checkerStatus) }}</td>
                                             <td>{{ ucfirst($dispenserStatus) }}</td>
