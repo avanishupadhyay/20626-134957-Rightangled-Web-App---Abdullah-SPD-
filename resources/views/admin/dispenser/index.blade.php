@@ -82,6 +82,7 @@
                                             <th>Total Price</th>
                                             <th>Items Count</th>
                                             <th>Item Names</th>
+                                            <th>Store Name</th>
                                             <th>Created At</th>
                                             @role('Dispenser')
                                                 <th>Action</th>
@@ -103,6 +104,8 @@
                                                 <td>
                                                     {{ collect($order->decoded_order_data['line_items'] ?? [])->map(fn($item) => $item['title'] . ' × ' . $item['quantity'])->join(', ') }}
                                                 </td>
+                                                     <td>{{ ucfirst($order->store->name ?? 'NA') }}</td>
+
 
                                                 <td>{{ $order->created_at->format(config('Reading.date_time_format')) }}
                                                 </td>

@@ -110,7 +110,7 @@
                                         <th>Batch Number</th>
                                         <th>Dispensed By</th>
                                         <th>Dispensed At</th>
-                                        <th>Created At</th>
+                                        <th>Store Name</th>
                                         <th>Action</th>
 
                                     </tr>
@@ -124,7 +124,7 @@
                                             <td>{{ $order->dispensed_by ?? '-' }}</td>
                                             <td>{{ $order->dispense->created_at->format(config('Reading.date_time_format')) ?? '-' }}
                                             </td>
-                                            <td>{{ $order->created_at->format(config('Reading.date_time_format')) }}</td>
+                                            <td>{{ ucfirst($order->store->name ?? 'NA') }}</td>
                                             </td>
                                             {{-- <td> --}}
 
@@ -264,40 +264,40 @@
                 scanInput.focus();
             }
         }, 500);
-    //     let scanStart = null;
+        //     let scanStart = null;
 
-    //     scanInput.addEventListener('keydown', (e) => {
-    //         if (!scanStart) {
-    //             scanStart = Date.now();
-    //         }
-    //     });
+        //     scanInput.addEventListener('keydown', (e) => {
+        //         if (!scanStart) {
+        //             scanStart = Date.now();
+        //         }
+        //     });
 
-    //     scanInput.addEventListener('keyup', (e) => {
-    //         if (e.key === 'Enter') {
-    //             const elapsed = Date.now() - scanStart;
-    //             const value = scanInput.value.trim();
-    //             scanStart = null;
-    //             scanInput.value = '';
+        //     scanInput.addEventListener('keyup', (e) => {
+        //         if (e.key === 'Enter') {
+        //             const elapsed = Date.now() - scanStart;
+        //             const value = scanInput.value.trim();
+        //             scanStart = null;
+        //             scanInput.value = '';
 
-    //             if (elapsed < 300 && value.length > 1) {
-    //                 console.log("✅ Detected scan:", value);
-    //                 fetchAndShowOrder(value);
-    //             } else {
-    //                 console.log("Ignored manual typing:", value);
-    //             }
+        //             if (elapsed < 300 && value.length > 1) {
+        //                 console.log("✅ Detected scan:", value);
+        //                 fetchAndShowOrder(value);
+        //             } else {
+        //                 console.log("Ignored manual typing:", value);
+        //             }
 
-    //             e.preventDefault();
-    //         }
-    //     });
+        //             e.preventDefault();
+        //         }
+        //     });
 
-    //     setInterval(() => {
-    // if ((document.activeElement !== manualInput && !orderModal.classList.contains('show')) ||
-    //     document.activeElement.tagName === 'BODY' ||
-    //             document.activeElement === document.body
-    //         ) {
-    //             scanInput.focus();
-    //         }
-    //     }, 500);
+        //     setInterval(() => {
+        // if ((document.activeElement !== manualInput && !orderModal.classList.contains('show')) ||
+        //     document.activeElement.tagName === 'BODY' ||
+        //             document.activeElement === document.body
+        //         ) {
+        //             scanInput.focus();
+        //         }
+        //     }, 500);
 
         // --- Fetch and show modal ---
         function fetchAndShowOrder(orderNumber) {
