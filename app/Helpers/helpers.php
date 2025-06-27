@@ -591,11 +591,11 @@ function getShopifyCredentialsByOrderId($orderId)
 // }
 function getProductMetafield($productId, $orderId)
 {
-    [$shopDomain, $accessToken] = array_values(getShopifyCredentialsByOrderId($orderId));
+	[$shopDomain, $accessToken] = array_values(getShopifyCredentialsByOrderId($orderId));
 
-    $productGid = "gid://shopify/Product/{$productId}";
+	$productGid = "gid://shopify/Product/{$productId}";
 
-    $query = <<<'GRAPHQL'
+	$query = <<<'GRAPHQL'
     query($productId: ID!) {
       product(id: $productId) {
         metafield(namespace: "global", key: "direction_of_use_single_line") {
@@ -605,23 +605,23 @@ function getProductMetafield($productId, $orderId)
     }
     GRAPHQL;
 
-    $variables = [
-        'productId' => $productGid,
-    ];
+	$variables = [
+		'productId' => $productGid,
+	];
 
-    $response = Http::withHeaders([
-        'X-Shopify-Access-Token' => $accessToken,
-        'Content-Type' => 'application/json',
-    ])->post("{$shopDomain}/admin/api/2024-10/graphql.json", [
-        'query' => $query,
-        'variables' => $variables,
-    ]);
+	$response = Http::withHeaders([
+		'X-Shopify-Access-Token' => $accessToken,
+		'Content-Type' => 'application/json',
+	])->post("{$shopDomain}/admin/api/2024-10/graphql.json", [
+		'query' => $query,
+		'variables' => $variables,
+	]);
 
-    if ($response->successful()) {
-        return data_get($response->json(), 'data.product.metafield.value');
-    }
+	if ($response->successful()) {
+		return data_get($response->json(), 'data.product.metafield.value');
+	}
 
-    return null;
+	return null;
 }
 
 
@@ -671,10 +671,10 @@ function getOrderMetafields($orderId)
 	// ['shopDomain' => $shopDomain, 'accessToken' => $accessToken] = getShopifyCredentialsByOrderId($orderId);
 	$apiVersion = '2025-04';
 
-	 // Convert REST order ID to GraphQL format
-    $gid = "gid://shopify/Order/{$orderId}";
+	// Convert REST order ID to GraphQL format
+	$gid = "gid://shopify/Order/{$orderId}";
 
-    $query = <<<GQL
+	$query = <<<GQL
     {
       order(id: "{$gid}") {
         metafields(first: 20) {
@@ -690,31 +690,31 @@ function getOrderMetafields($orderId)
     }
     GQL;
 
-    $response = Http::withHeaders([
-        'X-Shopify-Access-Token' => $accessToken,
-        'Content-Type' => 'application/json',
-    ])->post("{$shopDomain}/admin/api/{$apiVersion}/graphql.json", [
-        'query' => $query,
-    ]);
+	$response = Http::withHeaders([
+		'X-Shopify-Access-Token' => $accessToken,
+		'Content-Type' => 'application/json',
+	])->post("{$shopDomain}/admin/api/{$apiVersion}/graphql.json", [
+		'query' => $query,
+	]);
 
- 	if ($response->successful()) {
-        $metafields = collect($response->json('data.order.metafields.edges'))->pluck('node');
+	if ($response->successful()) {
+		$metafields = collect($response->json('data.order.metafields.edges'))->pluck('node');
 
-        return [
-            'prescriber_s_name'     => optional($metafields->firstWhere('key', 'prescriber_s_name'))['value'] ?? null,
-            'gphc_number_'          => optional($metafields->firstWhere('key', 'gphc_number_'))['value'] ?? null,
-            'patient_s_dob'         => optional($metafields->firstWhere('key', 'patient_s_dob'))['value'] ?? null,
-            'approval'              => optional($metafields->firstWhere('key', 'approval'))['value'] ?? null,
-            'prescriber_s_signature'=> optional($metafields->firstWhere('key', 'prescriber_s_signature'))['value'] ?? null,
-            'on_hold_reason'        => optional($metafields->firstWhere('key', 'on_hold_reason'))['value'] ?? null,
-            'prescriber_pdf'        => optional($metafields->firstWhere('key', 'prescriber_pdf'))['value'] ?? null,
-            'checker_name'          => optional($metafields->firstWhere('key', 'checker_name'))['value'] ?? null,
-            'checker_approval'      => optional($metafields->firstWhere('key', 'checker_approval'))['value'] ?? null,
-            'checker_notes'         => optional($metafields->firstWhere('key', 'checker_notes'))['value'] ?? null,
-        ];
-    }
+		return [
+			'prescriber_s_name'     => optional($metafields->firstWhere('key', 'prescriber_s_name'))['value'] ?? null,
+			'gphc_number_'          => optional($metafields->firstWhere('key', 'gphc_number_'))['value'] ?? null,
+			'patient_s_dob'         => optional($metafields->firstWhere('key', 'patient_s_dob'))['value'] ?? null,
+			'approval'              => optional($metafields->firstWhere('key', 'approval'))['value'] ?? null,
+			'prescriber_s_signature' => optional($metafields->firstWhere('key', 'prescriber_s_signature'))['value'] ?? null,
+			'on_hold_reason'        => optional($metafields->firstWhere('key', 'on_hold_reason'))['value'] ?? null,
+			'prescriber_pdf'        => optional($metafields->firstWhere('key', 'prescriber_pdf'))['value'] ?? null,
+			'checker_name'          => optional($metafields->firstWhere('key', 'checker_name'))['value'] ?? null,
+			'checker_approval'      => optional($metafields->firstWhere('key', 'checker_approval'))['value'] ?? null,
+			'checker_notes'         => optional($metafields->firstWhere('key', 'checker_notes'))['value'] ?? null,
+		];
+	}
 
-    return [];
+	return [];
 }
 
 function buildCommonMetafields(Request $request, string $decisionStatus, $orderId, $pdfUrl = null): array
@@ -1603,118 +1603,181 @@ function buildVariableDeclarations(array $orderGIDs): string
 
 //27-06-25
 
+// if (!function_exists('fulfillShopifyOrder')) {
+// 	function fulfillShopifyOrder($shopifyOrderId)
+// 	{
+// 		[$shopDomain, $accessToken] = array_values(getShopifyCredentialsByOrderId($shopifyOrderId));
+
+// 		// Step 1: Get Fulfillment Orders using GraphQL
+// 		$query = <<<GQL
+// 		{
+// 			order(id: "gid://shopify/Order/{$shopifyOrderId}") {
+// 				fulfillmentOrders(first: 10) {
+// 					nodes {
+// 						id
+// 						lineItems(first: 10) {
+// 							edges {
+// 								node {
+// 									id
+// 									quantity
+// 								}
+// 							}
+// 						}
+// 					}
+// 				}
+// 			}
+// 		}
+// 		GQL;
+
+// 		$response = Http::withHeaders([
+// 			'X-Shopify-Access-Token' => $accessToken,
+// 			'Content-Type' => 'application/json',
+// 		])->post("{$shopDomain}/admin/api/2023-10/graphql.json", [
+// 			'query' => $query,
+// 		]);
+
+// 		if (!$response->successful()) {
+// 			throw new \Exception('Failed to fetch fulfillment orders');
+// 		}
+
+// 		$fulfillmentOrders = $response->json('data.order.fulfillmentOrders.nodes') ?? [];
+
+// 		if (empty($fulfillmentOrders)) {
+// 			throw new \Exception('No fulfillment orders found');
+// 		}
+
+// 		// Step 2: Build lineItemsByFulfillmentOrder payload
+// 		$lineItemsByFulfillmentOrderString = '';
+
+// 		foreach ($fulfillmentOrders as $fulfillmentOrder) {
+// 			$fulfillmentOrderId = $fulfillmentOrder['id'];
+// 			$lineItems = $fulfillmentOrder['lineItems']['edges'] ?? [];
+
+// 			$lineItemsStr = '';
+// 			foreach ($lineItems as $itemEdge) {
+// 				$item = $itemEdge['node'];
+// 				$lineItemsStr .= '{ fulfillmentOrderLineItemId: "' . $item['id'] . '", quantity: ' . $item['quantity'] . ' },';
+// 			}
+// 			$lineItemsStr = rtrim($lineItemsStr, ',');
+
+// 			$lineItemsByFulfillmentOrderString .= '{
+// 				fulfillmentOrderId: "' . $fulfillmentOrderId . '",
+// 				fulfillmentOrderLineItems: [' . $lineItemsStr . ']
+// 			},';
+// 		}
+// 		$lineItemsByFulfillmentOrderString = rtrim($lineItemsByFulfillmentOrderString, ',');
+
+// 		// Step 3: Perform fulfillment using fulfillmentCreateV2
+// 		$mutation = <<<GQL
+// 		mutation {
+// 			fulfillmentCreateV2(input: {
+// 				message: "Order fulfilled via Accuracy Checker",
+// 				notifyCustomer: true,
+// 				trackingInfo: {
+// 					number: "",
+// 					url: "",
+// 					company: ""
+// 				},
+// 				lineItemsByFulfillmentOrder: [
+// 					{$lineItemsByFulfillmentOrderString}
+// 				]
+// 			}) {
+// 				fulfillment {
+// 					id
+// 					status
+// 				}
+// 				userErrors {
+// 					field
+// 					message
+// 				}
+// 			}
+// 		}
+// 		GQL;
+
+// 		$fulfillResponse = Http::withHeaders([
+// 			'X-Shopify-Access-Token' => $accessToken,
+// 			'Content-Type' => 'application/json',
+// 		])->post("{$shopDomain}/admin/api/2023-10/graphql.json", [
+// 			'query' => $mutation,
+// 		]);
+
+// 		if (!$fulfillResponse->successful()) {
+// 			throw new \Exception('Failed to fulfill order: ' . $fulfillResponse->body());
+// 		}
+
+// 		$data = $fulfillResponse->json('data.fulfillmentCreateV2');
+
+// 		if (!empty($data['userErrors'])) {
+// 			throw new \Exception('Fulfillment errors: ' . json_encode($data['userErrors']));
+// 		}
+
+// 		return $data['fulfillment'];
+// 	}
+// }
+
 if (!function_exists('fulfillShopifyOrder')) {
 	function fulfillShopifyOrder($shopifyOrderId)
 	{
 		[$shopDomain, $accessToken] = array_values(getShopifyCredentialsByOrderId($shopifyOrderId));
 
-		// Step 1: Get Fulfillment Orders using GraphQL
-		$query = <<<GQL
-		{
-			order(id: "gid://shopify/Order/{$shopifyOrderId}") {
-				fulfillmentOrders(first: 10) {
-					nodes {
-						id
-						lineItems(first: 10) {
-							edges {
-								node {
-									id
-									quantity
-								}
-							}
-						}
-					}
-				}
-			}
-		}
-		GQL;
 
-		$response = Http::withHeaders([
-			'X-Shopify-Access-Token' => $accessToken,
-			'Content-Type' => 'application/json',
-		])->post("{$shopDomain}/admin/api/2023-10/graphql.json", [
-			'query' => $query,
-		]);
+		// Step 1: Get Fulfillment Order ID and its line items
+		$orderResponse = Http::withHeaders([
+			'X-Shopify-Access-Token' => $accessToken
+		])->get("{$shopDomain}/admin/api/2023-10/orders/{$shopifyOrderId}/fulfillment_orders.json");
 
-		if (!$response->successful()) {
+		if (!$orderResponse->successful()) {
 			throw new \Exception('Failed to fetch fulfillment orders');
 		}
 
-		$fulfillmentOrders = $response->json('data.order.fulfillmentOrders.nodes') ?? [];
+		$fulfillmentOrders = $orderResponse['fulfillment_orders'] ?? [];
 
 		if (empty($fulfillmentOrders)) {
 			throw new \Exception('No fulfillment orders found');
 		}
 
-		// Step 2: Build lineItemsByFulfillmentOrder payload
-		$lineItemsByFulfillmentOrderString = '';
+		$lineItemsPayload = [];
 
 		foreach ($fulfillmentOrders as $fulfillmentOrder) {
-			$fulfillmentOrderId = $fulfillmentOrder['id'];
-			$lineItems = $fulfillmentOrder['lineItems']['edges'] ?? [];
+			$lineItems = $fulfillmentOrder['line_items'] ?? [];
 
-			$lineItemsStr = '';
-			foreach ($lineItems as $itemEdge) {
-				$item = $itemEdge['node'];
-				$lineItemsStr .= '{ fulfillmentOrderLineItemId: "' . $item['id'] . '", quantity: ' . $item['quantity'] . ' },';
-			}
-			$lineItemsStr = rtrim($lineItemsStr, ',');
+			$itemsToFulfill = array_map(function ($item) {
+				return [
+					'id' => $item['id'],
+					'quantity' => $item['quantity'], // fulfill full quantity
+				];
+			}, $lineItems);
 
-			$lineItemsByFulfillmentOrderString .= '{
-				fulfillmentOrderId: "' . $fulfillmentOrderId . '",
-				fulfillmentOrderLineItems: [' . $lineItemsStr . ']
-			},';
+			$lineItemsPayload[] = [
+				'fulfillment_order_id' => $fulfillmentOrder['id'],
+				'fulfillment_order_line_items' => $itemsToFulfill
+			];
 		}
-		$lineItemsByFulfillmentOrderString = rtrim($lineItemsByFulfillmentOrderString, ',');
 
-		// Step 3: Perform fulfillment using fulfillmentCreateV2
-		$mutation = <<<GQL
-		mutation {
-			fulfillmentCreateV2(input: {
-				message: "Order fulfilled via Accuracy Checker",
-				notifyCustomer: true,
-				trackingInfo: {
-					number: "",
-					url: "",
-					company: ""
-				},
-				lineItemsByFulfillmentOrder: [
-					{$lineItemsByFulfillmentOrderString}
-				]
-			}) {
-				fulfillment {
-					id
-					status
-				}
-				userErrors {
-					field
-					message
-				}
-			}
-		}
-		GQL;
-
+		// Step 2: Fulfill with all items
 		$fulfillResponse = Http::withHeaders([
 			'X-Shopify-Access-Token' => $accessToken,
 			'Content-Type' => 'application/json',
-		])->post("{$shopDomain}/admin/api/2023-10/graphql.json", [
-			'query' => $mutation,
+		])->post("{$shopDomain}/admin/api/2023-10/fulfillments.json", [
+			'fulfillment' => [
+				'message' => 'Order fulfilled via Accuracy Checker',
+				'notify_customer' => true,
+				'tracking_info' => [
+					'number' => null,
+					'url' => null,
+					'company' => null
+				],
+				'line_items_by_fulfillment_order' => $lineItemsPayload
+			]
 		]);
 
 		if (!$fulfillResponse->successful()) {
 			throw new \Exception('Failed to fulfill order: ' . $fulfillResponse->body());
 		}
 
-		$data = $fulfillResponse->json('data.fulfillmentCreateV2');
-
-		if (!empty($data['userErrors'])) {
-			throw new \Exception('Fulfillment errors: ' . json_encode($data['userErrors']));
-		}
-
-		return $data['fulfillment'];
+		return $fulfillResponse->json();
 	}
 }
-
 
 
 // function getProductImages($shopifyOrderId, $productId)
