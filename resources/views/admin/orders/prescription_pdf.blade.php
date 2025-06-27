@@ -92,7 +92,9 @@
             <p><strong>Issue Date:</strong> {{ $order->updated_at }}</p>
             <p><strong>Note:</strong> dispensed</p>
             <p><strong>Patinets DOB:</strong> {{ $patient_s_dob }}</p>
-            <p><strong>Approved:</strong> {{ $approval == 1 ? 'true' : 'false' }}</p>
+            {{-- <p><strong>Approved:</strong> {{ $approval == 1 ? 'true' : 'false' }}</p> --}}
+            <strong>Approval Status:</strong> {{ $approval === 'true' ? 'true' : 'false' }}
+
 
             <p><strong>Prescriber</strong> {{ $prescriber_s_name }}</p>
             <p><strong>Prescriber’s Reg Number:</strong> {{ $prescriber_reg }}</p>
@@ -136,16 +138,14 @@
             </thead>
             <tbody>
                 @foreach ($items as $item)
-                    @if (!empty($item['current_quantity']) && $item['current_quantity'] > 0)
-                        <tr>
-                            <td>{{ $item['title'] ?? 'N/A' }}</td>
-                            <td>{{ $item['direction_of_use'] ?? 'Not available' }}</td>
-                            <td>{{ $item['current_quantity'] ?? 0 }} Tablets</td>
-                        </tr>
-                    @endif
                     <tr>
+                        <td>{{ $item['title'] ?? 'N/A' }}</td>
+                        <td>{{ $item['direction_of_use'] ?? 'Not available' }}</td>
+                        <td>{{ $item['quantity'] ?? 0 }}</td>
+                    </tr>
                 @endforeach
             </tbody>
+
         </table>
     </div>
 
