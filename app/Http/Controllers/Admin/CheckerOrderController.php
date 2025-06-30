@@ -237,9 +237,9 @@ class CheckerOrderController extends Controller
         $decisionStatus = $request->decision_status;
 
         $metafieldsInput = buildCommonMetafieldsChecker($request, $decisionStatus);
-      
-          [$shopDomain, $accessToken] = array_values(getShopifyCredentialsByOrderId($orderId));
-     
+
+        [$shopDomain, $accessToken] = array_values(getShopifyCredentialsByOrderId($orderId));
+
         $roleName = auth()->user()->getRoleNames()->first(); // Returns string or null
 
         ['shopDomain' => $shopDomain, 'accessToken' => $accessToken] = getShopifyCredentialsByOrderId($orderId);
@@ -255,7 +255,7 @@ class CheckerOrderController extends Controller
             //         'metafield' => $field
             //     ]);
             // }
-               $query = <<<'GRAPHQL'
+            $query = <<<'GRAPHQL'
                     mutation metafieldsSet($metafields: [MetafieldsSetInput!]!) {
                     metafieldsSet(metafields: $metafields) {
                         metafields {
@@ -306,7 +306,7 @@ class CheckerOrderController extends Controller
 
                 // Update the order
                 $order->update([
-                    'fulfillment_status' =>null,
+                    'fulfillment_status' => null,
                     'order_data' => json_encode($orderData),
                     'cancelled_at' => $cancelTime,
                 ]);
@@ -339,7 +339,8 @@ class CheckerOrderController extends Controller
             ]);
 
             DB::commit();
-            return back()->with('success', 'Order status changed successfully.');
+            // return back()->with('success', 'Order status changed successfully.');
+            return redirect()->route('prescriber_orders.index')->with('success', 'Order status changed successfully.');
         } catch (\Throwable $e) {
             DB::rollBack();
             return back()->withErrors('Failed to update order: ' . $e->getMessage());
