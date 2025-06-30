@@ -224,7 +224,17 @@ class ShopifyController extends Controller
 
      protected function handleOrderRelease(array $payload)
     {   
-           $data = isset($payload[0]) && is_array($payload[0]) ? $payload[0] : $payload;
+
+        $shopDomain = request()->header('X-Shopify-Shop-Domain');
+        $normalizedShopUrl = 'https://' . $shopDomain;
+        // Now match store using the full URL
+        $store = \App\Models\Store::where('domain', $normalizedShopUrl)->first();
+        if(!$store){
+            return;
+        }
+        Log::info("Matched Store:", [$store]);
+
+        $data = isset($payload[0]) && is_array($payload[0]) ? $payload[0] : $payload;
 
             // Safely log fulfillment order GID
         $fulfillmentOrderGid = $data['fulfillment_order']['id'] ?? null;
@@ -235,16 +245,14 @@ class ShopifyController extends Controller
             $fulfillmentOrderId = $matches[1];
         }
 
-           $response = Http::withHeaders([
-                'X-Shopify-Access-Token' => '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'
-            ])->get("https://ds-demo-testing.myshopify.com/admin/api/2024-01/fulfillment_orders/{$fulfillmentOrderId}.json");
+        $response = Http::withHeaders([
+                'X-Shopify-Access-Token' => $store->app_admin_access_token,
+            ])->get("{$store->domain}/admin/api/2024-01/fulfillment_orders/{$fulfillmentOrderId}.json");
 
-            $data = $response->json();
+        $data = $response->json();
 
-            $orderId = $data['fulfillment_order']['order_id'] ?? null;
+        $orderId = $data['fulfillment_order']['order_id'] ?? null;
 
-       
-        
         // Extract hold reason and notes
         $holdReason = $data['fulfillment_hold']['reason'] ?? 'unknown';
         $reasonNotes = $data['fulfillment_hold']['reason_notes'] ?? null;
@@ -258,11 +266,6 @@ class ShopifyController extends Controller
             $reasonMessage = "Hold Reason: " . ucfirst($holdReason);
         }
 
-         // Update the database
-        // $update = OrderAction::where('order_id', $fulfillmentOrderId)->update([
-        //     'decision_status'     => 'release_hold',  // <- set your intended status here
-        //     'release_hold_reason' => $reasonMessage
-        // ]);
         if($orderId){
             $action = OrderAction::create([
                 'order_id'             => $orderId,
