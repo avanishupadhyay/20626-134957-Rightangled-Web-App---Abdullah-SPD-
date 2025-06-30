@@ -551,7 +551,7 @@ document.addEventListener('DOMContentLoaded', function () {
                             <tr>
                                 <td>${item.name}</td>
                                 <td>${item.quantity}</td>
-                                <td>${item.price}</td>
+                                <td> £ ${item.price}</td>
                                 <td>
                                     <img src="${item.barcode_base64}" 
                                          alt="Product Barcode"
