@@ -46,9 +46,11 @@
                             <div class="col-md-1 d-grid">
                                 <a href="{{ route('dispenser_orders.index') }}" class="btn btn-secondary">Clear</a>
                             </div>
-                            <div class="col-md-3 ms-auto d-grid align-items-end"> <a
-                                    href="{{ route('dispenser.batches.list') }}" class="btn btn-info">Dispensed Batches</a>
-                            </div>
+                            @role('Dispenser')
+                                <div class="col-md-3 ms-auto d-grid align-items-end"> <a
+                                        href="{{ route('dispenser.batches.list') }}" class="btn btn-info">Dispensed Batches</a>
+                                </div>
+                            @endrole
                         </form>
 
                     </div>
@@ -76,7 +78,9 @@
                                 <table class="table table-bordered table-hover">
                                     <thead>
                                         <tr>
-                                            <th><input type="checkbox" id="select-all"></th>
+                                            @role('Dispenser')
+                                                <th><input type="checkbox" id="select-all"></th>
+                                            @endrole
                                             <th>Order Number</th>
                                             <th>Email</th>
                                             <th>Total Price {{ config('Site.currency') }}</th>
@@ -92,10 +96,12 @@
                                     <tbody>
                                         @foreach ($orders as $order)
                                             <tr>
-                                                <td>
-                                                    <input type="checkbox" name="order_ids[]"
-                                                        value="{{ $order->order_number }}" class="order-checkbox">
-                                                </td>
+                                                @role('Dispenser')
+                                                    <td>
+                                                        <input type="checkbox" name="order_ids[]"
+                                                            value="{{ $order->order_number }}" class="order-checkbox">
+                                                    </td>
+                                                @endrole
                                                 <td>{{ $order->order_number }}</td>
                                                 <td style="max-width: 200px; word-wrap: break-word;">{{ $order->email }}
                                                 </td>
@@ -104,7 +110,7 @@
                                                 <td>
                                                     {{ collect($order->decoded_order_data['line_items'] ?? [])->map(fn($item) => $item['title'] . ' × ' . $item['quantity'])->join(', ') }}
                                                 </td>
-                                                     <td>{{ ucfirst($order->store->name ?? 'NA') }}</td>
+                                                <td>{{ ucfirst($order->store->name ?? 'NA') }}</td>
 
 
                                                 <td>{{ $order->created_at->format(config('Reading.date_time_format')) }}
