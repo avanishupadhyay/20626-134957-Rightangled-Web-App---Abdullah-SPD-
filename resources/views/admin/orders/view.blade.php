@@ -145,7 +145,7 @@
                             <div class="col-md-6">Subtotal ({{ $itemCount }} item{{ $itemCount !== 1 ? 's' : '' }})
                             </div>
                             <div class="col-md-6 text-end">
-                                ₹{{ number_format($subtotal, 2) }}
+                                £{{ number_format($subtotal, 2) }}
                             </div>
                         </div>
 
@@ -153,7 +153,7 @@
                             <div class="row mb-2">
                                 <div class="col-md-6">Discount</div>
                                 <div class="col-md-6 text-end text-danger">
-                                    -₹{{ number_format($discount, 2) }}
+                                    -£{{ number_format($discount, 2) }}
                                 </div>
                             </div>
                         @endif
@@ -161,7 +161,7 @@
                         <div class="row mb-2">
                             <div class="col-md-6">Shipping</div>
                             <div class="col-md-6 text-end">
-                                ₹{{ number_format($shipping, 2) }}
+                                £{{ number_format($shipping, 2) }}
                             </div>
                         </div>
 
@@ -169,7 +169,7 @@
                             <div class="row mb-2">
                                 <div class="col-md-6">Tax</div>
                                 <div class="col-md-6 text-end">
-                                    ₹{{ number_format($tax, 2) }}
+                                    £{{ number_format($tax, 2) }}
                                 </div>
                             </div>
                         @endif
@@ -177,7 +177,7 @@
                         <div class="row">
                             <div class="col-md-6 fw-bold">Total</div>
                             <div class="col-md-6 text-end fw-bold">
-                                ₹{{ number_format($total, 2) }}
+                                £{{ number_format($total, 2) }}
                             </div>
                         </div>
 
@@ -186,7 +186,7 @@
                         <div class="row fw-bold">
                             <div class="col-md-6">Paid</div>
                             <div class="col-md-6 text-end">
-                                ₹{{ number_format($paidAmount, 2) }}
+                                £{{ number_format($paidAmount, 2) }}
                             </div>
                         </div>
 
