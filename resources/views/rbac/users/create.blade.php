@@ -81,6 +81,7 @@
                                             <strong>Signature</strong>
                                             <input type="file" name="signature" id="signature" placeholder="Signature"
                                                 class="form-control">
+                                            <span style="font-size:12px">(Recommended size: 150*80px)</span>
                                         </div>
                                     </div>
                                     <div class="col-xs-12 col-sm-12 col-md-6">
