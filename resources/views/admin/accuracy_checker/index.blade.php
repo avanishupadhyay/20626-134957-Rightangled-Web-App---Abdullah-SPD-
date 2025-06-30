@@ -240,7 +240,7 @@
 </script>
 
 
-<script>
+{{-- <script>
     document.addEventListener('DOMContentLoaded', function() {
         let selectedOrderId = null;
         const requiredProductIds = new Set();
@@ -264,40 +264,7 @@
                 scanInput.focus();
             }
         }, 500);
-        //     let scanStart = null;
-
-        //     scanInput.addEventListener('keydown', (e) => {
-        //         if (!scanStart) {
-        //             scanStart = Date.now();
-        //         }
-        //     });
-
-        //     scanInput.addEventListener('keyup', (e) => {
-        //         if (e.key === 'Enter') {
-        //             const elapsed = Date.now() - scanStart;
-        //             const value = scanInput.value.trim();
-        //             scanStart = null;
-        //             scanInput.value = '';
-
-        //             if (elapsed < 300 && value.length > 1) {
-        //                 console.log("✅ Detected scan:", value);
-        //                 fetchAndShowOrder(value);
-        //             } else {
-        //                 console.log("Ignored manual typing:", value);
-        //             }
-
-        //             e.preventDefault();
-        //         }
-        //     });
-
-        //     setInterval(() => {
-        // if ((document.activeElement !== manualInput && !orderModal.classList.contains('show')) ||
-        //     document.activeElement.tagName === 'BODY' ||
-        //             document.activeElement === document.body
-        //         ) {
-        //             scanInput.focus();
-        //         }
-        //     }, 500);
+     
 
         // --- Fetch and show modal ---
         function fetchAndShowOrder(orderNumber) {
@@ -511,4 +478,248 @@
 
 
     });
+</script> --}}
+
+{{-- code 30-06-2025 --}}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    let selectedOrderId = null;
+    const requiredProductIds = new Set();
+    const scannedProductIds = new Set();
+    let scanningMode = 'product';
+
+    const scanInput = document.getElementById('qr-scan-input');
+    const manualInput = document.getElementById('manual-order-input');
+    const manualBtn = document.getElementById('manualOpenBtn');
+
+    const productBarcodeInput = document.getElementById('product-barcode-scan');
+    const orderBarcodeInput = document.getElementById('barcode-scan-input');
+    const orderModal = document.getElementById('orderModal');
+    const barcodeImageContainer = document.getElementById('barcodeContainer');
+    const barcodeImage = document.getElementById('barcodeImage');
+    const loader = document.getElementById('loaderOverlay');
+
+    let scanTimeout = null;
+
+    // Focus logic
+    setInterval(() => {
+        const activeEl = document.activeElement;
+        if (!orderModal.classList.contains('show')) {
+            if (activeEl !== scanInput && activeEl.tagName !== 'INPUT') {
+                scanInput.focus();
+            }
+        } else {
+            if (scanningMode === 'fulfill' && activeEl !== orderBarcodeInput) {
+                orderBarcodeInput.focus();
+            } else if (scanningMode === 'product' && activeEl !== productBarcodeInput) {
+                productBarcodeInput.focus();
+            }
+        }
+    }, 300);
+
+    // Fetch & open order modal
+    function fetchAndShowOrder(orderNumber) {
+        fetch(`/admin/Accuracy-checker/orders/ajax/${orderNumber}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    selectedOrderId = data.order.order_number;
+                    document.getElementById('modalOrderNumber').textContent = selectedOrderId;
+                    document.getElementById('modalCustomer').textContent = data.order.email;
+
+                    const shipping = data.shipping_address;
+                    document.getElementById('modalShippingAddress').innerHTML = `
+                        ${shipping.name}<br>${shipping.address1} ${shipping.address2}<br>
+                        ${shipping.city} ${shipping.zip}<br>${shipping.country}<br>
+                        Phone: ${shipping.phone}
+                    `;
+
+                    const tbody = document.getElementById('modalItemsTable');
+                    tbody.innerHTML = '';
+                    requiredProductIds.clear();
+                    scannedProductIds.clear();
+                    scanningMode = 'product';
+
+                    orderBarcodeInput.disabled = true;
+                    orderBarcodeInput.style.display = 'none';
+                    productBarcodeInput.value = '';
+                    barcodeImageContainer.style.display = 'none';
+
+                    data.items.forEach(item => {
+                        requiredProductIds.add(item.product_id.toString());
+                        const row = `
+                            <tr>
+                                <td>${item.name}</td>
+                                <td>${item.quantity}</td>
+                                <td>${item.price}</td>
+                                <td>
+                                    <img src="${item.barcode_base64}" 
+                                         alt="Product Barcode"
+                                         class="product-barcode"
+                                         style="height: 60px;"
+                                         data-product-id="${item.product_id}"
+                                         data-order-id="${data.order.order_number}">
+                                </td>
+                            </tr>`;
+                        tbody.insertAdjacentHTML('beforeend', row);
+                    });
+
+                    barcodeImage.src = '/barcode/' + selectedOrderId;
+                    new bootstrap.Modal(orderModal).show();
+                    setTimeout(() => productBarcodeInput.focus(), 300);
+                } else {
+                     toastr.error(data.message || 'Order not found.');
+                }
+            })
+            .catch(() =>  toastr.error('Error fetching order details.'));
+    }
+
+    // Dashboard QR scan
+    scanInput.addEventListener('input', function () {
+        clearTimeout(scanTimeout);
+        scanTimeout = setTimeout(() => {
+            const scannedOrderNumber = scanInput.value.trim();
+            scanInput.value = '';
+            if (scannedOrderNumber) {
+                fetchAndShowOrder(scannedOrderNumber);
+            }
+        }, 300);
+    });
+
+    // Manual "Open Order" click
+    manualBtn?.addEventListener('click', () => {
+        const manualOrder = manualInput.value.trim();
+        if (!manualOrder) {
+             toastr.error('Please enter an order number.');
+            return;
+        }
+        scanningMode = 'product';
+        fetchAndShowOrder(manualOrder);
+    });
+
+    // Product Scanner
+    let productBuffer = '';
+    let productTimer;
+
+    document.addEventListener('keydown', function (e) {
+        const activeEl = document.activeElement;
+
+        // ❌ Skip scanner logic if typing in non-scanner input
+        if (
+            activeEl.tagName === 'INPUT' &&
+            activeEl.id !== 'product-barcode-scan' &&
+            activeEl.id !== 'barcode-scan-input'
+        ) return;
+
+        if (!orderModal.classList.contains('show')) return;
+        if (scanningMode !== 'product') return;
+
+        if (e.key.length === 1) productBuffer += e.key;
+
+        clearTimeout(productTimer);
+        productTimer = setTimeout(() => {
+            const scanned = productBuffer.trim();
+            productBuffer = '';
+            productBarcodeInput.value = '';
+
+            if (!scanned || scanned.length < 2) return;
+
+            const matched = document.querySelector(`img[data-product-id="${scanned}"]`);
+            if (matched) {
+                const productId = matched.dataset.productId;
+                const orderId = matched.dataset.orderId;
+
+                fetch(`/admin/Accuracy-checker/product-stock/${productId}/${orderId}`)
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            toastr.success(`✅ ${data.product_title}<br>Stock: ${data.stock}`);
+                        } else {
+                            toastr.error(data.message || '❌ Could not fetch stock');
+                        }
+                    })
+                    .catch(() => toastr.error('⚠️ Shopify error'));
+
+                scannedProductIds.add(productId);
+
+                if (scannedProductIds.size === requiredProductIds.size) {
+                    toastr.success('🎉 All products scanned. Now scan the order QR to fulfill');
+                    scanningMode = 'fulfill';
+                    orderBarcodeInput.disabled = false;
+                    orderBarcodeInput.style.display = 'block';
+                    orderBarcodeInput.style.opacity = '0';
+                    orderBarcodeInput.style.position = 'absolute';
+                    orderBarcodeInput.style.left = '-9999px';
+                    barcodeImageContainer.style.display = 'block';
+
+                    setTimeout(() => orderBarcodeInput.focus(), 100);
+                }
+            } else {
+                toastr.error(`❌ product_id ${scanned} not found.`);
+            }
+        }, 200);
+    });
+
+    // Fulfill Scanner
+    let orderBuffer = '';
+    let orderTimer;
+
+    document.addEventListener('keydown', function (e) {
+        const activeEl = document.activeElement;
+
+        // ❌ Skip if typing in other inputs
+        if (
+            activeEl.tagName === 'INPUT' &&
+            activeEl.id !== 'product-barcode-scan' &&
+            activeEl.id !== 'barcode-scan-input'
+        ) return;
+
+        if (!orderModal.classList.contains('show')) return;
+        if (scanningMode !== 'fulfill') return;
+        if (activeEl !== orderBarcodeInput) return;
+
+        if (e.key.length === 1) orderBuffer += e.key;
+
+        clearTimeout(orderTimer);
+        orderTimer = setTimeout(() => {
+            const scanned = orderBuffer.trim();
+            orderBuffer = '';
+            orderBarcodeInput.value = '';
+
+            if (scanned.length < 2) return;
+
+            if (scanned !== selectedOrderId.toString().trim()) {
+                toastr.error('❌ Order QR does not match.');
+                return;
+            }
+
+            if (confirm(`Mark order ${scanned} as fulfilled?`)) {
+                loader.style.display = 'flex';
+
+                fetch(`/admin/Accuracy-checker/orders/fulfill/${selectedOrderId}`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Content-Type': 'application/json',
+                    }
+                })
+                    .then(res => res.json())
+                    .then(data => {
+                        loader.style.display = 'none';
+                        if (data.status === 'success') {
+                            toastr.success('✅ Order fulfilled. Email sent.');
+                            location.reload();
+                        } else {
+                            toastr.error(data.message || '❌ Fulfillment failed');
+                        }
+                    })
+                    .catch(() => {
+                        loader.style.display = 'none';
+                        toastr.error('❌ Fulfillment error');
+                    });
+            }
+        }, 200);
+    });
+});
 </script>
+

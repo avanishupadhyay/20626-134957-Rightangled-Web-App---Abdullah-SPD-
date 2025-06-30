@@ -79,7 +79,7 @@
                                             <th><input type="checkbox" id="select-all"></th>
                                             <th>Order Number</th>
                                             <th>Email</th>
-                                            <th>Total Price</th>
+                                            <th>Total Price {{ config('Site.currency') }}</th>
                                             <th>Items Count</th>
                                             <th>Item Names</th>
                                             <th>Store Name</th>
