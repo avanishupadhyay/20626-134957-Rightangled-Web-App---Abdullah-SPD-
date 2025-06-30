@@ -165,7 +165,7 @@
                         <div class="row mb-2">
                             <div class="col-md-6">Shipping</div>
                             <div class="col-md-6 text-end">
-                                ₹{{ number_format($shipping, 2) }}
+                                £{{ number_format($shipping, 2) }}
                             </div>
                         </div>
 
