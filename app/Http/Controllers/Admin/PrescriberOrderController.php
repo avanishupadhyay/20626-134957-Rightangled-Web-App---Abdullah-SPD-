@@ -95,7 +95,7 @@ class PrescriberOrderController extends Controller
 
     public function index(Request $request)
     {
-        $excludedStatuses = ['approved', 'on_hold', 'accurately_checked', 'dispensed'];
+        $excludedStatuses = ['approved', 'accurately_checked', 'dispensed'];
 
         $excludedOrderIds = \App\Models\OrderAction::orderBy('created_at', 'desc')
             ->get()
@@ -106,7 +106,12 @@ class PrescriberOrderController extends Controller
             ->pluck('order_id')
             ->toArray();
 
-        $query = Order::whereNull('fulfillment_status')
+        $query = Order::query()
+                ->where(function ($q) {
+                    $q->whereNull('fulfillment_status')
+                    ->orWhere('fulfillment_status', '!=', 'Fulfilled');
+                })
+            // whereNull('fulfillment_status')
             // Exclude cancelled orders
             ->whereRaw("JSON_EXTRACT(order_data, '$.company.id') IS NULL")
             ->whereRaw("JSON_EXTRACT(order_data, '$.company.location_id') IS NULL")
@@ -121,7 +126,7 @@ class PrescriberOrderController extends Controller
         $totalPending = (clone $query)->count();
         // Get paginated result
         $orders = $query->latest()->paginate(config('Reading.nodes_per_page'));
-
+        
         // Get distinct statuses
         $statuses = Order::select('financial_status')->distinct()->pluck('financial_status');
 
@@ -169,7 +174,7 @@ class PrescriberOrderController extends Controller
             'total_on_hold'  => $totalOnHold,
             'total_rejected' => $totalRejected,
         ];
-
+        
         return view('admin.prescriber.index', compact('orders', 'statuses', 'counts'));
     }
 
@@ -305,57 +310,58 @@ class PrescriberOrderController extends Controller
         [$shopDomain, $accessToken] = array_values(getShopifyCredentialsByOrderId($orderId));
 
 
-        // $order_detail = Order::where('order_number', $orderId)->first();
+        $order_detail = Order::where('order_number', $orderId)->first();
 
-        // if ($order_detail) {
-        //     $order_data = json_decode($order_detail->order_data, true) ?? [];
-        //     $check_id = '';
-        //     $birth_date = '';
+        if ($order_detail) {
+            $order_data = json_decode($order_detail->order_data, true) ?? [];
+            $check_id = '';
+            $birth_date = '';
 
-        //     if (isset($order_data['customer']) && !empty($order_data['customer'])) {
-        //         // Get customer ID from order
-        //         $customerId = $order_data['customer']['id'] ?? null;
+            if (isset($order_data['customer']) && !empty($order_data['customer'])) {
+                // Get customer ID from order
+                // $customerId = $order_data['customer']['id'] ?? null;
+                $customerId = 23044010213763;
 
-        //         // Continue only if dob is NOT already set
-        //         if ($customerId && empty($order_data['customer']['dob'])) {
-        //             // Fetch metafields from Shopify
-        //             $response = Http::withHeaders([
-        //                 'X-Shopify-Access-Token' => $accessToken
-        //             ])->get("{$shopDomain}/admin/api/2023-10/customers/{$customerId}/metafields.json");
+                // Continue only if dob is NOT already set
+                if ($customerId && empty($order_data['customer']['dob'])) {
+                    // Fetch metafields from Shopify
+                    $response = Http::withHeaders([
+                        'X-Shopify-Access-Token' => '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'
+                    ])->get("https://rightangled-store.myshopify.com/admin/api/2023-10/customers/{$customerId}/metafields.json");
 
-        //             $data = $response->json();
+                    $data = $response->json();
+                        
+                    // Extract check_id
+                    if (isset($data['metafields'])) {
+                        foreach ($data['metafields'] as $meta) {
+                            if ($meta['key'] === 'check_id') {
+                                $check_id = $meta['value'];
+                                break;
+                            }
+                        }
+                    }
 
-        //             // Extract check_id
-        //             if (isset($data['metafields'])) {
-        //                 foreach ($data['metafields'] as $meta) {
-        //                     if ($meta['key'] === 'check_id') {
-        //                         $check_id = $meta['value'];
-        //                         break;
-        //                     }
-        //                 }
-        //             }
+                    // Fetch Real ID details
+                    if (!empty($check_id)) {
+                        $realIdResponse = Http::withHeaders([
+                            'Authorization' => 'Bearer ' . env('REAL_ID_API_TOKEN'),
+                            'Accept' => 'application/json',
+                        ])->get("https://real-id.getverdict.com/api/v1/checks/{$check_id}");
 
-        //             // Fetch Real ID details
-        //             if (!empty($check_id)) {
-        //                 $realIdResponse = Http::withHeaders([
-        //                     'Authorization' => 'Bearer ' . env('REAL_ID_API_TOKEN'),
-        //                     'Accept' => 'application/json',
-        //                 ])->get("https://real-id.getverdict.com/api/v1/checks/{$check_id}");
+                        $realIdData = $realIdResponse->json();
 
-        //                 $realIdData = $realIdResponse->json();
+                        if (!empty($realIdData['check']['result']['document']['birth_date'])) {
+                            $birth_date = $realIdData['check']['result']['document']['birth_date'];
 
-        //                 if (!empty($realIdData['check']['result']['document']['birth_date'])) {
-        //                     $birth_date = $realIdData['check']['result']['document']['birth_date'];
-
-        //                     // Update the order_data
-        //                     $order_data['customer']['dob'] = $birth_date;
-        //                     $order_detail->order_data = json_encode($order_data);
-        //                     $order_detail->save();
-        //                 }
-        //             }
-        //         }
-        //     }
-        // }
+                            // Update the order_data
+                            $order_data['customer']['dob'] = $birth_date;
+                            $order_detail->order_data = json_encode($order_data);
+                            $order_detail->save();
+                        }
+                    }
+                }
+            }
+        }
 
         // // $pdfUrl = $this->generateAndStorePDF($orderId);
         // $pdfPath = $this->generateAndStorePDF($orderId);
@@ -366,6 +372,7 @@ class PrescriberOrderController extends Controller
 
         if ($decisionStatus === 'approved') {
             $pdfPath = $this->generateAndStorePDF($orderId); // passing `true` for approved
+            // return $pdfPath;
             $pdfUrl = rtrim(config('app.url'), '/') . '/' . ltrim($pdfPath, '/');
         }
         // $metafields = buildCommonMetafields($request, $decisionStatus, $orderId, $pdfUrl);
@@ -495,7 +502,7 @@ class PrescriberOrderController extends Controller
 
 
         foreach ($orderData['line_items'] as $item) {
-
+            // pr($item);die;
             if ($item['current_quantity'] > 0) {
                 $productId = $item['product_id'];
                 $title = $item['title'];
@@ -508,7 +515,19 @@ class PrescriberOrderController extends Controller
                     'direction_of_use' => $directionOfUse,
                 ];
             }
-        }
+        } 
+        // return view('admin.orders.prescription_pdf', [
+        //     'orderData' => $orderData,
+        //     'items' => $items,
+        //     // 'prescriber_name' => 'Abdullah Sabyah',
+        //     'prescriber_reg' => '2224180',
+        //     'order' => $order,
+        //     'prescriber_s_name' => $prescriber_s_name,
+        //     'gphc_number' => $prescriberData->gphc_number ?? 'N/A',
+        //     'patient_s_dob' => $dob ?? 'N/A',
+        //     'approval' => $approval,
+        //     'prescriber_signature' => $image_path ?? null,
+        // ]);die;
         $pdf = Pdf::loadView('admin.orders.prescription_pdf', [
             'orderData' => $orderData,
             'items' => $items,
@@ -530,50 +549,58 @@ class PrescriberOrderController extends Controller
         return Storage::url($filePath); // returns public path (requires `php artisan storage:link`)
     }
 
-    // public function uploadImageToShopifyViaGraphQL($publicImageUrl)
-    // {
-    //     $shop = env('SHOP_DOMAIN'); // your-store.myshopify.com
-    //     $token = env('ACCESS_TOKEN');
+ public function overrideaction(Request $request, $orderId)
+    {
+        $request->validate([
+            'release_hold_reason' => 'required_if:decision_status,release_hold',
+        ]);
+        $decisionStatus = $request->decision_status;
 
-    //     $query = <<<'GRAPHQL'
-    //         mutation fileCreate($files: [FileCreateInput!]!) {
-    //         fileCreate(files: $files) {
-    //             files {
-    //             alt
-    //             createdAt
-    //             ... on MediaImage {
-    //                 image {
-    //                 url
-    //                 }
-    //             }
-    //             }
-    //             userErrors {
-    //             field
-    //             message
-    //             }
-    //         }
-    //         }
-    //         GRAPHQL;
+        [$shopDomain, $accessToken] = array_values(getShopifyCredentialsByOrderId($orderId));
+        $roleName = auth()->user()->getRoleNames()->first(); // Returns string or null
 
-    //     $variables = [
-    //         'files' => [
-    //             [
-    //                 'alt' => 'Uploaded image',
-    //                 'contentType' => 'IMAGE',
-    //                 'originalSource' => $publicImageUrl,
-    //             ]
-    //         ]
-    //     ];
+        DB::beginTransaction();
+        try {
+          
+            if ($decisionStatus === 'release_hold') {
+                releaseFulfillmentHold($orderId, $request->release_hold_reason);
+                Order::where('order_number', $orderId)->update([
+                    'fulfillment_status' => null,
+                ]);
+            }
+            
+               // Step 3: Save to DB
+            OrderAction::updateOrCreate(
+                [
+                    'order_id' => $orderId,
+                    'user_id' => auth()->id(),
+                ],
+                [
+                    'clinical_reasoning' => $request->clinical_reasoning,
+                    'decision_status' => $decisionStatus,
+                    'rejection_reason' => $request->rejection_reason,
+                    'on_hold_reason' => $request->on_hold_reason,
+                    'release_hold_reason' => $request->release_hold_reason,
+                    'decision_timestamp' => now(),
+                    'role'=>$roleName
 
-    //     $response = Http::withHeaders([
-    //         'X-Shopify-Access-Token' => $token,
-    //         'Content-Type' => 'application/json',
-    //     ])->post("https://{$shop}/admin/api/2025-04/graphql.json", [
-    //         'query' => $query,
-    //         'variables' => $variables
-    //     ]);
+                ]
+            );
 
-    //     return $response->json();
-    // }
+            // Step 4: Log
+            AuditLog::create([
+                'user_id' => auth()->id(),
+                'action' => $decisionStatus,
+                'order_id' => $orderId,
+                'details' => $request->release_hold_reason ?? '',
+            ]);
+
+            DB::commit();
+            return back()->with('suceess', 'Order status changed successfully.');
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            return back()->withErrors('Failed to update order: ' . $e->getMessage());
+        }
+    }
 
 }
