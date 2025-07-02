@@ -272,6 +272,8 @@ class ShopifyController extends Controller
                 'decision_status'      => 'release_hold',
                 'release_hold_reason'  => $reasonMessage,
             ]);
+             $order = \App\Models\Order::where('order_number', $orderId)
+            ->update(['fulfillment_status'=>null]);
         }else{
             Log::info("Order ID Not Exist");
         }
@@ -283,5 +285,5 @@ class ShopifyController extends Controller
         }
     }
 
-    
+
 }
