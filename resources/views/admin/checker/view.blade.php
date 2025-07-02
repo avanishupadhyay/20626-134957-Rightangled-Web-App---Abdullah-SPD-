@@ -47,7 +47,11 @@
         @endphp
         @if (!$statuses['is_cancelled'])
             <div class="m-3">
-                @if (is_null($statuses['fulfillment_status']) &&
+                    @if ($statuses['fulfillment_status'] === 'on_hold')
+                    <button class="btn btn-info" data-bs-toggle="modal" data-bs-target="#releaseHoldModal">Release
+                        Hold</button>
+
+                @elseif (is_null($statuses['fulfillment_status']) &&
                         (is_null($statuses['latest_decision_status']) || $statuses['latest_decision_status'] === 'release_hold'))
                     <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#approveModal">Approve</button>
                     <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#rejectModal">Reject</button>
@@ -380,6 +384,27 @@
                     </div>
                     <div class="modal-footer">
                         <button class="btn btn-warning" id="submit-hold">Submit</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+       <div class="modal fade" id="releaseHoldModal" tabindex="-1">
+        <div class="modal-dialog">
+            <form method="POST" action="{{ route('orders.checker.release', $order->order_number) }}">
+                @csrf
+                <input type="hidden" name="decision_status" value="release_hold">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Release Hold</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <textarea name="release_hold_reason" class="form-control" placeholder="Reason for releasing hold" required></textarea>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-warning" id="submit-release">Submit</button>
                     </div>
                 </div>
             </form>
