@@ -217,7 +217,7 @@
                             <td><strong>Order Number: </strong>{{ $order->updated_at }}</td>
                         </tr>
                         <tr>
-                            <td><strong>Issue Date: </strong></td>
+                            <td><strong>Issue Date:</strong>  {{ now()->format('Y-m-d') }}</td>
                         </tr>
                         <tr>
                             <td><strong>Note: </strong>dispensed</td>
