@@ -134,6 +134,7 @@
                                             @role('ACT')
                                                 <td>
                                                     {!! DNS2D::getBarcodeHTML((string) $order->order_number, 'QRCODE', 6, 6) !!}
+                                                    <p>Scan order QR</p>
                                                 </td>
                                             @endrole
 
@@ -195,13 +196,12 @@
                                 Scan this barcode to fulfill the order
                             </p>
                             <img id="barcodeImage" src="" alt="Barcode">
-                            {{-- <button id="manualFulfillBtn" class="btn btn-success mt-2">
-                                ✅ Fulfill Manually
-                            </button> --}}
+
                         </div>
                     </div>
                     <input type="text" id="product-barcode-scan" autocomplete="off" placeholder="product-barcode"
                         style="opacity: 0; position: absolute; left: -9999px;">
+                    {{-- style="opacity: 0; position: absolute; left: -9999px;" --}}
 
                     <input type="text" id="barcode-scan-input" disabled style="display:none;" autocomplete="off">
                     {{-- <input type="text" id="product-barcode-scan" autocomplete="off" placeholder="product-barcode"> --}}
@@ -556,20 +556,24 @@
                                 <td>${item.name}</td>
                                 <td>${item.quantity}</td>
                                 <td> £ ${item.price}</td>
-                                <td>
-                                    <img src="${item.barcode_base64}" 
-                                         alt="Product Barcode"
-                                         class="product-barcode"
-                                         style="height: 60px;"
-                                         data-product-id="${item.product_id}"
-                                         data-order-id="${data.order.order_number}">
-                                </td>
+                              <td id="scan-result-${item.sku}">
+        <!-- Will fill this after scan -->
+    </td>
+    // <td>
+    //                                 <img src="${item.barcode_base64}" 
+    //                                      alt="Product Barcode"
+    //                                      class="product-barcode"
+    //                                      style="height: 60px;"
+    //                                      data-product-id="${item.product_id}"
+    //                                      data-order-id="${data.order.order_number}">
+    //                             </td>
                             </tr>`;
                             tbody.insertAdjacentHTML('beforeend', row);
                         });
 
                         barcodeImage.src = '/barcode/' + selectedOrderId;
                         new bootstrap.Modal(orderModal).show();
+                        console.log(requiredProductIds);
                         setTimeout(() => productBarcodeInput.focus(), 300);
                     } else {
                         toastr.error(data.message || 'Order not found.');
@@ -601,7 +605,6 @@
             fetchAndShowOrder(manualOrder);
         });
 
-        // Product Scanner
         let productBuffer = '';
         let productTimer;
 
@@ -628,17 +631,21 @@
 
                 if (!scanned || scanned.length < 2) return;
 
-                const matched = document.querySelector(`img[data-product-id="${scanned}"]`);
-                if (matched) {
-                    const productId = matched.dataset.productId;
-                    const orderId = matched.dataset.orderId;
+                const scanResultCell = document.getElementById(`scan-result-${scanned}`);
+
+                if (scanResultCell && !scanResultCell.classList.contains('scanned')) {
+                    const productId = scanned;
+                    const orderId = selectedOrderId;
 
                     fetch(`/admin/Accuracy-checker/product-stock/${productId}/${orderId}`)
                         .then(res => res.json())
                         .then(data => {
                             if (data.status === 'success') {
-                                toastr.success(
-                                    `✅ ${data.product_title}<br>Stock: ${data.stock}`);
+                                scanResultCell.innerHTML = `
+                            <span class="text-success fw-bold">✅ Verified</span><br>
+                            <small class="text-muted">SKU: ${productId}</small>
+                        `;
+                                scanResultCell.classList.add('scanned');
                             } else {
                                 toastr.error(data.message || '❌ Could not fetch stock');
                             }
@@ -649,22 +656,24 @@
 
                     if (scannedProductIds.size === requiredProductIds.size) {
                         toastr.success(
-                            '🎉 All products scanned. Now scan the order QR to fulfill');
+                            '🎉 All products scanned. Now scan the Shipment label QR to fulfill'
+                            );
                         scanningMode = 'fulfill';
                         orderBarcodeInput.disabled = false;
                         orderBarcodeInput.style.display = 'block';
                         orderBarcodeInput.style.opacity = '0';
                         orderBarcodeInput.style.position = 'absolute';
                         orderBarcodeInput.style.left = '-9999px';
-                        barcodeImageContainer.style.display = 'block';
+                        // barcodeImageContainer.style.display = 'block';
 
                         setTimeout(() => orderBarcodeInput.focus(), 100);
                     }
                 } else {
-                    toastr.error(`❌ product_id ${scanned} not found.`);
+                    toastr.error(`❌ product_id ${scanned} not found or already scanned.`);
                 }
             }, 200);
         });
+
 
         // Fulfill Scanner
         let orderBuffer = '';
@@ -699,31 +708,31 @@
                     return;
                 }
 
-                if (confirm(`Mark order ${scanned} as fulfilled?`)) {
-                    loader.style.display = 'flex';
+                // if (confirm(`Mark order ${scanned} as fulfilled?`)) {
+                loader.style.display = 'flex';
 
-                    fetch(`/admin/Accuracy-checker/orders/fulfill/${selectedOrderId}`, {
-                            method: 'POST',
-                            headers: {
-                                'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                                'Content-Type': 'application/json',
-                            }
-                        })
-                        .then(res => res.json())
-                        .then(data => {
-                            loader.style.display = 'none';
-                            if (data.status === 'success') {
-                                toastr.success('✅ Order fulfilled. Email sent.');
-                                location.reload();
-                            } else {
-                                toastr.error(data.message || '❌ Fulfillment failed');
-                            }
-                        })
-                        .catch(() => {
-                            loader.style.display = 'none';
-                            toastr.error('❌ Fulfillment error');
-                        });
-                }
+                fetch(`/admin/Accuracy-checker/orders/fulfill/${selectedOrderId}`, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                            'Content-Type': 'application/json',
+                        }
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        loader.style.display = 'none';
+                        if (data.status === 'success') {
+                            toastr.success('✅ Order fulfilled. Email sent.');
+                            location.reload();
+                        } else {
+                            toastr.error(data.message || '❌ Fulfillment failed');
+                        }
+                    })
+                    .catch(() => {
+                        loader.style.display = 'none';
+                        toastr.error('❌ Fulfillment error');
+                    });
+                // }
             }, 200);
         });
     });
