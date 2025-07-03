@@ -163,7 +163,7 @@ class AccuracyCheckerOrderController extends Controller
                     return null;
                 }
 
-                $sku = $item['product_id'] ?? 'UNKNOWN_SKU';
+                $sku = $item['sku'] ?? 'UNKNOWN_SKU';
 
                 return [
                     'name' => $item['title'] ?? 'N/A',
@@ -171,7 +171,7 @@ class AccuracyCheckerOrderController extends Controller
                     'price' => $item['price'] ?? '-',
                     'sku' => $sku,
                     'barcode_base64' => 'data:image/png;base64,' . $dns->getBarcodePNG($sku, 'C128', 2, 60),
-                    'product_id' => $item['product_id'] ?? null,
+                    'product_id' => $sku,
                 ];
             }, $filteredItems),
         ]);
@@ -209,6 +209,7 @@ class AccuracyCheckerOrderController extends Controller
                     'message' => 'Order not found'
                 ]);
             }
+            // dd("hi");
 
             if ($order->fulfillment_status === 'fulfilled') {
                 return response()->json([
@@ -258,49 +259,87 @@ class AccuracyCheckerOrderController extends Controller
         }
     }
 
-    public function getProductStock($productId, $orderid)
-{
-    [$shopDomain, $accessToken] = array_values(getShopifyCredentialsByOrderId($orderid));
- 
-    $query = <<<GQL
+    //     public function getProductStock($productId, $orderid)
+    // {
+    //     [$shopDomain, $accessToken] = array_values(getShopifyCredentialsByOrderId($orderid));
+
+    //     $query = <<<GQL
+    //     {
+    //       product(id: "gid://shopify/Product/{$productId}") {
+    //         title
+    //         variants(first: 1) {
+    //           edges {
+    //             node {
+    //               inventoryQuantity
+    //             }
+    //           }
+    //         }
+    //       }
+    //     }
+    //     GQL;
+
+    //     $response = Http::withHeaders([
+    //         'X-Shopify-Access-Token' => $accessToken,
+    //         'Content-Type' => 'application/json',
+    //     ])->post("{$shopDomain}/admin/api/2023-04/graphql.json", [
+    //         'query' => $query
+    //     ]);
+
+    //     if ($response->successful()) {
+    //         $body = $response->json();
+    //         $product = $body['data']['product'] ?? null;
+
+    //         if ($product) {
+    //             $stock = $product['variants']['edges'][0]['node']['inventoryQuantity'] ?? 'N/A';
+    //             return response()->json([
+    //                 'status' => 'success',
+    //                 'stock' => $stock,
+    //                 'product_title' => $product['title'] ?? '',
+    //                 'sku'=>$product['sku'] ?? ''
+    //             ]);
+    //         }
+    //     }
+
+    //     return response()->json([
+    //         'status' => 'error',
+    //         'message' => 'Failed to fetch product stock from Shopify.'
+    //     ]);
+    // }
+
+    public function getProductStock($sku, $orderId)
     {
-      product(id: "gid://shopify/Product/{$productId}") {
-        title
-        variants(first: 1) {
-          edges {
-            node {
-              inventoryQuantity
-            }
-          }
-        }
-      }
-    }
-    GQL;
- 
-    $response = Http::withHeaders([
-        'X-Shopify-Access-Token' => $accessToken,
-        'Content-Type' => 'application/json',
-    ])->post("{$shopDomain}/admin/api/2023-04/graphql.json", [
-        'query' => $query
-    ]);
- 
-    if ($response->successful()) {
-        $body = $response->json();
-        $product = $body['data']['product'] ?? null;
- 
-        if ($product) {
-            $stock = $product['variants']['edges'][0]['node']['inventoryQuantity'] ?? 'N/A';
+        $order = DB::table('orders')->where('order_number', $orderId)->first();
+
+        if (!$order) {
             return response()->json([
-                'status' => 'success',
-                'stock' => $stock,
-                'product_title' => $product['title'] ?? '',
+                'status' => 'error',
+                'message' => 'Order not found.',
             ]);
         }
+        if ($order->fulfillment_status === 'fulfilled') {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Order has already been fulfilled.',
+            ]);
+        }
+
+        $orderData = json_decode($order->order_data, true);
+        $lineItems = $orderData['line_items'] ?? [];
+
+        foreach ($lineItems as $item) {
+            if (isset($item['sku']) && $item['sku'] === $sku) {
+                return response()->json([
+                    'status' => 'success',
+                    'sku' => $sku,
+                    'product_title' => $item['title'] ?? '',
+                    'quantity' => $item['quantity'] ?? 0,
+                ]);
+            }
+        }
+
+        return response()->json([
+            'status' => 'error',
+            'message' => 'SKU not found in the order.',
+        ]);
     }
- 
-    return response()->json([
-        'status' => 'error',
-        'message' => 'Failed to fetch product stock from Shopify.'
-    ]);
-}
 }
