@@ -198,7 +198,7 @@
                 </div>
             </div>
 
-            @php
+            {{-- @php
                 $hasData = collect($orderMetafields)->filter(fn($v) => !empty($v))->isNotEmpty();
             @endphp
 
@@ -225,6 +225,38 @@
                             @endforeach
                         @else
                             <p class="text-muted">No data found.</p>
+                        @endif
+                    </div>
+                </div>
+            </div> --}}
+              <div class="col-md-6">
+                <div class="card" style="max-height: 400px; overflow-y: auto;">
+                    <div class="card-header">
+                       <strong> Order Timeline</strong>
+                    </div>
+                    <div class="card-body">
+                        @if ($auditDetails['logs']->isEmpty())
+                            <p>No audit logs found for this order.</p>
+                        @else
+                            @foreach ($auditDetails['logs'] as $log)
+                                <div class="mb-3 border-bottom pb-2">
+                                    <div><strong>User:</strong> {{ $log->user_name }} ({{ $log->role_name }})</div>
+                                    <div><strong>Action:</strong> {{ ucfirst($log->action) }}</div>
+                                    <div><strong>Details:</strong> {{ $log->details }}</div>
+                                    <div><strong>Date:</strong>
+                                        {{ \Carbon\Carbon::parse($log->created_at)->format('d/m/Y h:i A') }}</div>
+                                </div>
+                            @endforeach
+                        @endif
+
+                        @if ($auditDetails['prescribed_pdf'])
+                            <div class="mt-3">
+                                <strong>Prescribed PDF:</strong>
+                                <a href="{{ $auditDetails['prescribed_pdf'] }}" target="_blank"
+                                    class="btn btn-sm btn-outline-primary">
+                                    🔗 View PDF
+                                </a>
+                            </div>
                         @endif
                     </div>
                 </div>

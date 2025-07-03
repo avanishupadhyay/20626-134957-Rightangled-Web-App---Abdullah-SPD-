@@ -25,7 +25,7 @@ class PrescriberOrderController extends Controller
     {
         $this->middleware(function ($request, $next) {
             if (!auth()->check() || !auth()->user()->hasRole('Prescriber')) {
-                abort(403, 'Access denied');CheckerOrderController
+                abort(403, 'Access denied');
             }
             return $next($request);
         })->except('index'); // <- This line skips index()
@@ -185,20 +185,16 @@ class PrescriberOrderController extends Controller
         $order = Order::findOrFail($id);
         $orderData = json_decode($order->order_data); // decode JSON string into object
         $order_images = [];
-
         // foreach ($orderData->line_items as $item) {
         //     $images = getProductImages($order->order_number, $item->product_id);
         //     if (!empty($images)) {
         //         $order_images[] = $images[0]; // only store the first image
         //     }
         // }
-
-        $orderMetafields = getOrderMetafields($order->order_number) ?? null;
-        // $orderMetafields = [];
-        // dd($orderMetafields);
-
+        // $orderMetafields = getOrderMetafields($order->order_number) ?? null;
         $orderData = json_decode($order->order_data, true);
-        return view('admin.prescriber.view', compact('order', 'orderData', 'orderMetafields', 'order_images'));
+        $auditDetails = getAuditLogDetailsForOrder($order->order_number) ?? null;
+        return view('admin.prescriber.view', compact('order', 'orderData', 'order_images','auditDetails'));
     }
 
     // public function downloadPDF($orderId)
@@ -246,7 +242,7 @@ class PrescriberOrderController extends Controller
             'on_hold_reason' => 'required_if:decision_status,on_hold',
         ]);
         $decisionStatus = $request->decision_status;
-        [$shopDomain, $accessToken] = array_values(getShopifyCredentialsByOrderId($orderId));
+        // [$shopDomain, $accessToken] = array_values(getShopifyCredentialsByOrderId($orderId));
 
 
         $order_detail = Order::where('order_number', $orderId)->first();
@@ -315,7 +311,7 @@ class PrescriberOrderController extends Controller
             $pdfUrl = rtrim(config('app.url'), '/') . '/' . ltrim($pdfPath, '/');
         }
         // $metafields = buildCommonMetafields($request, $decisionStatus, $orderId, $pdfUrl);
-        $metafieldsInput  = buildCommonMetafields($request, $decisionStatus, $orderId, $pdfUrl);
+        // $metafieldsInput  = buildCommonMetafields($request, $decisionStatus, $orderId, $pdfUrl);
 
         $roleName = auth()->user()->getRoleNames()->first(); // Returns string or null
 
@@ -323,35 +319,35 @@ class PrescriberOrderController extends Controller
         try {
 
             // -----------------GraphQl---------------------------
-            $query = <<<'GRAPHQL'
-                    mutation metafieldsSet($metafields: [MetafieldsSetInput!]!) {
-                    metafieldsSet(metafields: $metafields) {
-                        metafields {
-                        key
-                        namespace
-                        id
-                        }
-                        userErrors {
-                        field
-                        message
-                        }
-                    }
-                    }
-                    GRAPHQL;
-            Http::withHeaders([
-                'X-Shopify-Access-Token' => $accessToken,
-                'Content-Type' => 'application/json',
-            ])->post("{$shopDomain}/admin/api/2023-10/graphql.json", [
-                'query' => $query,
-                'variables' => [
-                    'metafields' => $metafieldsInput
-                ]
-            ]);
+            // $query = <<<'GRAPHQL'
+            //         mutation metafieldsSet($metafields: [MetafieldsSetInput!]!) {
+            //         metafieldsSet(metafields: $metafields) {
+            //             metafields {
+            //             key
+            //             namespace
+            //             id
+            //             }
+            //             userErrors {
+            //             field
+            //             message
+            //             }
+            //         }
+            //         }
+            //         GRAPHQL;
+            // Http::withHeaders([
+            //     'X-Shopify-Access-Token' => $accessToken,
+            //     'Content-Type' => 'application/json',
+            // ])->post("{$shopDomain}/admin/api/2023-10/graphql.json", [
+            //     'query' => $query,
+            //     'variables' => [
+            //         'metafields' => $metafieldsInput
+            //     ]
+            // ]);
 
             // -----------------GraphQl---------------------------
 
             if ($decisionStatus === 'approved') {
-                triggerShopifyTimelineNote($orderId);
+                // triggerShopifyTimelineNote($orderId);
                 $template = EmailTemplate::where('identifier', 'prescriber_approved')->first();
             }
 

@@ -63,10 +63,10 @@ class DispenserOrderController extends Controller
                     ->orWhere('email', 'like', '%' . $request->search . '%')
                     ->orWhere('order_number', 'like', '%' . $request->search . '%');
             })
-             ->where(function ($q) {
-                $q->whereRaw("JSON_EXTRACT(order_data, '$.cancelled_at') IS NULL")
-                    ->orWhereRaw("JSON_UNQUOTE(JSON_EXTRACT(order_data, '$.cancelled_at')) = 'null'");
-            });
+                ->where(function ($q) {
+                    $q->whereRaw("JSON_EXTRACT(order_data, '$.cancelled_at') IS NULL")
+                        ->orWhereRaw("JSON_UNQUOTE(JSON_EXTRACT(order_data, '$.cancelled_at')) = 'null'");
+                });
         }
 
         $orders = $query->latest()->paginate(config('Reading.nodes_per_page'));
@@ -92,11 +92,11 @@ class DispenserOrderController extends Controller
     public function view($id)
     {
         $order = Order::findOrFail($id);
-        $orderMetafields = getOrderMetafields($order->order_number) ?? null;
+        // $orderMetafields = getOrderMetafields($order->order_number) ?? null;
 
         $orderData = json_decode($order->order_data, true);
-
-        return view('admin.dispenser.view', compact('order', 'orderData', 'orderMetafields'));
+        $auditDetails = getAuditLogDetailsForOrder($order->order_number) ?? null;
+        return view('admin.dispenser.view', compact('order', 'orderData', 'auditDetails'));
     }
 
     //original code old
@@ -201,23 +201,23 @@ class DispenserOrderController extends Controller
             $shipper = (array) DB::table('stores')->first();
 
             $destination = $shippingAddress;
-// $response = Http::withHeaders([
-//     'Authorization' => 'f3e7618c-d590-4e85-9246-1c39fcefd4f2',
-//     'Content-Type' => 'application/json',
-// ])->post(
-//     'https://api.parcel.royalmail.com/api/v1/Orders');
+            // $response = Http::withHeaders([
+            //     'Authorization' => 'f3e7618c-d590-4e85-9246-1c39fcefd4f2',
+            //     'Content-Type' => 'application/json',
+            // ])->post(
+            //     'https://api.parcel.royalmail.com/api/v1/Orders');
 
-// dd([
-//     'status' => $response->status(),
-//     'body' => $response->body(),
-// ]);
+            // dd([
+            //     'status' => $response->status(),
+            //     'body' => $response->body(),
+            // ]);
             // if(isset($shippingAddress) && isset($shippingAddress['country']) && $shippingAddress['country'] == "United Kingdom" && $shippingCode != 'rightangled hq' && $shippingCode != 'local delivery'){
             //     // For UK Shippment
             //     $response = $this->createRoyalMailShipment($authToken, $shipper, $destination, $orderData);
             // }elseif(isset($shippingAddress) && isset($shippingAddress['country']) && $shippingAddress['country'] != "United Kingdom"){
             //     // For International Shippment
-                // $response = $this->createDHLShipment($authToken, $shipper, $destination, $orderData);
-                // pr($response);die;
+            // $response = $this->createDHLShipment($authToken, $shipper, $destination, $orderData);
+            // pr($response);die;
             // }
 
             // pr($orderData);die;
@@ -285,15 +285,15 @@ class DispenserOrderController extends Controller
             'user_id' => auth()->id(),
         ]);
 
-       
+
         // Generate PDF
         // pr($processedOrders->toArray());
 
-        
+
         // pr($batch->toArray());
         // die;
         $pdfHtml = view('admin.dispenser.dispenselabel', compact('processedOrders', 'batch'))->render();
-       
+
         $pdf = PDF::loadHTML($pdfHtml)->setPaper('A4');
 
         $fileName = "{$batch->batch_number}.pdf";
@@ -338,7 +338,7 @@ class DispenserOrderController extends Controller
                 ]
             );
         }
-        
+
         // $orderGIDs = $processedOrders->pluck('order_number')->map(fn($id) => "gid://shopify/Order/{$id}")->toArray();
         // bulkAddShopifyTagsAndNotes($orderGIDs, 'dispensed',$order->id);
         $orderGIDsWithStoreIds = $processedOrders->map(function ($order) {
@@ -851,22 +851,22 @@ class DispenserOrderController extends Controller
                 "splitInvoiceAndReceipt" => true,
                 "receiptAndLabelsInOneImage" => false
             ],
-               "AddressId" => $shipper['AddressId'] ?? '',
-                "ShipperReference" => $shipper['ShipperReference'] ?? '',
-                "ShipperReference2" => $shipper['ShipperReference2'] ?? '',
-                "ShipperDepartment" => $shipper['ShipperDepartment'] ?? '',
-                "CompanyName" => $shipper['name'] ?? '',
-                "ContactName" => $shipper['ContactName'] ?? '',
-                "AddressLine1" => $shipper['AddressLine1'] ?? '',
-                "AddressLine2" => $shipper['AddressLine1'] ?? '',
-                "AddressLine3" => $shipper['AddressLine1'] ?? '',
-                "Town" => $shipper['Town'] ?? '',
-                "County" => $shipper['County'] ?? '',
-                "CountryCode" => $shipper['CountryCode'] ?? '',
-                "Postcode" => $shipper['Postcode'] ?? '',
-                "PhoneNumber" => $shipper['PhoneNumber'] ?? '',
-                "EmailAddress" => $shipper['EmailAddress'] ?? '',
-                "VatNumber" => $shipper['VatNumber'] ?? '',
+            "AddressId" => $shipper['AddressId'] ?? '',
+            "ShipperReference" => $shipper['ShipperReference'] ?? '',
+            "ShipperReference2" => $shipper['ShipperReference2'] ?? '',
+            "ShipperDepartment" => $shipper['ShipperDepartment'] ?? '',
+            "CompanyName" => $shipper['name'] ?? '',
+            "ContactName" => $shipper['ContactName'] ?? '',
+            "AddressLine1" => $shipper['AddressLine1'] ?? '',
+            "AddressLine2" => $shipper['AddressLine1'] ?? '',
+            "AddressLine3" => $shipper['AddressLine1'] ?? '',
+            "Town" => $shipper['Town'] ?? '',
+            "County" => $shipper['County'] ?? '',
+            "CountryCode" => $shipper['CountryCode'] ?? '',
+            "Postcode" => $shipper['Postcode'] ?? '',
+            "PhoneNumber" => $shipper['PhoneNumber'] ?? '',
+            "EmailAddress" => $shipper['EmailAddress'] ?? '',
+            "VatNumber" => $shipper['VatNumber'] ?? '',
 
             "customerDetails" => [
                 "shipperDetails" => [
@@ -1081,7 +1081,7 @@ class DispenserOrderController extends Controller
             'x-version' => '2.12.0',
             'Authorization' => 'Basic ' . base64_encode('apX2aQ3yA3kF3p:J^9kM@8nD@8pS@1y'),
         ])->post('https://express.api.dhl.com/mydhlapi/shipments');
-            pr($response->body());
+        pr($response->body());
 
         if ($response->successful()) {
             return [

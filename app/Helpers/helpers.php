@@ -9,6 +9,7 @@ use App\Models\OrderAction;
 use App\Models\Prescriber;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 if (!function_exists('pr')) {
 
@@ -1940,4 +1941,38 @@ if (!function_exists('getStoreId')) {
 		$order = Order::where('order_number', $order_id)->first();
 		return $order ? $order->store_id : null;
 	}
+}
+
+if (!function_exists('getAuditLogDetailsForOrder')) {
+    function getAuditLogDetailsForOrder($orderId)
+    {
+        $logs = DB::table('audit_logs')
+            ->join('users', 'audit_logs.user_id', '=', 'users.id')
+            ->join('model_has_roles', function ($join) {
+                $join->on('users.id', '=', 'model_has_roles.model_id')
+                    ->where('model_has_roles.model_type', '=', \App\Models\User::class);
+            })
+            ->join('roles', 'model_has_roles.role_id', '=', 'roles.id')
+            ->where('audit_logs.order_id', $orderId)
+            ->orderBy('audit_logs.created_at', 'desc')
+            ->select('audit_logs.*', 'users.name as user_name', 'roles.name as role_name')
+            ->get();
+
+        // Get prescribed PDF if exists
+        $pdfRecord = DB::table('order_actions')
+            ->where('order_id', $orderId)
+            ->where('decision_status', 'approved')
+            ->orderBy('created_at', 'desc')
+            ->first();
+
+        $prescribedPdfUrl = null;
+        if ($pdfRecord && $pdfRecord->prescribed_pdf) {
+            $prescribedPdfUrl = config('app.url') . '/' . ltrim($pdfRecord->prescribed_pdf, '/');
+        }
+
+        return [
+            'logs' => $logs,
+            'prescribed_pdf' => $prescribedPdfUrl,
+        ];
+    }
 }
