@@ -201,16 +201,16 @@ class DispenserOrderController extends Controller
             $shipper = (array) DB::table('stores')->first();
 
             $destination = $shippingAddress;
-$response = Http::withHeaders([
-    'Authorization' => 'f3e7618c-d590-4e85-9246-1c39fcefd4f2',
-    'Content-Type' => 'application/json',
-])->post(
-    'https://api.parcel.royalmail.com/api/v1/Orders');
+// $response = Http::withHeaders([
+//     'Authorization' => 'f3e7618c-d590-4e85-9246-1c39fcefd4f2',
+//     'Content-Type' => 'application/json',
+// ])->post(
+//     'https://api.parcel.royalmail.com/api/v1/Orders');
 
-dd([
-    'status' => $response->status(),
-    'body' => $response->body(),
-]);
+// dd([
+//     'status' => $response->status(),
+//     'body' => $response->body(),
+// ]);
             // if(isset($shippingAddress) && isset($shippingAddress['country']) && $shippingAddress['country'] == "United Kingdom" && $shippingCode != 'rightangled hq' && $shippingCode != 'local delivery'){
             //     // For UK Shippment
             //     $response = $this->createRoyalMailShipment($authToken, $shipper, $destination, $orderData);
