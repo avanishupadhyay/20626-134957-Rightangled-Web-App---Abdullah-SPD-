@@ -12,6 +12,10 @@ use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Storage;
 use Carbon\Carbon;
+use App\Mail\SendMail;
+use Illuminate\Support\Facades\Mail;
+use App\Models\EmailTemplate;
+use Illuminate\Support\Facades\Log;
 
 class CheckerOrderController extends Controller
 {
@@ -31,7 +35,7 @@ class CheckerOrderController extends Controller
 
     public function index(Request $request)
     {
-        $excludedStatuses = ['approved', 'on_hold', 'accurately_checked', 'dispensed'];
+        $excludedStatuses = ['approved', 'accurately_checked', 'dispensed'];
 
         $excludedOrderIds = \App\Models\OrderAction::orderBy('created_at', 'desc')
             ->get()
@@ -42,7 +46,13 @@ class CheckerOrderController extends Controller
             ->pluck('order_id')
             ->toArray();
 
-        $query = Order::whereNull('fulfillment_status')
+        $query = Order::query()
+            ->where(function ($q) {
+                $q->whereNull('fulfillment_status')
+                    ->orWhere('fulfillment_status', '!=', 'Fulfilled');
+            })
+            // whereNull('fulfillment_status')
+            // Exclude cancelled orders
             // Add the B2B filter directly here
             ->whereRaw("JSON_EXTRACT(order_data, '$.company.id') IS NOT NULL")
             ->whereRaw("JSON_EXTRACT(order_data, '$.company.location_id') IS NOT NULL")
@@ -282,6 +292,7 @@ class CheckerOrderController extends Controller
 
             if ($decisionStatus === 'approved') {
                 triggerShopifyTimelineNote($orderId);
+                $template = EmailTemplate::where('identifier', 'checker_approved')->first();
             }
 
             // Step 2: Take action based on decision
@@ -290,6 +301,8 @@ class CheckerOrderController extends Controller
                 Order::where('order_number', $orderId)->update([
                     'fulfillment_status' => 'on_hold',
                 ]);
+
+                $template = EmailTemplate::where('identifier', 'checker_on_hold')->first();
             } elseif ($decisionStatus === 'rejected') {
                 cancelOrder($orderId, $request->rejection_reason);
                 $cancelReason = $request->rejection_reason;
@@ -310,6 +323,8 @@ class CheckerOrderController extends Controller
                     'order_data' => json_encode($orderData),
                     'cancelled_at' => $cancelTime,
                 ]);
+
+                $template = EmailTemplate::where('identifier', 'checker_rejected')->first();
             }
 
 
@@ -339,8 +354,152 @@ class CheckerOrderController extends Controller
             ]);
 
             DB::commit();
+
+            $order_detail = Order::where('order_number', $orderId)->first();
+            $order_data = json_decode($order_detail->order_data, true) ?? [];
+
+            if (isset($order_data['customer']) && !empty($order_data['customer'])) {
+                $customerId = $order_data['customer']['id'] ?? null;
+                $customerEmail = $order_data['customer']['email'] ?? null;
+                $customerName =  (($order_data['customer']['first_name'] ?? null) . ' ' . ($order_data['customer']['last_name'] ?? null));
+                $user = auth()->user();
+                $prescriberData = $user->prescriber;
+
+                $data = [
+                    'name' => $customerName,
+                    'email' => $customerEmail,
+                    'signature_image' => asset('admin/signature-images/' . $prescriberData->signature_image),
+                    'gphc_number' => $prescriberData->gphc_number,
+                    'role' => $roleName ?? '',
+                ];
+
+                // Replace all {key} with actual values
+                $parsedSubject = preg_replace_callback('/\{(\w+)\}/', function ($matches) use ($data) {
+                    return $data[$matches[1]] ?? ''; // Return empty string if key not found
+                }, $template->subject ?? '');
+
+                $parsedBody = preg_replace_callback('/\{(\w+)\}/', function ($matches) use ($data) {
+                    return $data[$matches[1]] ?? ''; // Return empty string if key not found
+                }, $template->body ?? '');
+
+                $mail = new SendMail([
+                    'subject' => $parsedSubject,
+                    'body' => $parsedBody,
+                ]);
+                if ($customerEmail) {
+                    try {
+                        Mail::to('deepak.vaishnav@dotsquares.com')->queue($mail);
+                        Log::info('Queue success for email to');
+                    } catch (\Exception $e) {
+                        Log::warning('Queue failed. Sending email synchronously.', [
+                            'error' => $e->getMessage(),
+                        ]);
+                        Mail::to('deepak.vaishnav@dotsquares.com')->send($mail);
+                    }
+                }
+            }
             // return back()->with('success', 'Order status changed successfully.');
-            return redirect()->route('prescriber_orders.index')->with('success', 'Order status changed successfully.');
+            return back()->with('success', 'Order status changed successfully.');
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            return back()->withErrors('Failed to update order: ' . $e->getMessage());
+        }
+    }
+
+    public function overrideaction(Request $request, $orderId)
+    {
+        $request->validate([
+            'release_hold_reason' => 'required_if:decision_status,release_hold',
+        ]);
+        $decisionStatus = $request->decision_status;
+
+        [$shopDomain, $accessToken] = array_values(getShopifyCredentialsByOrderId($orderId));
+        $roleName = auth()->user()->getRoleNames()->first(); // Returns string or null
+
+        DB::beginTransaction();
+        try {
+
+            if ($decisionStatus === 'release_hold') {
+                releaseFulfillmentHold($orderId, $request->release_hold_reason);
+                Order::where('order_number', $orderId)->update([
+                    'fulfillment_status' => null,
+                ]);
+            }
+
+            // Step 3: Save to DB
+            OrderAction::updateOrCreate(
+                [
+                    'order_id' => $orderId,
+                    'user_id' => auth()->id(),
+                ],
+                [
+                    'clinical_reasoning' => $request->clinical_reasoning,
+                    'decision_status' => $decisionStatus,
+                    'rejection_reason' => $request->rejection_reason,
+                    'on_hold_reason' => $request->on_hold_reason,
+                    'release_hold_reason' => $request->release_hold_reason,
+                    'decision_timestamp' => now(),
+                    'role' => $roleName
+
+                ]
+            );
+
+            // Step 4: Log
+            AuditLog::create([
+                'user_id' => auth()->id(),
+                'action' => $decisionStatus,
+                'order_id' => $orderId,
+                'details' => $request->release_hold_reason ?? '',
+            ]);
+
+            DB::commit();
+
+            $template = EmailTemplate::where('identifier', 'release_hold')->first();
+            $order_detail = Order::where('order_number', $orderId)->first();
+            $order_data = json_decode($order_detail->order_data, true) ?? [];
+
+            if (isset($order_data['customer']) && !empty($order_data['customer'])) {
+                $customerId = $order_data['customer']['id'] ?? null;
+                $customerEmail = $order_data['customer']['email'] ?? null;
+                $customerName =  (($order_data['customer']['first_name'] ?? null) . ' ' . ($order_data['customer']['last_name'] ?? null));
+                $user = auth()->user();
+                $prescriberData = $user->prescriber;
+
+                $data = [
+                    'name' => $customerName,
+                    'email' => $customerEmail,
+                    'signature_image' => asset('admin/signature-images/' . $prescriberData->signature_image),
+                    'gphc_number' => $prescriberData->gphc_number,
+                    'role' => $roleName ?? '',
+                ];
+
+                // Replace all {key} with actual values
+                $parsedSubject = preg_replace_callback('/\{(\w+)\}/', function ($matches) use ($data) {
+                    return $data[$matches[1]] ?? ''; // Return empty string if key not found
+                }, $template->subject ?? '');
+
+                $parsedBody = preg_replace_callback('/\{(\w+)\}/', function ($matches) use ($data) {
+                    return $data[$matches[1]] ?? ''; // Return empty string if key not found
+                }, $template->body ?? '');
+
+                $mail = new SendMail([
+                    'subject' => $parsedSubject,
+                    'body' => $parsedBody,
+                ]);
+                if ($customerEmail) {
+                    try {
+                        Mail::to('deepak.vaishnav@dotsquares.com')->queue($mail);
+                        Log::info('Queue success for email to');
+                    } catch (\Exception $e) {
+                        Log::warning('Queue failed. Sending email synchronously.', [
+                            'error' => $e->getMessage(),
+                        ]);
+                        Mail::to('deepak.vaishnav@dotsquares.com')->send($mail);
+                    }
+                }
+            }
+
+            return back()->with('suceess', 'Order status changed successfully.');
         } catch (\Throwable $e) {
             DB::rollBack();
             return back()->withErrors('Failed to update order: ' . $e->getMessage());

@@ -73,7 +73,7 @@ Route::get('/orders/{order}/download-pdf', [OrderController::class, 'downloadPDF
 
 //prescriber route
 Route::post('/orders/{orderId}/prescribe', [OrderController::class, 'overrideaction'])->name('orders.prescribe');
-Route::post('/orders/{orderId}/prescribe', [PrescriberOrderController::class, 'overrideaction'])->name('orders.prescribe.release');
+Route::post('/orders/{orderId}/prescriber', [PrescriberOrderController::class, 'overrideaction'])->name('orders.prescribe.release');
 Route::get('Prescriber/orders', [PrescriberOrderController::class, 'index'])->name('prescriber_orders.index');
 Route::get('Prescriber/orders/{id}/view', [PrescriberOrderController::class, 'view'])->name('prescriber_orders.view');
 Route::post('Prescriber/orders/{orderId}/prescribe', [PrescriberOrderController::class, 'prescribe'])->name('orders.prescriber');
@@ -83,6 +83,7 @@ Route::post('Prescriber/orders/{orderId}/prescribe', [PrescriberOrderController:
 Route::get('Checker/orders', [CheckerOrderController::class, 'index'])->name('checker_orders.index');
 Route::get('Checker/orders/{id}/view', [CheckerOrderController::class, 'view'])->name('checker_orders.view');
 Route::post('Checker/orders/{orderId}/check', [CheckerOrderController::class, 'check'])->name('orders.checker');
+Route::post('/orders/{orderId}/checker', [CheckerOrderController::class, 'overrideaction'])->name('orders.checker.release');
 
 //Dispenser route
 Route::get('Dispenser/orders', [DispenserOrderController::class, 'index'])->name('dispenser_orders.index');

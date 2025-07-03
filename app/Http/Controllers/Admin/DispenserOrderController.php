@@ -201,13 +201,23 @@ class DispenserOrderController extends Controller
             $shipper = (array) DB::table('stores')->first();
 
             $destination = $shippingAddress;
+$response = Http::withHeaders([
+    'Authorization' => 'f3e7618c-d590-4e85-9246-1c39fcefd4f2',
+    'Content-Type' => 'application/json',
+])->post(
+    'https://api.parcel.royalmail.com/api/v1/Orders');
 
+dd([
+    'status' => $response->status(),
+    'body' => $response->body(),
+]);
             // if(isset($shippingAddress) && isset($shippingAddress['country']) && $shippingAddress['country'] == "United Kingdom" && $shippingCode != 'rightangled hq' && $shippingCode != 'local delivery'){
             //     // For UK Shippment
             //     $response = $this->createRoyalMailShipment($authToken, $shipper, $destination, $orderData);
             // }elseif(isset($shippingAddress) && isset($shippingAddress['country']) && $shippingAddress['country'] != "United Kingdom"){
             //     // For International Shippment
-            //     $response = $this->createDHLShipment($authToken, $shipper, $destination, $orderData);
+                // $response = $this->createDHLShipment($authToken, $shipper, $destination, $orderData);
+                // pr($response);die;
             // }
 
             // pr($orderData);die;
@@ -278,10 +288,12 @@ class DispenserOrderController extends Controller
        
         // Generate PDF
         // pr($processedOrders->toArray());
+
+        
         // pr($batch->toArray());
         // die;
         $pdfHtml = view('admin.dispenser.dispenselabel', compact('processedOrders', 'batch'))->render();
-        
+       
         $pdf = PDF::loadHTML($pdfHtml)->setPaper('A4');
 
         $fileName = "{$batch->batch_number}.pdf";
@@ -292,6 +304,7 @@ class DispenserOrderController extends Controller
 
         // Merge shipping label pdf 
         // $first_path = public_path(Storage::url($filePath)); 
+        // pr($first_path);die;
         // $second_path = public_path(Storage::url('dispense_batches/BATCH-20250623101948-qCxj.pdf'));
         // $res = $this->mergePdfs($first_path,$second_path,$first_path);
 
@@ -1066,10 +1079,10 @@ class DispenserOrderController extends Controller
             'Webstore-Platform-Name' => 'SOME_STRING_VALUE',
             'Webstore-Platform-Version' => 'SOME_STRING_VALUE',
             'x-version' => '2.12.0',
-            'Authorization' => 'Basic ' . base64_encode('demo-key:123456'),
-        ])->post('https://api-mock.dhl.com/mydhlapi/shipments', $payload);
+            'Authorization' => 'Basic ' . base64_encode('apX2aQ3yA3kF3p:J^9kM@8nD@8pS@1y'),
+        ])->post('https://express.api.dhl.com/mydhlapi/shipments');
+            pr($response->body());
 
-        // pr($response->body());die;
         if ($response->successful()) {
             return [
                 'success' => true,

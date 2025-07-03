@@ -14,6 +14,9 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
 use GuzzleHttp\Client;
 use Carbon\Carbon;
+use App\Mail\SendMail;
+use Illuminate\Support\Facades\Mail;
+use App\Models\EmailTemplate;
 
 class PrescriberOrderController extends Controller
 {
@@ -22,76 +25,12 @@ class PrescriberOrderController extends Controller
     {
         $this->middleware(function ($request, $next) {
             if (!auth()->check() || !auth()->user()->hasRole('Prescriber')) {
-                abort(403, 'Access denied');
+                abort(403, 'Access denied');CheckerOrderController
             }
             return $next($request);
         })->except('index'); // <- This line skips index()
 
     }
-
-
-    //     function fetchRealIDVerificationStatus(string $checkId): ?array
-    // {
-    //     $apiUrl   = env('REAL_ID_API_URL') . "/checks/{$checkId}";
-    //     $apiToken = env('REAL_ID_API_TOKEN');
-
-    //     $response = Http::withHeaders([
-    //         'Authorization' => "Bearer {$apiToken}",
-    //         'Accept'        => 'application/json',
-    //     ])->get($apiUrl);
-
-    //     if ($response->successful()) {
-    //        $data = $response->json();
-
-    //     Log::info('✅ Real ID check sent successfully.', $data);
-    //         return $data; // Or handle accordingly
-    //     }
-
-    //     Log::error('Failed to fetch Real ID status', [
-    //         'status' => $response->status(),
-    //         'body'   => $response->body(),
-    //     ]);
-
-    //     return null;
-    // }
-
-    //  $apiUrl   = env('REAL_ID_API_URL') . '/checks'; // Should end up like: https://real-id.getverdict.com/api/v1/checks
-    //             $apiToken = env('REAL_ID_API_TOKEN');
-
-    //             $payload = [
-    //                         "customer" => [
-    //                             "first_name" => "John",
-    //                             "last_name" => "Smith",
-    //                             "email" => "deepak.dotsquares.11@gmail.com", // test email
-    //                             "phone" => "+918955497512",
-    //                             "shopify_admin_graphql_id" => "gid://shopify/Customer/1234567890",
-    //                         ],
-    //                         "order" => [
-    //                             "shopify_admin_graphql_id" => "gid://shopify/Order/1234567890",
-    //                             "name" => "#1234",
-    //                         ],
-    //                     ];
-
-    //             $response = Http::withHeaders([
-    //                 'Authorization' => "Bearer {$apiToken}",
-    //                 'Accept'        => 'application/json',
-    //                 'Content-Type'  => 'application/json',
-    //             ])->post($apiUrl, $payload);
-
-    //             if ($response->successful()) {
-    //                 $data = $response->json();
-    //                 // pr($data);die;
-    //                 pr($this->fetchRealIDVerificationStatus($data['check']['id']));
-    //             }
-
-    //             Log::error('Real ID check creation failed', [
-    //                 'status' => $response->status(),
-    //                 'body'   => $response->body(),
-    //             ]);
-
-
-    //         // }
-    //         die;
 
     public function index(Request $request)
     {
@@ -107,10 +46,10 @@ class PrescriberOrderController extends Controller
             ->toArray();
 
         $query = Order::query()
-                ->where(function ($q) {
-                    $q->whereNull('fulfillment_status')
+            ->where(function ($q) {
+                $q->whereNull('fulfillment_status')
                     ->orWhere('fulfillment_status', '!=', 'Fulfilled');
-                })
+            })
             // whereNull('fulfillment_status')
             // Exclude cancelled orders
             ->whereRaw("JSON_EXTRACT(order_data, '$.company.id') IS NULL")
@@ -126,7 +65,7 @@ class PrescriberOrderController extends Controller
         $totalPending = (clone $query)->count();
         // Get paginated result
         $orders = $query->latest()->paginate(config('Reading.nodes_per_page'));
-        
+
         // Get distinct statuses
         $statuses = Order::select('financial_status')->distinct()->pluck('financial_status');
 
@@ -174,7 +113,7 @@ class PrescriberOrderController extends Controller
             'total_on_hold'  => $totalOnHold,
             'total_rejected' => $totalRejected,
         ];
-        
+
         return view('admin.prescriber.index', compact('orders', 'statuses', 'counts'));
     }
 
@@ -330,7 +269,7 @@ class PrescriberOrderController extends Controller
                     ])->get("https://rightangled-store.myshopify.com/admin/api/2023-10/customers/{$customerId}/metafields.json");
 
                     $data = $response->json();
-                        
+
                     // Extract check_id
                     if (isset($data['metafields'])) {
                         foreach ($data['metafields'] as $meta) {
@@ -382,7 +321,7 @@ class PrescriberOrderController extends Controller
 
         DB::beginTransaction();
         try {
-          
+
             // -----------------GraphQl---------------------------
             $query = <<<'GRAPHQL'
                     mutation metafieldsSet($metafields: [MetafieldsSetInput!]!) {
@@ -413,6 +352,7 @@ class PrescriberOrderController extends Controller
 
             if ($decisionStatus === 'approved') {
                 triggerShopifyTimelineNote($orderId);
+                $template = EmailTemplate::where('identifier', 'prescriber_approved')->first();
             }
 
             // Step 2: Take action based on decision
@@ -421,6 +361,8 @@ class PrescriberOrderController extends Controller
                 Order::where('order_number', $orderId)->update([
                     'fulfillment_status' => 'on_hold',
                 ]);
+
+                $template = EmailTemplate::where('identifier', 'prescriber_on_hold')->first();
             } elseif ($decisionStatus === 'rejected') {
                 cancelOrder($orderId, $request->rejection_reason);
                 $cancelReason = $request->rejection_reason;
@@ -441,6 +383,8 @@ class PrescriberOrderController extends Controller
                     'order_data' => json_encode($orderData),
                     // 'cancelled_at' => $cancelTime,
                 ]);
+
+                $template = EmailTemplate::where('identifier', 'prescriber_rejected')->first();
             }
 
             OrderAction::updateOrCreate(
@@ -470,6 +414,51 @@ class PrescriberOrderController extends Controller
             ]);
 
             DB::commit();
+
+            $order_detail = Order::where('order_number', $orderId)->first();
+            $order_data = json_decode($order_detail->order_data, true) ?? [];
+
+            if (isset($order_data['customer']) && !empty($order_data['customer'])) {
+                $customerId = $order_data['customer']['id'] ?? null;
+                $customerEmail = $order_data['customer']['email'] ?? null;
+                $customerName =  (($order_data['customer']['first_name'] ?? null) . ' ' . ($order_data['customer']['last_name'] ?? null));
+                $user = auth()->user();
+                $prescriberData = $user->prescriber;
+
+                $data = [
+                    'name' => $customerName,
+                    'email' => $customerEmail,
+                    'signature_image' => asset('admin/signature-images/' . $prescriberData->signature_image),
+                    'gphc_number' => $prescriberData->gphc_number,
+                    'role' => $roleName ?? '',
+                ];
+
+                // Replace all {key} with actual values
+                $parsedSubject = preg_replace_callback('/\{(\w+)\}/', function ($matches) use ($data) {
+                    return $data[$matches[1]] ?? ''; // Return empty string if key not found
+                }, $template->subject ?? '');
+
+                $parsedBody = preg_replace_callback('/\{(\w+)\}/', function ($matches) use ($data) {
+                    return $data[$matches[1]] ?? ''; // Return empty string if key not found
+                }, $template->body ?? '');
+
+                $mail = new SendMail([
+                    'subject' => $parsedSubject,
+                    'body' => $parsedBody,
+                ]);
+                if ($customerEmail) {
+                    try {
+                        Mail::to('deepak.vaishnav@dotsquares.com')->queue($mail);
+                        Log::info('Queue success for email to');
+                    } catch (\Exception $e) {
+                        Log::warning('Queue failed. Sending email synchronously.', [
+                            'error' => $e->getMessage(),
+                        ]);
+                        Mail::to('deepak.vaishnav@dotsquares.com')->send($mail);
+                    }
+                }
+            }
+
             return redirect()->route('prescriber_orders.index')->with('success', 'Order status changed successfully.');
         } catch (\Throwable $e) {
             DB::rollBack();
@@ -488,7 +477,7 @@ class PrescriberOrderController extends Controller
         //  $orderMetafields = [];
         $user = auth()->user();
         $prescriber_s_name = $user->name ?? 'N/A';
-        $approval ='true';
+        $approval = 'true';
         $prescriberData = $user->prescriber;
 
         $filePath = "signature-images/{$prescriberData->signature_image}";
@@ -515,7 +504,7 @@ class PrescriberOrderController extends Controller
                     'direction_of_use' => $directionOfUse,
                 ];
             }
-        } 
+        }
         // return view('admin.orders.prescription_pdf', [
         //     'orderData' => $orderData,
         //     'items' => $items,
@@ -549,7 +538,7 @@ class PrescriberOrderController extends Controller
         return Storage::url($filePath); // returns public path (requires `php artisan storage:link`)
     }
 
- public function overrideaction(Request $request, $orderId)
+    public function overrideaction(Request $request, $orderId)
     {
         $request->validate([
             'release_hold_reason' => 'required_if:decision_status,release_hold',
@@ -561,15 +550,15 @@ class PrescriberOrderController extends Controller
 
         DB::beginTransaction();
         try {
-          
+
             if ($decisionStatus === 'release_hold') {
                 releaseFulfillmentHold($orderId, $request->release_hold_reason);
                 Order::where('order_number', $orderId)->update([
                     'fulfillment_status' => null,
                 ]);
             }
-            
-               // Step 3: Save to DB
+
+            // Step 3: Save to DB
             OrderAction::updateOrCreate(
                 [
                     'order_id' => $orderId,
@@ -582,7 +571,7 @@ class PrescriberOrderController extends Controller
                     'on_hold_reason' => $request->on_hold_reason,
                     'release_hold_reason' => $request->release_hold_reason,
                     'decision_timestamp' => now(),
-                    'role'=>$roleName
+                    'role' => $roleName
 
                 ]
             );
@@ -596,11 +585,57 @@ class PrescriberOrderController extends Controller
             ]);
 
             DB::commit();
+
+            $template = EmailTemplate::where('identifier', 'release_hold')->first();
+            $order_detail = Order::where('order_number', $orderId)->first();
+            $order_data = json_decode($order_detail->order_data, true) ?? [];
+
+            if (isset($order_data['customer']) && !empty($order_data['customer'])) {
+                $customerId = $order_data['customer']['id'] ?? null;
+                $customerEmail = $order_data['customer']['email'] ?? null;
+                $customerName =  (($order_data['customer']['first_name'] ?? null) . ' ' . ($order_data['customer']['last_name'] ?? null));
+                $user = auth()->user();
+                $prescriberData = $user->prescriber;
+
+                $data = [
+                    'name' => $customerName,
+                    'email' => $customerEmail,
+                    'signature_image' => asset('admin/signature-images/' . $prescriberData->signature_image),
+                    'gphc_number' => $prescriberData->gphc_number,
+                    'role' => $roleName ?? '',
+                ];
+
+                // Replace all {key} with actual values
+                $parsedSubject = preg_replace_callback('/\{(\w+)\}/', function ($matches) use ($data) {
+                    return $data[$matches[1]] ?? ''; // Return empty string if key not found
+                }, $template->subject ?? '');
+
+                $parsedBody = preg_replace_callback('/\{(\w+)\}/', function ($matches) use ($data) {
+                    return $data[$matches[1]] ?? ''; // Return empty string if key not found
+                }, $template->body ?? '');
+
+                $mail = new SendMail([
+                    'subject' => $parsedSubject,
+                    'body' => $parsedBody,
+                ]);
+                if ($customerEmail) {
+                    try {
+                        Mail::to('deepak.vaishnav@dotsquares.com')->queue($mail);
+                        Log::info('Queue success for email to');
+                    } catch (\Exception $e) {
+                        Log::warning('Queue failed. Sending email synchronously.', [
+                            'error' => $e->getMessage(),
+                        ]);
+                        Mail::to('deepak.vaishnav@dotsquares.com')->send($mail);
+                    }
+                }
+            }
+
+
             return back()->with('suceess', 'Order status changed successfully.');
         } catch (\Throwable $e) {
             DB::rollBack();
             return back()->withErrors('Failed to update order: ' . $e->getMessage());
         }
     }
-
 }

@@ -30,7 +30,7 @@
 
         .product-table th,
         .product-table td {
-            border: 1px solid #000;
+            border-bottom: 1px solid #001CD7;
             padding: 5px;
             text-align: left;
         }
@@ -42,12 +42,25 @@
         p {
             margin: 2px 0;
         }
+        
+        strong{
+            color: #001CD7;
+            font-size: 14px;
+            /* font-weight: 500; */
+        }
+        td{
+            font-size:13px;
+        }
+         p{
+            font-size:13px;
+        }
     </style>
 </head>
 
 <body>
 
     {{-- 1. Dispensing Labels Section --}}
+    <?php /*
     @foreach ($processedOrders as $order)
         @php
             $prescriber_data = getPrescriberData($order->order_number);
@@ -101,6 +114,69 @@
             </div>
 
 
+        </div>
+
+        {{-- Page break between labels --}}
+        @if (!$loop->last)
+            <div class="page-break"></div>
+        @endif
+    @endforeach
+    */ 
+    
+    ?>
+
+
+     @foreach ($processedOrders as $order)
+        @php
+            $prescriber_data = getPrescriberData($order->order_number);
+            $order_data = $order->order_data;
+            $method = $order_data['shipping_lines']['title'] ?? '';
+        @endphp 
+        <div class="order-block">
+            <div style="text-align: center;">
+                <p><strong>Reference </strong> {{ $order->name }}</p>
+                <p><strong>Prescription Date </strong> {{ isset($prescriber_data->updated_at) ? $prescriber_data->updated_at : '' }}</p>
+                <p><strong>Shipping method </strong> {{ $method }}</p>
+                <p><strong>Patient's DOB </strong> {{ $order->order_data['customer']['dob'] ?? 'N/A' }}</p>
+                <p><strong>Prescriber's Name </strong> {{ isset($prescriber_data->user_id) ? ucfirst(getUserName($prescriber_data->user_id)) ?? '-' : '-' }}</p>
+                <div style="display: flex;justify-content:center;">
+                    {!! DNS2D::getBarcodeHTML((string) $order->order_number, 'QRCODE', 6, 6) !!}
+                </div>
+            </div>
+
+            {{-- Line Items --}}
+            <div class="section">
+                <table class="product-table">
+                    <tr>
+                        <td style="width:90%"><strong>MEDICATIONS</strong></td>
+                        <td style="width:10%"><strong>QTY</strong></td>
+                    </tr>
+                    <tbody>
+                        @foreach ($order->line_items as $item)
+                            @if (!empty($item['current_quantity']) && $item['current_quantity'] > 0)
+                                <tr>
+                                    <td>
+                                        {{ $item['title'] ?? 'N/A' }} 
+                                        <br>
+                                        {{ $item['direction_of_use'] ?? 'Not available' }}
+                                    </td>
+                                    <td>x {{ $item['current_quantity'] }}</td>
+                                </tr>
+                            @endif
+                        @endforeach
+                    </tbody>
+
+                </table>
+            </div>
+            <br>
+
+            <div style="text-align: center; margin-top: 10px;">
+                GPHC reg number: 9011933 {{ config('Site.location') }}<br>
+                Keep out of the reach and sight of children. Store in dry place and away from light<br><br>
+                <strong>Dispensed by:</strong> {{ auth()->user()->name }}<br>
+                <strong>Checked by:</strong> {{ auth()->user()->name }}<br>
+                <strong>Packed by:</strong> {{ auth()->user()->name }}
+            </div>
         </div>
 
         {{-- Page break between labels --}}
