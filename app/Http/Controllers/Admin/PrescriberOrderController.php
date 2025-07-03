@@ -25,7 +25,7 @@ class PrescriberOrderController extends Controller
     {
         $this->middleware(function ($request, $next) {
             if (!auth()->check() || !auth()->user()->hasRole('Prescriber')) {
-                abort(403, 'Access denied');CheckerOrderController
+                abort(403, 'Access denied');
             }
             return $next($request);
         })->except('index'); // <- This line skips index()

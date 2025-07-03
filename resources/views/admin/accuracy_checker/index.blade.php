@@ -556,17 +556,17 @@
                                 <td>${item.name}</td>
                                 <td>${item.quantity}</td>
                                 <td> £ ${item.price}</td>
-                              <td id="scan-result-${item.sku}">
-        <!-- Will fill this after scan -->
-    </td>
-    // <td>
-    //                                 <img src="${item.barcode_base64}" 
-    //                                      alt="Product Barcode"
-    //                                      class="product-barcode"
-    //                                      style="height: 60px;"
-    //                                      data-product-id="${item.product_id}"
-    //                                      data-order-id="${data.order.order_number}">
-    //                             </td>
+    //                           <td id="scan-result-${item.sku}">
+    //     <!-- Will fill this after scan -->
+    // </td>
+    <td>
+                                    <img src="${item.barcode_base64}" 
+                                         alt="Product Barcode"
+                                         class="product-barcode"
+                                         style="height: 60px;"
+                                         data-product-id="${item.product_id}"
+                                         data-order-id="${data.order.order_number}">
+                                </td>
                             </tr>`;
                             tbody.insertAdjacentHTML('beforeend', row);
                         });

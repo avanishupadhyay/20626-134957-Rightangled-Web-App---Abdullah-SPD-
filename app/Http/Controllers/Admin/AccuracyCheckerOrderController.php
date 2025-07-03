@@ -228,7 +228,7 @@ class AccuracyCheckerOrderController extends Controller
 
             // Step 2: Fulfill via Shopify API
             fulfillShopifyOrder($order->order_number); // Your custom logic
-            triggerShopifyTimelineNote($order->order_number);
+            // triggerShopifyTimelineNote($order->order_number);
 
             // Step 3: Get current user role (optional safety)
             $roleName = auth()->user()?->roles?->first()?->name ?? 'unknown';
