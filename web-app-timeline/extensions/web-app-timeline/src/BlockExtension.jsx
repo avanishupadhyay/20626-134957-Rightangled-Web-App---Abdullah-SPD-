@@ -52,15 +52,6 @@ function App() {
  
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
- 
-  if (window.location.hostname === "localhost") {
-    BASE_URL = "http://localhost:5000/api";
-  } else if (window.location.hostname === "rightangled.24livehost.com") {
-    BASE_URL = "https://rightangled.24livehost.com/api";
-  } else {
-    // Default to production
-    BASE_URL = "https://yoursite.com/api";
-  }
 
   useEffect(() => {
     if (!orderId) {
@@ -74,7 +65,7 @@ function App() {
  
       try {
         const response = await fetch(
-           `${BASE_URL}/prescriber/audit-logs/order`,
+          'https://rightangled.24livehost.com/api/prescriber/audit-logs/order',
           {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
