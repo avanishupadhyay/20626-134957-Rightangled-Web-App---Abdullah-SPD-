@@ -330,7 +330,15 @@ class DispenserOrderController extends Controller
                 }
             }
             
-        $exe = 'C:\\Program Files\\gs\\gs10.05.1\\bin\\gswin64c.exe';
+        // Detect OS
+        if (stripos(PHP_OS, 'WIN') === 0) {
+            // Windows path
+            $exe = 'C:\\Program Files\\gs\\gs10.05.1\\bin\\gswin64c.exe';
+        } else {
+            // Linux path on cPanel
+            $exe = '/usr/bin/gs';
+        }
+        // $exe = 'C:\\Program Files\\gs\\gs10.05.1\\bin\\gswin64c.exe';
 
         $allFiles = array_merge([$first_path], $second_path);
         $escapedFiles = array_map('escapeshellarg', $allFiles);
@@ -341,14 +349,8 @@ class DispenserOrderController extends Controller
 
         exec($cmd, $output, $returnCode);
 
-        if ($returnCode === 0) {
-            echo "✅ Merged PDF saved at: $outputFile";
-        } else {
-            echo "❌ Merge failed with code $returnCode";
-        }
-// die;
 
-            // $outputPath = public_path('storage/shippments_pdf/merged_output.pdf');
+        // $outputPath = public_path('storage/shippments_pdf/merged_output.pdf');
         // $res = $this->mergePdfs($first_path,$second_path,$destinationPath);
         // pr($destinationPath);
         // die;
