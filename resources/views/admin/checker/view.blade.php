@@ -448,7 +448,7 @@
     <script>
         const loader = document.getElementById('loaderOverlay');
 
-        ['submit-approval', 'submit-reject', 'submit-hold'].forEach(id => {
+        ['submit-approval', 'submit-reject', 'submit-hold', 'submit-release'].forEach(id => {
             const button = document.getElementById(id);
             if (button) {
                 button.addEventListener('click', function() {

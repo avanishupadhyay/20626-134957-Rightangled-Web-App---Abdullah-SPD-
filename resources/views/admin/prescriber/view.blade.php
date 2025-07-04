@@ -479,19 +479,20 @@
                 </form>
             </div>
         </div>
+    </div>
+    
+@endsection
+@section('custom_js_scripts')
+    <script>
+        const loader = document.getElementById('loaderOverlay');
 
-    @endsection
-    @section('custom_js_scripts')
-        <script>
-            const loader = document.getElementById('loaderOverlay');
-
-            ['submit-approval', 'submit-reject', 'submit-hold'].forEach(id => {
-                const button = document.getElementById(id);
-                if (button) {
-                    button.addEventListener('click', function() {
-                        loader.style.display = 'flex';
-                    });
-                }
-            });
-        </script>
-    @endsection
+        ['submit-approval', 'submit-reject', 'submit-hold', 'submit-release'].forEach(id => {
+            const button = document.getElementById(id);
+            if (button) {
+                button.addEventListener('click', function() {
+                    loader.style.display = 'flex';s
+                });
+            }
+        });
+    </script>
+@endsection
