@@ -68,7 +68,7 @@
                         <div class="card-header d-flex justify-content-between align-items-center">
                             <strong>Approved Orders for Dispensing</strong>
                             <div id="dispenseSelectedWrapper" style="display: none;">
-                                <button type="submit" class="btn btn-success">Dispense Selected</button>
+                                <button type="submit" class="btn btn-success" id="selected-dispense">Dispense Selected</button>
                             </div>
                         </div>
                         <div class="card-body table-responsive">
@@ -164,3 +164,18 @@
         </script>
 
     @endsection
+    @section('custom_js_scripts')
+<script>
+        const loader = document.getElementById('loaderOverlay');
+
+        ['selected-dispense'].forEach(id => {
+            const button = document.getElementById(id);
+            if (button) {
+                button.addEventListener('click', function() {
+                    loader.style.display = 'flex';
+                });
+            }
+        });
+    </script>
+@endsection
+    
