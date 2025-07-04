@@ -70,10 +70,13 @@
                                 <td>{{ \Carbon\Carbon::parse($batch->created_at)->format('d/m/Y H:i') }}</td>
                                 <td> <a href="{{ route('dispenser.batches.download', $batch->id) }}"
                                         class="btn btn-sm btn-success"> <i class="fa fa-download"></i></a>
-                                  <button class="btn btn-sm btn-primary"
-    onclick="openAndPrintPDF('{{ asset('storage/' . $batch->pdf_path) }}')">
-    <i class="fa fa-print"></i>
-</button>
+                                    @php
+                                        $path = $batch->pdf_path ?? $batch->shipment_pdf_path;
+                                    @endphp
+                                    <button class="btn btn-sm btn-primary"
+                                        onclick="openAndPrintPDF('{{ asset('storage/' . $path) }}')">
+                                        <i class="fa fa-print"></i>
+                                    </button>
                                 </td>
                             </tr>
                         @endforeach
