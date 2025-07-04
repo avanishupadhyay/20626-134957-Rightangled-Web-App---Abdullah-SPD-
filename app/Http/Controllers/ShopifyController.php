@@ -271,6 +271,7 @@ class ShopifyController extends Controller
                 'order_id'             => $orderId,
                 'decision_status'      => 'release_hold',
                 'release_hold_reason'  => $reasonMessage,
+                'decision_timestamp' => now(),
             ]);
              $order = \App\Models\Order::where('order_number', $orderId)
             ->update(['fulfillment_status'=>null]);
