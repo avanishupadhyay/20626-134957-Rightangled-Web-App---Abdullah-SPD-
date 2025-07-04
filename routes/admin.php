@@ -70,6 +70,10 @@ Route::get('/orders', [OrderController::class, 'index'])->name('orders.index');
 Route::get('/orders/{id}/view', [OrderController::class, 'view'])->name('orders.view');
 Route::get('/orders/{order}/download-pdf', [OrderController::class, 'downloadPDF'])->name('orders.downloadPDF');
 // Route::get('/shopify/add-order-metafields/{orderId}', [OrderController::class, 'addMetafields']);
+Route::get('/batches', [OrderController::class, 'indexing'])->name('batches.index');
+Route::get('/batches/{batchId}/download', [OrderController::class, 'downloadBatchPdf'])->name('batches.download');
+Route::post('/batches/{batchId}/check-reprint', [OrderController::class, 'checkReprint'])->name('batches.checkReprint');
+
 
 //prescriber route
 Route::post('/orders/{orderId}/prescribe', [OrderController::class, 'overrideaction'])->name('orders.prescribe');
@@ -92,6 +96,7 @@ Route::post('Dispenser/orders/dispense', [DispenserOrderController::class, 'prin
 Route::get('/Qrcodedata', [DispenserOrderController::class, 'showQrData']);
 Route::get('/Dispenser/batches', [DispenserOrderController::class, 'listBatches'])->name('dispenser.batches.list');
 Route::get('/dispenser/batches/{batch}/download', [DispenserOrderController::class, 'download'])->name('dispenser.batches.download');
+Route::post('/dispenser/batches/{id}/increment-reprint', [DispenserOrderController::class, 'incrementReprint'])->name('batches.incrementReprint');
 
 //Accuracy Checker route
 Route::get('Accuracy-checker/orders', [AccuracyCheckerOrderController::class, 'index'])->name('accuracychecker_orders.index');

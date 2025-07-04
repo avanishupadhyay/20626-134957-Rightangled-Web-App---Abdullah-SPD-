@@ -18,6 +18,7 @@ use SimpleSoftwareIO\QrCode\Facades\QrCode;
 use Milon\Barcode\DNS2D;
 use Illuminate\Support\Facades\Log;
 use setasign\Fpdi\Fpdi;
+use Illuminate\Support\Carbon;
 
 
 
@@ -185,7 +186,7 @@ class DispenserOrderController extends Controller
         $orders = Order::whereIn('order_number', $orderNumbers)->get();
 
         $processedOrders = $orders->map(function ($order) {
-            
+
             $orderData = is_array($order->order_data)
                 ? $order->order_data
                 : json_decode($order->order_data, true);
@@ -218,12 +219,12 @@ class DispenserOrderController extends Controller
             // }elseif(isset($shippingAddress) && isset($shippingAddress['country']) && $shippingAddress['country'] != "United Kingdom"){
             //     // For International Shippment
 
-       
+
             $shippingDateAndTime = $shippingDateAndTime = \Carbon\Carbon::now('UTC')
                 ->addDay()
                 ->format('Y-m-d\TH:i:s \G\M\T\O');
-            $response = $this->createDHLShipment($authToken, $shipper, $destination, $orderData, $shippingDateAndTime,$order->order_number);
-          
+            $response = $this->createDHLShipment($authToken, $shipper, $destination, $orderData, $shippingDateAndTime, $order->order_number);
+
             // }
 
             // pr($orderData);die;
@@ -307,11 +308,11 @@ class DispenserOrderController extends Controller
         $filePath = "dispense_batches/{$fileName}";
 
         Storage::disk('public')->put($filePath, $pdf->output());
-        
+
 
         // Merge shipping label pdf 
         $first_path = public_path(Storage::url($filePath));
-       
+
         // $details = Order::where('order_number', $orders[0]['order_number'])->first();
         // $second_path = public_path(Storage::url($details->shipment_pdf_path));
         $s_path = "shippments_pdf/{$batch->batch_number}.pdf";
@@ -321,15 +322,15 @@ class DispenserOrderController extends Controller
         // pr($first_path);
 
         $second_path = [];
-            foreach ($orders as $key => $value) {
-                $details = Order::where('order_number', $value['order_number'])->first();
+        foreach ($orders as $key => $value) {
+            $details = Order::where('order_number', $value['order_number'])->first();
 
-                if ($details && $details->shipment_pdf_path) {
-                    $second_path[] = public_path(Storage::url($details->shipment_pdf_path));
-                    // $this->mergePdfs($first_path,$second_path,$destinationPath);
-                }
+            if ($details && $details->shipment_pdf_path) {
+                $second_path[] = public_path(Storage::url($details->shipment_pdf_path));
+                // $this->mergePdfs($first_path,$second_path,$destinationPath);
             }
-            
+        }
+
         // Detect OS
         if (stripos(PHP_OS, 'WIN') === 0) {
             // Windows path
@@ -343,9 +344,9 @@ class DispenserOrderController extends Controller
         $allFiles = array_merge([$first_path], $second_path);
         $escapedFiles = array_map('escapeshellarg', $allFiles);
 
-        $cmd = "\"$exe\" -dBATCH -dNOPAUSE -q -sDEVICE=pdfwrite -sOutputFile=" 
-        . escapeshellarg($outputFile) . " " 
-        . implode(' ', $escapedFiles);
+        $cmd = "\"$exe\" -dBATCH -dNOPAUSE -q -sDEVICE=pdfwrite -sOutputFile="
+            . escapeshellarg($outputFile) . " "
+            . implode(' ', $escapedFiles);
 
         exec($cmd, $output, $returnCode);
 
@@ -435,23 +436,23 @@ class DispenserOrderController extends Controller
     //     return $outputPath;
     // }
     function mergePdfs(array $pdfFiles, string $outputPath)
-{
-    $pdf = new Fpdi();
+    {
+        $pdf = new Fpdi();
 
-    foreach ($pdfFiles as $filePath) {
-        $pageCount = $pdf->setSourceFile($filePath);
+        foreach ($pdfFiles as $filePath) {
+            $pageCount = $pdf->setSourceFile($filePath);
 
-        for ($pageNo = 1; $pageNo <= $pageCount; $pageNo++) {
-            $templateId = $pdf->importPage($pageNo);
-            $size = $pdf->getTemplateSize($templateId);
+            for ($pageNo = 1; $pageNo <= $pageCount; $pageNo++) {
+                $templateId = $pdf->importPage($pageNo);
+                $size = $pdf->getTemplateSize($templateId);
 
-            $pdf->AddPage($size['orientation'], [$size['width'], $size['height']]);
-            $pdf->useTemplate($templateId);
+                $pdf->AddPage($size['orientation'], [$size['width'], $size['height']]);
+                $pdf->useTemplate($templateId);
+            }
         }
-    }
 
-    $pdf->Output('F', $outputPath);
-}
+        $pdf->Output('F', $outputPath);
+    }
 
 
     public function showQrData()
@@ -1134,7 +1135,7 @@ class DispenserOrderController extends Controller
         //     ]
         // ];
 
-       $data = [
+        $data = [
             "plannedShippingDateAndTime" => "2025-07-04T19:19:40 GMT+00:00",
             "pickup" => [
                 "isRequested" => false
@@ -1238,7 +1239,7 @@ class DispenserOrderController extends Controller
                         "weight" => 0.296,
                         "dimensions" => [
                             "length" => 1,
-                            "width" => 1,   
+                            "width" => 1,
                             "height" => 1
                         ]
                     ]
@@ -1275,7 +1276,7 @@ class DispenserOrderController extends Controller
             'Authorization' => 'Basic ' . base64_encode('apX2aQ3yA3kF3p:J^9kM@8nD@8pS@1y'),
         ])->post('https://express.api.dhl.com/mydhlapi/test/shipments', $data);
 
-      
+
         if (!$response->json()) {
             return response()->json(['error' => 'DHL API failed', 'details' => $response], 400);
         }
@@ -1300,10 +1301,10 @@ class DispenserOrderController extends Controller
         }
 
         $filePath = "{$folder}/{$fileName}";
-       
+
         Storage::disk('public')->put($filePath, $pdfContentCombined);
-        $order = Order::where('order_number',$orderId)->first();
-       
+        $order = Order::where('order_number', $orderId)->first();
+
         // Optional: Save PDF path to order if needed
         $order->shipment_pdf_path = $filePath; // Only if you have this column
 
@@ -1315,6 +1316,47 @@ class DispenserOrderController extends Controller
             'message' => 'Shipment created and saved successfully!',
             'shipment_tracking' => $shipmentTrackingNumber,
             'pdf_path' => $filePath,
+        ]);
+    }
+
+
+
+
+    public function incrementReprint($id)
+    {
+        $user = auth()->user();
+        $batchItems = OrderDispense::where('batch_id', $id)->get();
+
+        if ($batchItems->isEmpty()) {
+            return response()->json(['success' => false, 'message' => 'Batch not found'], 404);
+        }
+
+        // Check if already printed
+        $alreadyPrinted = $batchItems->firstWhere('reprint_count', '>=', 1);
+
+        if ($alreadyPrinted) {
+            return response()->json([
+                'success' => false,
+                'message' => 'This batch has already been printed. Please contact the admin.'
+            ], 403);
+        }
+
+        // Increment reprint_count for each item
+        foreach ($batchItems as $item) {
+            $item->increment('reprint_count');
+        }
+
+        // Log audit
+        AuditLog::create([
+            'user_id'   => $user->id,
+            'order_id'  => $id, // As requested: using batch_id in order_id column
+            'action'    => 'batch_print',
+            'details'   => "Order dispensed by {$user->name} on " . now()->format('d/m/Y \a\t H:i') . ".",
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Batch reprint count updated. Opening PDF for print...'
         ]);
     }
 }
