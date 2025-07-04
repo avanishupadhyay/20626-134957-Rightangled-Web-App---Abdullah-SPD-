@@ -175,6 +175,7 @@ class DispenserOrderController extends Controller
 
     public function printDispenseBatch(Request $request)
     {
+        ini_set('max_execution_time', 3000);
         $request->validate([
             'order_ids' => 'required|array|min:1',
         ]);
@@ -299,32 +300,51 @@ class DispenserOrderController extends Controller
 
         $pdf = PDF::loadHTML($pdfHtml)->setPaper('A4');
 
-        $fileName = "{$batch->batch_number}.pdf";
+        // $fileName = "{$batch->batch_number}.pdf";
+        $fileName = "dispense_label.pdf";
         $filePath = "dispense_batches/{$fileName}";
 
         Storage::disk('public')->put($filePath, $pdf->output());
-        $batch->update(['pdf_path' => $filePath]);
+        
 
         // Merge shipping label pdf 
-        // $first_path = public_path(Storage::url($filePath));
-        
+        $first_path = public_path(Storage::url($filePath));
+       
         // $details = Order::where('order_number', $orders[0]['order_number'])->first();
         // $second_path = public_path(Storage::url($details->shipment_pdf_path));
-
-        // $outputPath = public_path('storage/shippments_pdf/merged_output.pdf');
+        $s_path = "shippments_pdf/{$batch->batch_number}.pdf";
+        $outputFile = public_path("storage/$s_path");
+        $batch->update(['pdf_path' => $s_path]);
         // $this->mergePdfs([$first_path,$second_path],$outputPath);
         // pr($first_path);
 
-        // $second_path = [];
-        //     foreach ($orders as $key => $value) {
-        //         $details = Order::where('order_number', $value['order_number'])->first();
+        $second_path = [];
+            foreach ($orders as $key => $value) {
+                $details = Order::where('order_number', $value['order_number'])->first();
 
-        //         if ($details && $details->shipment_pdf_path) {
-        //             $second_path[] = public_path(Storage::url($details->shipment_pdf_path));
-        //             // $this->mergePdfs($first_path,$second_path,$destinationPath);
-        //         }
-        //     }
+                if ($details && $details->shipment_pdf_path) {
+                    $second_path[] = public_path(Storage::url($details->shipment_pdf_path));
+                    // $this->mergePdfs($first_path,$second_path,$destinationPath);
+                }
+            }
             
+        $exe = 'C:\\Program Files\\gs\\gs10.05.1\\bin\\gswin64c.exe';
+
+        $allFiles = array_merge([$first_path], $second_path);
+        $escapedFiles = array_map('escapeshellarg', $allFiles);
+
+        $cmd = "\"$exe\" -dBATCH -dNOPAUSE -q -sDEVICE=pdfwrite -sOutputFile=" 
+        . escapeshellarg($outputFile) . " " 
+        . implode(' ', $escapedFiles);
+
+        exec($cmd, $output, $returnCode);
+
+        if ($returnCode === 0) {
+            echo "✅ Merged PDF saved at: $outputFile";
+        } else {
+            echo "❌ Merge failed with code $returnCode";
+        }
+// die;
 
             // $outputPath = public_path('storage/shippments_pdf/merged_output.pdf');
         // $res = $this->mergePdfs($first_path,$second_path,$destinationPath);
@@ -1214,7 +1234,7 @@ class DispenserOrderController extends Controller
                         "weight" => 0.296,
                         "dimensions" => [
                             "length" => 1,
-                            "width" => 1,
+                            "width" => 1,   
                             "height" => 1
                         ]
                     ]
