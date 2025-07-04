@@ -42,17 +42,19 @@
         p {
             margin: 2px 0;
         }
-        
-        strong{
+
+        strong {
             color: #001CD7;
             font-size: 14px;
             /* font-weight: 500; */
         }
-        td{
-            font-size:13px;
+
+        td {
+            font-size: 13px;
         }
-         p{
-            font-size:13px;
+
+        p {
+            font-size: 13px;
         }
     </style>
 </head>
@@ -121,28 +123,44 @@
             <div class="page-break"></div>
         @endif
     @endforeach
-    */ 
-    
+    */
     ?>
 
 
-     @foreach ($processedOrders as $order)
+    @foreach ($processedOrders as $order)
         @php
             $prescriber_data = getPrescriberData($order->order_number);
             $order_data = $order->order_data;
             $method = $order_data['shipping_lines']['title'] ?? '';
-        @endphp 
+        @endphp
         <div class="order-block">
-            <div style="text-align: center;">
-                <p><strong>Reference </strong> {{ $order->name }}</p>
-                <p><strong>Prescription Date </strong> {{ isset($prescriber_data->updated_at) ? $prescriber_data->updated_at : '' }}</p>
-                <p><strong>Shipping method </strong> {{ $method }}</p>
-                <p><strong>Patient's DOB </strong> {{ $order->order_data['customer']['dob'] ?? 'N/A' }}</p>
-                <p><strong>Prescriber's Name </strong> {{ isset($prescriber_data->user_id) ? ucfirst(getUserName($prescriber_data->user_id)) ?? '-' : '-' }}</p>
-                <div style="display: flex;justify-content:center;">
-                    {!! DNS2D::getBarcodeHTML((string) $order->order_number, 'QRCODE', 6, 6) !!}
+            <table style="width: 100%;text-align:center">
+                <tr>
+                    <td>
+                        <p style="padding: 10px;"><strong>Reference </strong> {{ $order->name }}</p>
+                        <p style="padding: 10px;"><strong>Prescription Date </strong>
+                            {{ isset($prescriber_data->updated_at) ? $prescriber_data->updated_at : '' }}</p>
+                        <p style="padding: 10px;"><strong>Shipping method </strong> {{ $method }}</p>
+                        <p style="padding: 10px;"><strong>Patient's DOB </strong> {{ $order->order_data['customer']['dob'] ?? 'N/A' }}</p>
+                        <p style="padding: 10px;"><strong>Prescriber's Name </strong>
+                            {{ isset($prescriber_data->user_id) ? ucfirst(getUserName($prescriber_data->user_id)) ?? '-' : '-' }}
+                        </p>
+                    </td>
+                    <td>
+                        {!! DNS2D::getBarcodeHTML((string) $order->order_number, 'QRCODE', 6, 6) !!}
+                    </td>
+                </tr>
+            </table>
+            {{-- <div style="position: relative;display: flex;justify-content: space-around;">
+                <div>
+
                 </div>
-            </div>
+                <div>
+                    <div>
+
+                    </div>
+                </div>
+            </div> --}}
 
             {{-- Line Items --}}
             <div class="section">
@@ -156,9 +174,9 @@
                             @if (!empty($item['current_quantity']) && $item['current_quantity'] > 0)
                                 <tr>
                                     <td>
-                                        {{ $item['title'] ?? 'N/A' }} 
+                                        {{ $item['title'] ?? 'N/A' }}
                                         <br>
-                                        {{ $item['direction_of_use'] ?? 'Not available' }}
+                                        {{ $item['direction_of_use'] ?? '' }}
                                     </td>
                                     <td>x {{ $item['current_quantity'] }}</td>
                                 </tr>

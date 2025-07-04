@@ -13,6 +13,7 @@ class DispenseBatch extends Model
         'batch_number',
         'user_id',
         'pdf_path',
+        'shipment_pdf_path'
     ];
 
     // Relationships

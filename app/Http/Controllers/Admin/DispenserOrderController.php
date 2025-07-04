@@ -8,6 +8,7 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Http;
 use App\Models\AuditLog;
 use App\Models\OrderAction;
+use App\Models\Store;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use App\Models\OrderDispense;
@@ -18,6 +19,7 @@ use SimpleSoftwareIO\QrCode\Facades\QrCode;
 use Milon\Barcode\DNS2D;
 use Illuminate\Support\Facades\Log;
 use setasign\Fpdi\Fpdi;
+use Carbon\Carbon;
 
 
 
@@ -34,7 +36,6 @@ class DispenserOrderController extends Controller
             return $next($request);
         })->except('index');
     }
-
 
     public function index(Request $request)
     {
@@ -92,86 +93,10 @@ class DispenserOrderController extends Controller
     public function view($id)
     {
         $order = Order::findOrFail($id);
-        // $orderMetafields = getOrderMetafields($order->order_number) ?? null;
-
         $orderData = json_decode($order->order_data, true);
         $auditDetails = getAuditLogDetailsForOrder($order->order_number) ?? null;
         return view('admin.dispenser.view', compact('order', 'orderData', 'auditDetails'));
     }
-
-    //original code old
-    // public function printDispenseBatch(Request $request)
-    // {
-    //     $request->validate([
-    //         'order_ids' => 'required|array|min:1',
-    //     ]);
-
-    //     $orderNumbers = $request->order_ids;
-
-    //     // Fetch orders
-    //     $orders = Order::whereIn('order_number', $orderNumbers)->get();
-
-    //     // Process and sort orders
-    //     $processedOrders = $orders->map(function ($order) {
-    //         $orderData = json_decode($order->order_data, true);
-    //         $lineItems = collect($orderData['line_items'] ?? [])->map(function ($item) {
-    //             $productId = $item['product_id'] ?? null;
-    //             $item['direction_of_use'] = $productId ? getProductMetafield($productId) : 'N/A';
-    //             return $item;
-    //         })
-    //             ->sortByDesc('quantity') // Highest quantity comes first
-    //             ->values();
-
-    //         $order->order_data = $orderData;
-    //         $order->line_items = $lineItems;
-    //         $order->total_quantity = $lineItems->sum('quantity');
-
-    //         return $order;
-    //     })
-    //         ->sortByDesc('total_quantity') // Orders with more total quantity come first
-    //         ->values();
-    //     // Create Dispense Batch
-    //     $batch = DispenseBatch::create([
-    //         'batch_number' => 'BATCH-' . now()->format('YmdHis') . '-' . Str::random(4),
-    //         'user_id' => auth()->id(),
-    //     ]);
-
-    //     // Generate PDF
-    //     $pdfHtml = view('admin.dispenser.dispenselabel', compact('processedOrders', 'batch'))->render();
-    //     $pdf = PDF::loadHTML($pdfHtml)->setPaper('A4');
-
-
-    //     $fileName = "{$batch->batch_number}.pdf";
-    //     $filePath = "dispense_batches/{$fileName}";
-
-    //     Storage::disk('public')->put($filePath, $pdf->output());
-    //     $batch->update(['pdf_path' => $filePath]);
-
-    //     // $batch->update(['pdf_path' => "storage/{$pdfFileName}"]);
-
-    //     // Log in OrderDispense
-    //     foreach ($processedOrders as $order) {
-    //         OrderDispense::create([
-    //             'order_id' => $order->order_number,
-    //             'batch_id' => $batch->id,
-    //             'dispensed_at' => now(),
-    //             'reprint_count' => 0,
-    //         ]);
-    //         AuditLog::create([
-    //             'user_id' => auth()->id(),
-    //             'action' => 'dispensed',
-    //             'order_id' => $order->order_number,
-    //             'details' => 'Order dispensed by ' . auth()->user()->name . ' on ' . now()->format('d/m/Y') . ' at ' . now()->format('H:i'),
-    //         ]);
-    //     }
-
-    //     // Step 4: Log
-
-
-    //     return redirect()->route('dispenser_orders.index')->with('success', 'Dispensing PDF generated and saved.');
-    // }
-
-    //code 19-06
 
     public function printDispenseBatch(Request $request)
     {
@@ -181,11 +106,10 @@ class DispenserOrderController extends Controller
         ]);
         $orderNumbers = $request->order_ids;
 
-
         $orders = Order::whereIn('order_number', $orderNumbers)->get();
 
         $processedOrders = $orders->map(function ($order) {
-            
+
             $orderData = is_array($order->order_data)
                 ? $order->order_data
                 : json_decode($order->order_data, true);
@@ -198,8 +122,8 @@ class DispenserOrderController extends Controller
 
 
             $authToken = '';
-            $shipper = (array) DB::table('stores')->first();
-
+            $shipper = Store::where('id',$order->store_id)->first()->toArray();
+           
             $destination = $shippingAddress;
 
             // $response = Http::withHeaders([
@@ -218,15 +142,13 @@ class DispenserOrderController extends Controller
             // }elseif(isset($shippingAddress) && isset($shippingAddress['country']) && $shippingAddress['country'] != "United Kingdom"){
             //     // For International Shippment
 
-       
-            $shippingDateAndTime = $shippingDateAndTime = \Carbon\Carbon::now('UTC')
+            $shippingDateAndTime = Carbon::now('Europe/Berlin')
                 ->addDay()
-                ->format('Y-m-d\TH:i:s \G\M\T\O');
-            $response = $this->createDHLShipment($authToken, $shipper, $destination, $orderData, $shippingDateAndTime,$order->order_number);
-          
+                ->format('Y-m-d\TH:i:s \G\M\TP');
+            $response = $this->createDHLShipment($authToken, $shipper, $destination, $orderData, $shippingDateAndTime, $order->order_number);
+
             // }
 
-            // pr($orderData);die;
             // Sort items by quantity (descending)
             $lineItems = collect($orderData['line_items'] ?? [])->map(function ($item) use ($order) {
                 $productId = $item['product_id'] ?? null;
@@ -291,69 +213,51 @@ class DispenserOrderController extends Controller
             'user_id' => auth()->id(),
         ]);
 
-
-        // Generate PDF
-        // pr($processedOrders->toArray());
-
-
-        // pr($batch->toArray());
-        // die;
         $pdfHtml = view('admin.dispenser.dispenselabel', compact('processedOrders', 'batch'))->render();
-
         $pdf = PDF::loadHTML($pdfHtml)->setPaper('A4');
-
-        // $fileName = "{$batch->batch_number}.pdf";
-        $fileName = "dispense_label.pdf";
+        $fileName = "{$batch->batch_number}.pdf";
         $filePath = "dispense_batches/{$fileName}";
-
         Storage::disk('public')->put($filePath, $pdf->output());
-        
+
 
         // Merge shipping label pdf 
         $first_path = public_path(Storage::url($filePath));
-       
-        // $details = Order::where('order_number', $orders[0]['order_number'])->first();
-        // $second_path = public_path(Storage::url($details->shipment_pdf_path));
         $s_path = "shippments_pdf/{$batch->batch_number}.pdf";
         $outputFile = public_path("storage/$s_path");
-        $batch->update(['pdf_path' => $s_path]);
-        // $this->mergePdfs([$first_path,$second_path],$outputPath);
-        // pr($first_path);
 
         $second_path = [];
-            foreach ($orders as $key => $value) {
-                $details = Order::where('order_number', $value['order_number'])->first();
-
-                if ($details && $details->shipment_pdf_path) {
-                    $second_path[] = public_path(Storage::url($details->shipment_pdf_path));
-                    // $this->mergePdfs($first_path,$second_path,$destinationPath);
-                }
+        foreach ($orders as $key => $value) {
+            $details = Order::where('order_number', $value['order_number'])->first();
+            if ($details && $details->shipment_pdf_path) {
+                $second_path[] = public_path(Storage::url($details->shipment_pdf_path));
             }
-            
-        // Detect OS
-        if (stripos(PHP_OS, 'WIN') === 0) {
-            // Windows path
-            $exe = 'C:\\Program Files\\gs\\gs10.05.1\\bin\\gswin64c.exe';
-        } else {
-            // Linux path on cPanel
-            $exe = '/usr/bin/gs';
         }
-        // $exe = 'C:\\Program Files\\gs\\gs10.05.1\\bin\\gswin64c.exe';
 
-        $allFiles = array_merge([$first_path], $second_path);
-        $escapedFiles = array_map('escapeshellarg', $allFiles);
+        if(isset($second_path) && is_array($second_path)){
+            // Detect OS
+            if (stripos(PHP_OS, 'WIN') === 0) {
+                // Windows path
+                $exe = 'C:\\Program Files\\gs\\gs10.05.1\\bin\\gswin64c.exe';
+            } else {
+                // Linux path on cPanel
+                $exe = '/usr/bin/gs';
+            }
+            // $exe = 'C:\\Program Files\\gs\\gs10.05.1\\bin\\gswin64c.exe';
 
-        $cmd = "\"$exe\" -dBATCH -dNOPAUSE -q -sDEVICE=pdfwrite -sOutputFile=" 
-        . escapeshellarg($outputFile) . " " 
-        . implode(' ', $escapedFiles);
+            $allFiles = array_merge([$first_path], $second_path);
+            $escapedFiles = array_map('escapeshellarg', $allFiles);
 
-        exec($cmd, $output, $returnCode);
+            $cmd = "\"$exe\" -dBATCH -dNOPAUSE -q -sDEVICE=pdfwrite -sOutputFile="
+                . escapeshellarg($outputFile) . " "
+                . implode(' ', $escapedFiles);
 
+            exec($cmd, $output, $returnCode);
+            $batch->update(['shipment_pdf_path' => $s_path]);
+        }else{
+            $batch->update(['pdf_path' => $filePath]);
+        }
+       
 
-        // $outputPath = public_path('storage/shippments_pdf/merged_output.pdf');
-        // $res = $this->mergePdfs($first_path,$second_path,$destinationPath);
-        // pr($destinationPath);
-        // die;
 
         foreach ($processedOrders as $order) {
             OrderDispense::create([
@@ -386,8 +290,6 @@ class DispenserOrderController extends Controller
             );
         }
 
-        // $orderGIDs = $processedOrders->pluck('order_number')->map(fn($id) => "gid://shopify/Order/{$id}")->toArray();
-        // bulkAddShopifyTagsAndNotes($orderGIDs, 'dispensed',$order->id);
         $orderGIDsWithStoreIds = $processedOrders->map(function ($order) {
             return [
                 'gid' => "gid://shopify/Order/{$order->order_number}",
@@ -398,60 +300,28 @@ class DispenserOrderController extends Controller
 
         bulkAddShopifyTagsAndNotes($orderGIDsWithStoreIds, 'dispensed');
 
-
-        // return $pdf->stream("{$batch->batch_number}.pdf"); // force download
-        // return view('admin.dispenser.dispenselabel', compact('processedOrders', 'batch'));
-
         return redirect()->route('dispenser.batches.list')->with('success', 'Dispensing PDF generated and ready to download');
     }
 
 
-    // function mergePdfs($originalPdfPath, $pdfToAppendPath, $outputPath)
-    // {
-    //     $pdf = new FPDI();
-
-    //     // Add original PDF
-    //     $pageCount = $pdf->setSourceFile($originalPdfPath);
-    //     for ($pageNo = 1; $pageNo <= $pageCount; $pageNo++) {
-    //         $templateId = $pdf->importPage($pageNo);
-    //         $size = $pdf->getTemplateSize($templateId);
-
-    //         $pdf->AddPage($size['orientation'], [$size['width'], $size['height']]);
-    //         $pdf->useTemplate($templateId);
-    //     }
-
-    //     // Append another PDF
-    //     $pageCount = $pdf->setSourceFile($pdfToAppendPath);
-    //     for ($pageNo = 1; $pageNo <= $pageCount; $pageNo++) {
-    //         $templateId = $pdf->importPage($pageNo);
-    //         $size = $pdf->getTemplateSize($templateId);
-
-    //         $pdf->AddPage($size['orientation'], [$size['width'], $size['height']]);
-    //         $pdf->useTemplate($templateId);
-    //     }
-
-    //     // Output the combined PDF
-    //     $pdf->Output('F', $outputPath); // 'F' = save to file
-    //     return $outputPath;
-    // }
     function mergePdfs(array $pdfFiles, string $outputPath)
-{
-    $pdf = new Fpdi();
+    {
+        $pdf = new Fpdi();
 
-    foreach ($pdfFiles as $filePath) {
-        $pageCount = $pdf->setSourceFile($filePath);
+        foreach ($pdfFiles as $filePath) {
+            $pageCount = $pdf->setSourceFile($filePath);
 
-        for ($pageNo = 1; $pageNo <= $pageCount; $pageNo++) {
-            $templateId = $pdf->importPage($pageNo);
-            $size = $pdf->getTemplateSize($templateId);
+            for ($pageNo = 1; $pageNo <= $pageCount; $pageNo++) {
+                $templateId = $pdf->importPage($pageNo);
+                $size = $pdf->getTemplateSize($templateId);
 
-            $pdf->AddPage($size['orientation'], [$size['width'], $size['height']]);
-            $pdf->useTemplate($templateId);
+                $pdf->AddPage($size['orientation'], [$size['width'], $size['height']]);
+                $pdf->useTemplate($templateId);
+            }
         }
-    }
 
-    $pdf->Output('F', $outputPath);
-}
+        $pdf->Output('F', $outputPath);
+    }
 
 
     public function showQrData()
@@ -497,31 +367,7 @@ class DispenserOrderController extends Controller
         return view('admin.dispenser.batches.list', compact('batches'));
     }
 
-    // public function getRoyalMailToken()
-    // {
-    //     try {
-    //         $client = new \GuzzleHttp\Client();
-
-    //         $response = $client->post('https://api.royalmail.net/shipping/v3/token', [
-    //             'form_params' => [
-    //                 'grant_type' => 'client_credentials',
-    //                 'client_id' => env('ROYALMAIL_CLIENT_ID'),
-    //                 'client_secret' => env('ROYALMAIL_CLIENT_SECRET'),
-    //             ],
-    //             'headers' => [
-    //                 'Content-Type' => 'application/x-www-form-urlencoded',
-    //             ]
-    //         ]);
-
-    //         $data = json_decode($response->getBody(), true);
-    //         dd($data['access_token']);
-    //     } catch (\Exception $e) {
-    //         \Log::error('Royal Mail Token Error: ' . $e->getMessage());
-    //         dd("error");
-
-    //         return null;
-    //     }
-    // }
+  
     public function getRoyalMailToken()
     {
         try {
@@ -537,217 +383,31 @@ class DispenserOrderController extends Controller
                 return $response->json()['access_token'] ?? null;
             }
 
-            \Log::error('Royal Mail token request failed: ' . $response->body());
+            Log::error('Royal Mail token request failed: ' . $response->body());
             return null;
         } catch (\Exception $e) {
-            \Log::error('Royal Mail Token Error: ' . $e->getMessage());
+            Log::error('Royal Mail Token Error: ' . $e->getMessage());
             return null;
         }
     }
-
-    // private function createDHLShippingLabel($order)
-    // {
-    //     $orderData = $order;
-    //     // dd($orderData);
-
-    //     $shipper = [
-    //         'name'       => 'Demo DS',
-    //         'company'    => 'DS Ecom',
-    //         'phone'      => '0123456789',
-    //         'address'    => [
-    //             'streetLines' => ['123 Shipper Street'],
-    //             'city'        => 'London',
-    //             'postalCode'  => 'E1 6AN',
-    //             'countryCode' => 'GB'
-    //         ],
-    //         'email'      => 'support@yourcompany.com'
-    //     ];
-
-    //     $recipientAddress = $orderData['shipping_address'] ?? [];
-
-    //     $recipient = [
-    //         'name'       => $recipientAddress['name'] ?? 'Customer',
-    //         'phone'      => $recipientAddress['phone'] ?? '0000000000',
-    //         'address'    => [
-    //             'streetLines' => [$recipientAddress['address1'] ?? '', $recipientAddress['address2'] ?? ''],
-    //             'city'        => $recipientAddress['city'] ?? '',
-    //             'postalCode'  => $recipientAddress['zip'] ?? '',
-    //             'countryCode' => strtoupper($recipientAddress['country_code'] ?? 'US')
-    //         ],
-    //         'email'      => $orderData['email'] ?? 'unknown@example.com'
-    //     ];
-
-    //     $payload = [
-    //         'plannedShippingDateAndTime' => now()->addDay()->toIso8601String(),
-    //         'productCode' => 'P', // Express Worldwide
-    //         'payerAccountNumber' => env('DHL_ACCOUNT_NUMBER'),
-    //         'customerDetails' => [
-    //             'shipperDetails' => $shipper,
-    //             'receiverDetails' => $recipient,
-    //         ],
-    //         'content' => [
-    //             'packages' => [
-    //                 [
-    //                     'weight' => 1,
-    //                     'dimensions' => [
-    //                         'length' => 10,
-    //                         'width' => 10,
-    //                         'height' => 10
-    //                     ]
-    //                 ]
-    //             ],
-    //             'description' => 'Medical Order - ' . $orderData['id']
-    //         ],
-    //         'outputImageProperties' => [
-    //             'printerDPI' => 300,
-    //             'encodingFormat' => 'PDF'
-    //         ]
-    //     ];
-
-    //     try {
-    //         $client = new \GuzzleHttp\Client();
-    //         $response = $client->post('https://api-eu.dhl.com/shipments', [
-    //             'headers' => [
-    //                 'DHL-API-Key'       => env('DHL_API_KEY'), // Use config() instead of env() directly
-    //                 'Subscription-Key'  => env('DHL_SUBS_KEY'), // Include if needed
-    //                 'Message-Reference' => uniqid('ref_', true),
-    //                 'Message-Reference-Date' => now()->toIso8601String(),
-    //                 'Content-Type'      => 'application/json',
-    //                 'Accept'            => 'application/json',
-    //             ],
-    //             'json' => $payload,
-    //             'timeout' => 15, // optional: timeout for request
-    //         ]);
-
-    //         $body = json_decode($response->getBody(), true);
-    //         dd($body);
-
-    //         // Extract base64 PDF label and save to storage
-    //         $base64 = $body['label']['labelData'] ?? null;
-    //         if ($base64) {
-    //             $filePath = 'shipping_labels/DHL_' . $order->order_number . '.pdf';
-    //             Storage::disk('public')->put($filePath, base64_decode($base64));
-    //             return storage_path('app/public/' . $filePath); // Full path to saved label
-    //         } else {
-    //             return null;
-    //         }
-    //     } catch (\Exception $e) {
-    //         dd("error");
-    //         \Log::error('DHL Label Creation Failed: ' . $e->getMessage());
-    //                     dd("error");
-
-    //         return null;
-    //     }
-    // }
-
-    // public function generateDgfShipmentLabel()
-    // {
-    //     try {
-    //         $client = new \GuzzleHttp\Client();
-
-    //         $response = $client->post('https://api-sandbox.dhl.com/dgff/transportation/shipment-label', [
-    //             'headers' => [
-    //                 'Authorization' => 'Bearer ' . env('DHL_DGF_TOKEN'), // Replace with actual token
-    //                 'Content-Type' => 'application/json',
-    //                 'Accept' => 'application/octet-stream', // For binary response
-    //             ],
-    //             'json' => [
-    //                 'shipmentID' => 'S21000645937',
-    //                 'housebillNumber' => '8FE7018',
-    //                 'additionalInformation' => 'This is a test label',
-    //                 'mimeType' => 'pdf',
-    //                 'acceptContentType' => 'application/octet-stream',
-    //             ],
-    //             'stream' => true, // Important for binary download
-    //         ]);
-
-    //         // Save PDF locally
-    //         $pdfPath = storage_path('app/public/dgf_labels/label_' . now()->format('YmdHis') . '.pdf');
-    //         Storage::disk('public')->put('dgf_labels/label_' . now()->format('YmdHis') . '.pdf', $response->getBody());
-
-    //         return response()->json(['success' => true, 'message' => 'Label downloaded successfully.', 'path' => $pdfPath]);
-    //     } catch (\Exception $e) {
-    //         \Log::error('DGF Label Error: ' . $e->getMessage());
-    //         return response()->json(['error' => 'Failed to generate DGF label.'], 500);
-    //     }
-    // }
-
-    //     public function generateRoyalMailLabelFromShopify($order)
-    // {
-    //     $token =env('AUTH_TOKEN'); // From earlier
-
-    //     if (!$token) {
-    //         throw new \Exception("Royal Mail auth token failed.");
-    //     }
-
-    //     $orderData = $order;
-    //     $recipient = [
-    //         'name' => $orderData['shipping_address']['name'] ?? '',
-    //         'telephoneNumber' => $orderData['shipping_address']['phone'] ?? '07000000000',
-    //         'emailAddress' => $orderData['email'] ?? 'support@example.com',
-    //         'addressLine1' => $orderData['shipping_address']['address1'] ?? '',
-    //         'postTown' => $orderData['shipping_address']['city'] ?? '',
-    //         'postcode' => $orderData['shipping_address']['zip'] ?? '',
-    //         'countryCode' => strtoupper($orderData['shipping_address']['country_code'] ?? 'GB'),
-    //     ];
-
-    //     $payload = [
-    //         "shipment" => [
-    //             "shipmentNumber" => "ORD-" . $order['id'],
-    //             "shipmentDate" => now()->format('Y-m-d'),
-    //             "serviceCode" => "TPND", // or your agreed service code
-    //             "recipientContact" => $recipient,
-    //             "recipientAddress" => $recipient,
-    //             "senderReference" => $order['id'],
-    //             "items" => [
-    //                 [
-    //                     "weight" => 0.5,
-    //                     "packageFormat" => "PARCEL"
-    //                 ]
-    //             ]
-    //         ]
-    //     ];
-
-    //     $client = new \GuzzleHttp\Client();
-
-    //     $response = $client->post('https://api.royalmail.net/shipping/v3/shipments', [
-    //         'headers' => [
-    //             'Authorization' => "Bearer $token",
-    //             'Content-Type' => 'application/json',
-    //         ],
-    //         'json' => $payload
-    //     ]);
-
-    //     $data = json_decode($response->getBody(), true);
-    // dd($data);
-    //     // Example: extract label URL or PDF
-    //     return $data; // Later you'll extract label from here
-    // }
 
     public function download($id)
     {
         $batch = DispenseBatch::findOrFail($id);
-
-        if (!$batch->pdf_path || !Storage::disk('public')->exists($batch->pdf_path)) {
+        $path = $batch->pdf_path ?? $batch->shipment_pdf_path;
+        if (!$path || !Storage::disk('public')->exists($path)) {
             return redirect()->back()->with('error', 'PDF not found for this batch.');
         }
 
-        return Storage::disk('public')->download($batch->pdf_path);
+        return Storage::disk('public')->download($path);
     }
 
-    // try {
-    //     $response = createRoyalMailShipment($shipmentData, 'your_access_token_here');
-    //     dd($response); // Show success response
-    // } catch (\Exception $e) {
-    //     dd($e->getMessage()); // Show error if any
-    // }
 
     function createRoyalMailShipment(string $authToken, $shipper, $destination, $orderData)
     {
         $items = $orderData['line_items'];
         $url = 'https://api.royalmail.net/shipping/v3/shipments';
-        // pr($destination);die; 
-        // dd($shipper);
+     
         $shipmentData = [
             "Shipper" => [
                 "AddressId" => $shipper['AddressId'] ?? '',
@@ -1134,8 +794,8 @@ class DispenserOrderController extends Controller
         //     ]
         // ];
 
-       $data = [
-            "plannedShippingDateAndTime" => "2025-07-04T19:19:40 GMT+00:00",
+        $data = [
+            "plannedShippingDateAndTime" => $shippingDateAndTime,
             "pickup" => [
                 "isRequested" => false
             ],
@@ -1238,7 +898,7 @@ class DispenserOrderController extends Controller
                         "weight" => 0.296,
                         "dimensions" => [
                             "length" => 1,
-                            "width" => 1,   
+                            "width" => 1,
                             "height" => 1
                         ]
                     ]
@@ -1275,7 +935,7 @@ class DispenserOrderController extends Controller
             'Authorization' => 'Basic ' . base64_encode('apX2aQ3yA3kF3p:J^9kM@8nD@8pS@1y'),
         ])->post('https://express.api.dhl.com/mydhlapi/test/shipments', $data);
 
-      
+
         if (!$response->json()) {
             return response()->json(['error' => 'DHL API failed', 'details' => $response], 400);
         }
@@ -1300,10 +960,10 @@ class DispenserOrderController extends Controller
         }
 
         $filePath = "{$folder}/{$fileName}";
-       
+
         Storage::disk('public')->put($filePath, $pdfContentCombined);
-        $order = Order::where('order_number',$orderId)->first();
-       
+        $order = Order::where('order_number', $orderId)->first();
+
         // Optional: Save PDF path to order if needed
         $order->shipment_pdf_path = $filePath; // Only if you have this column
 
