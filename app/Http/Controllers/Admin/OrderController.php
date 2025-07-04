@@ -29,9 +29,9 @@ class OrderController extends Controller
     public function index(Request $request)
     {
         // $query = Order::query();
-         $query = Order::with(['orderaction' => function ($q) {
-                        $q->orderBy('id', 'DESC');
-                    },'store']);
+        $query = Order::with(['orderaction' => function ($q) {
+            $q->orderBy('id', 'DESC');
+        }, 'store']);
 
         // Search by name, email or order number
         if ($request->filled('search')) {
@@ -66,15 +66,15 @@ class OrderController extends Controller
     public function view($id)
     {
         $order = Order::findOrFail($id);
-        $orderMetafields = getOrderMetafields($order->order_number) ?? null;
+        // $orderMetafields = getOrderMetafields($order->order_number) ?? null;
 
         $orderData = json_decode($order->order_data, true);
 
         // $url = $this->getMediaImageUrlFromGid($orderMetafields['prescriber_s_signature']);
         // dd($url);
+        $auditDetails = getAuditLogDetailsForOrder($order->order_number) ?? null;
 
-
-        return view('admin.orders.view', compact('order', 'orderData', 'orderMetafields'));
+        return view('admin.orders.view', compact('order', 'orderData', 'auditDetails'));
     }
 
 
@@ -92,7 +92,7 @@ class OrderController extends Controller
             $title = $item['title'];
             $quantity = $item['quantity'];
 
-            $directionOfUse = getProductMetafield($productId,$orderId); // Shopify API call
+            $directionOfUse = getProductMetafield($productId, $orderId); // Shopify API call
 
             $items[] = [
                 'title' => $title,
@@ -201,11 +201,9 @@ class OrderController extends Controller
             'release_hold_reason' => 'required_if:decision_status,release_hold',
         ]);
         $decisionStatus = $request->decision_status;
-        $metafieldsInput = metaiFieldAdmin($request, $decisionStatus,$orderId);
-        
-        // $shopDomain = env('SHOP_DOMAIN');
-        // $accessToken = env('ACCESS_TOKEN');
-        [$shopDomain, $accessToken] = array_values(getShopifyCredentialsByOrderId($orderId));
+        // $metafieldsInput = metaiFieldAdmin($request, $decisionStatus, $orderId);
+
+        // [$shopDomain, $accessToken] = array_values(getShopifyCredentialsByOrderId($orderId));
         // ['shopDomain' => $shopDomain, 'accessToken' => $accessToken] = getShopifyCredentialsByOrderId($orderId);
         $roleName = auth()->user()->getRoleNames()->first(); // Returns string or null
 
@@ -220,39 +218,39 @@ class OrderController extends Controller
             //         'metafield' => $field
             //     ]);
             // }
-            $query = <<<'GRAPHQL'
-                    mutation metafieldsSet($metafields: [MetafieldsSetInput!]!) {
-                    metafieldsSet(metafields: $metafields) {
-                        metafields {
-                        key
-                        namespace
-                        id
-                        }
-                        userErrors {
-                        field
-                        message
-                        }
-                    }
-                    }
-                    GRAPHQL;
-            Http::withHeaders([
-                'X-Shopify-Access-Token' => $accessToken,
-                'Content-Type' => 'application/json',
-            ])->post("{$shopDomain}/admin/api/2023-10/graphql.json", [
-                'query' => $query,
-                'variables' => [
-                    'metafields' => $metafieldsInput
-                ]
-            ]);
+            // $query = <<<'GRAPHQL'
+            //         mutation metafieldsSet($metafields: [MetafieldsSetInput!]!) {
+            //         metafieldsSet(metafields: $metafields) {
+            //             metafields {
+            //             key
+            //             namespace
+            //             id
+            //             }
+            //             userErrors {
+            //             field
+            //             message
+            //             }
+            //         }
+            //         }
+            //         GRAPHQL;
+            // Http::withHeaders([
+            //     'X-Shopify-Access-Token' => $accessToken,
+            //     'Content-Type' => 'application/json',
+            // ])->post("{$shopDomain}/admin/api/2023-10/graphql.json", [
+            //     'query' => $query,
+            //     'variables' => [
+            //         'metafields' => $metafieldsInput
+            //     ]
+            // ]);
 
             if ($decisionStatus === 'approved') {
                 triggerShopifyTimelineNote($orderId);
             }
             // Step 2: Take action based on decision
             if ($decisionStatus === 'on_hold') {
-             
+
                 markFulfillmentOnHold($orderId, $request->on_hold_reason);
-                $data=Order::where('order_number', $orderId)->update([
+                $data = Order::where('order_number', $orderId)->update([
                     'fulfillment_status' => 'on_hold',
                 ]);
             } elseif ($decisionStatus === 'rejected') {
@@ -297,7 +295,7 @@ class OrderController extends Controller
                     'on_hold_reason' => $request->on_hold_reason,
                     'release_hold_reason' => $request->release_hold_reason,
                     'decision_timestamp' => now(),
-                    'role'=>$roleName
+                    'role' => $roleName
 
                 ]
             );

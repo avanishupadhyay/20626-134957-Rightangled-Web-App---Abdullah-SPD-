@@ -186,12 +186,24 @@ class CheckerOrderController extends Controller
     public function view($id)
     {
         $order = Order::findOrFail($id);
-        $orderMetafields = getOrderMetafields($order->order_number) ?? null;
+        // $orderMetafields = getOrderMetafields($order->order_number) ?? null;
         // dd($orderMetafields);
 
         $orderData = json_decode($order->order_data, true);
-        return view('admin.checker.view', compact('order', 'orderData', 'orderMetafields'));
+        $auditDetails = getAuditLogDetailsForOrder($order->order_number) ?? null;
+
+        return view('admin.checker.view', compact('order', 'orderData', 'auditDetails'));
     }
+    // public function view($id)
+    // {
+    //     $order = Order::findOrFail($id);
+    //     $orderMetafields = getOrderMetafields($order->order_number) ?? null;
+    //     $orderData = json_decode($order->order_data, true);
+
+    //     $pdfAttachments = getShopifyTimelineAttachments($order->order_number);
+
+    //     return view('admin.checker.view', compact('order', 'orderData', 'orderMetafields', 'pdfAttachments'));
+    // }
 
 
 
@@ -246,13 +258,13 @@ class CheckerOrderController extends Controller
 
         $decisionStatus = $request->decision_status;
 
-        $metafieldsInput = buildCommonMetafieldsChecker($request, $decisionStatus);
+        // $metafieldsInput = buildCommonMetafieldsChecker($request, $decisionStatus);
 
-        [$shopDomain, $accessToken] = array_values(getShopifyCredentialsByOrderId($orderId));
+        // [$shopDomain, $accessToken] = array_values(getShopifyCredentialsByOrderId($orderId));
 
         $roleName = auth()->user()->getRoleNames()->first(); // Returns string or null
 
-        ['shopDomain' => $shopDomain, 'accessToken' => $accessToken] = getShopifyCredentialsByOrderId($orderId);
+        // ['shopDomain' => $shopDomain, 'accessToken' => $accessToken] = getShopifyCredentialsByOrderId($orderId);
 
         DB::beginTransaction();
         try {
@@ -265,33 +277,33 @@ class CheckerOrderController extends Controller
             //         'metafield' => $field
             //     ]);
             // }
-            $query = <<<'GRAPHQL'
-                    mutation metafieldsSet($metafields: [MetafieldsSetInput!]!) {
-                    metafieldsSet(metafields: $metafields) {
-                        metafields {
-                        key
-                        namespace
-                        id
-                        }
-                        userErrors {
-                        field
-                        message
-                        }
-                    }
-                    }
-                    GRAPHQL;
-            Http::withHeaders([
-                'X-Shopify-Access-Token' => $accessToken,
-                'Content-Type' => 'application/json',
-            ])->post("{$shopDomain}/admin/api/2023-10/graphql.json", [
-                'query' => $query,
-                'variables' => [
-                    'metafields' => $metafieldsInput
-                ]
-            ]);
+            // $query = <<<'GRAPHQL'
+            //         mutation metafieldsSet($metafields: [MetafieldsSetInput!]!) {
+            //         metafieldsSet(metafields: $metafields) {
+            //             metafields {
+            //             key
+            //             namespace
+            //             id
+            //             }
+            //             userErrors {
+            //             field
+            //             message
+            //             }
+            //         }
+            //         }
+            //         GRAPHQL;
+            // Http::withHeaders([
+            //     'X-Shopify-Access-Token' => $accessToken,
+            //     'Content-Type' => 'application/json',
+            // ])->post("{$shopDomain}/admin/api/2023-10/graphql.json", [
+            //     'query' => $query,
+            //     'variables' => [
+            //         'metafields' => $metafieldsInput
+            //     ]
+            // ]);
 
             if ($decisionStatus === 'approved') {
-                triggerShopifyTimelineNote($orderId);
+                // triggerShopifyTimelineNote($orderId);
                 $template = EmailTemplate::where('identifier', 'checker_approved')->first();
             }
 

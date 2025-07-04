@@ -92,11 +92,11 @@ class DispenserOrderController extends Controller
     public function view($id)
     {
         $order = Order::findOrFail($id);
-        $orderMetafields = getOrderMetafields($order->order_number) ?? null;
+        // $orderMetafields = getOrderMetafields($order->order_number) ?? null;
 
         $orderData = json_decode($order->order_data, true);
-
-        return view('admin.dispenser.view', compact('order', 'orderData', 'orderMetafields'));
+        $auditDetails = getAuditLogDetailsForOrder($order->order_number) ?? null;
+        return view('admin.dispenser.view', compact('order', 'orderData', 'auditDetails'));
     }
 
     //original code old
@@ -217,11 +217,13 @@ class DispenserOrderController extends Controller
             //     $response = $this->createRoyalMailShipment($authToken, $shipper, $destination, $orderData);
             // }elseif(isset($shippingAddress) && isset($shippingAddress['country']) && $shippingAddress['country'] != "United Kingdom"){
             //     // For International Shippment
+
+       
             $shippingDateAndTime = $shippingDateAndTime = \Carbon\Carbon::now('UTC')
                 ->addDay()
                 ->format('Y-m-d\TH:i:s \G\M\T\O');
             $response = $this->createDHLShipment($authToken, $shipper, $destination, $orderData, $shippingDateAndTime,$order->order_number);
-           
+          
             // }
 
             // pr($orderData);die;
@@ -1130,7 +1132,7 @@ class DispenserOrderController extends Controller
         //     ]
         // ];
 
-        $data = [
+       $data = [
             "plannedShippingDateAndTime" => "2025-07-04T19:19:40 GMT+00:00",
             "pickup" => [
                 "isRequested" => false
@@ -1271,7 +1273,7 @@ class DispenserOrderController extends Controller
             'Authorization' => 'Basic ' . base64_encode('apX2aQ3yA3kF3p:J^9kM@8nD@8pS@1y'),
         ])->post('https://express.api.dhl.com/mydhlapi/test/shipments', $data);
 
-        
+      
         if (!$response->json()) {
             return response()->json(['error' => 'DHL API failed', 'details' => $response], 400);
         }

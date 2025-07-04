@@ -52,10 +52,9 @@
         @endif --}}
         @if (!$statuses['is_cancelled'])
             <div class="m-3">
-                 @if ($statuses['fulfillment_status'] === 'on_hold')
+                @if ($statuses['fulfillment_status'] === 'on_hold')
                     <button class="btn btn-info" data-bs-toggle="modal" data-bs-target="#releaseHoldModal">Release
                         Hold</button>
-
                 @elseif (is_null($statuses['fulfillment_status']) &&
                         (is_null($statuses['latest_decision_status']) || $statuses['latest_decision_status'] === 'release_hold'))
                     <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#approveModal">Approve</button>
@@ -223,7 +222,7 @@
                 </div>
             </div>
 
-            @php
+            {{-- @php
                 $hasData = collect($orderMetafields)->filter(fn($v) => !empty($v))->isNotEmpty();
             @endphp
 
@@ -244,12 +243,10 @@
                                         @endphp
 
                                         @if ($imageUrl)
-                                            {{-- <p><strong>Prescriber’s Signature:</strong></p> --}}
                                             <img src="{{ $imageUrl }}" alt="Signature" style="max-height: 100px;">
                                         @else
                                             <p><em>(Image not found)</em></p>
                                         @endif
-                                        {{-- <p><em>(Image GID: {{ $value }})</em></p> --}}
                                     @elseif (filter_var($value, FILTER_VALIDATE_URL))
                                         <a href="{{ $value }}" target="_blank" rel="noopener noreferrer">Click Here
                                             <i class="fa-solid fa-up-right-from-square"></i></a>
@@ -263,189 +260,224 @@
                         @endif
                     </div>
                 </div>
+            </div> --}}
+            <div class="col-md-6">
+                <div class="card" style="max-height: 400px; overflow-y: auto;">
+                    <div class="card-header">
+                       <strong> Order Timeline</strong>
+                    </div>
+                    <div class="card-body">
+                        @if ($auditDetails['logs']->isEmpty())
+                            <p>No audit logs found for this order.</p>
+                        @else
+                            @foreach ($auditDetails['logs'] as $log)
+                                <div class="mb-3 border-bottom pb-2">
+                                    <div><strong>User:</strong> {{ $log->user_name }} ({{ $log->role_name }})</div>
+                                    <div><strong>Action:</strong> {{ ucfirst($log->action) }}</div>
+                                    <div><strong>Details:</strong> {{ $log->details }}</div>
+                                    <div><strong>Date:</strong>
+                                        {{ \Carbon\Carbon::parse($log->created_at)->format('d/m/Y h:i A') }}</div>
+                                </div>
+                            @endforeach
+                        @endif
+
+                        @if ($auditDetails['prescribed_pdf'])
+                            <div class="mt-3">
+                                <strong>Prescribed PDF:</strong>
+                                <a href="{{ $auditDetails['prescribed_pdf'] }}" target="_blank"
+                                    class="btn btn-sm btn-outline-primary">
+                                    🔗 View PDF
+                                </a>
+                            </div>
+                        @endif
+                    </div>
+                </div>
             </div>
-        </div>
 
-
-        <div class="card mb-4">
-            <div class="card-header"><strong>Customer Information</strong></div>
-            <div class="card-body">
-                <p><strong>Name:</strong> {{ $orderData['customer']['first_name'] ?? '' }}
-                    {{ $orderData['customer']['last_name'] ?? '' }}</p>
-                <p><strong>Email:</strong> {{ $orderData['customer']['email'] ?? ($orderData['email'] ?? 'N/A') }}</p>
-                <p><strong>Phone:</strong> {{ $orderData['customer']['phone'] ?? 'N/A' }}</p>
-                <p><strong>Note:</strong> {{ $orderData['customer']['note'] ?? 'N/A' }}</p>
-
-                <hr>
-
-                <p><strong>Default Address:</strong><br>
-                    {{ $orderData['customer']['default_address']['address1'] ?? '' }},
-                    {{ $orderData['customer']['default_address']['city'] ?? '' }},
-                    {{ $orderData['customer']['default_address']['province'] ?? '' }},
-                    {{ $orderData['customer']['default_address']['zip'] ?? '' }},
-                    {{ $orderData['customer']['default_address']['country'] ?? '' }}
-                </p>
-                <p><strong>Phone (Address):</strong> {{ $orderData['customer']['default_address']['phone'] ?? 'N/A' }}</p>
-
-                <hr>
-
-                <p><strong>Email Marketing Consent:</strong>
-                    {{ ucfirst($orderData['customer']['email_marketing_consent']['state'] ?? 'N/A') }}
-                    (Opt-in level: {{ $orderData['customer']['email_marketing_consent']['opt_in_level'] ?? 'N/A' }})
-                </p>
-
-                <p><strong>SMS Marketing Consent:</strong>
-                    {{ ucfirst($orderData['customer']['sms_marketing_consent']['state'] ?? 'N/A') }}
-                    (Opt-in level: {{ $orderData['customer']['sms_marketing_consent']['opt_in_level'] ?? 'N/A' }})
-                </p>
-
-                <p><strong>Tags:</strong> {{ $orderData['customer']['tags'] ?? 'N/A' }}</p>
             </div>
-        </div>
+
+
+            <div class="card mb-4">
+                <div class="card-header"><strong>Customer Information</strong></div>
+                <div class="card-body">
+                    <p><strong>Name:</strong> {{ $orderData['customer']['first_name'] ?? '' }}
+                        {{ $orderData['customer']['last_name'] ?? '' }}</p>
+                    <p><strong>Email:</strong> {{ $orderData['customer']['email'] ?? ($orderData['email'] ?? 'N/A') }}</p>
+                    <p><strong>Phone:</strong> {{ $orderData['customer']['phone'] ?? 'N/A' }}</p>
+                    <p><strong>Note:</strong> {{ $orderData['customer']['note'] ?? 'N/A' }}</p>
+
+                    <hr>
+
+                    <p><strong>Default Address:</strong><br>
+                        {{ $orderData['customer']['default_address']['address1'] ?? '' }},
+                        {{ $orderData['customer']['default_address']['city'] ?? '' }},
+                        {{ $orderData['customer']['default_address']['province'] ?? '' }},
+                        {{ $orderData['customer']['default_address']['zip'] ?? '' }},
+                        {{ $orderData['customer']['default_address']['country'] ?? '' }}
+                    </p>
+                    <p><strong>Phone (Address):</strong> {{ $orderData['customer']['default_address']['phone'] ?? 'N/A' }}
+                    </p>
+
+                    <hr>
+
+                    <p><strong>Email Marketing Consent:</strong>
+                        {{ ucfirst($orderData['customer']['email_marketing_consent']['state'] ?? 'N/A') }}
+                        (Opt-in level: {{ $orderData['customer']['email_marketing_consent']['opt_in_level'] ?? 'N/A' }})
+                    </p>
+
+                    <p><strong>SMS Marketing Consent:</strong>
+                        {{ ucfirst($orderData['customer']['sms_marketing_consent']['state'] ?? 'N/A') }}
+                        (Opt-in level: {{ $orderData['customer']['sms_marketing_consent']['opt_in_level'] ?? 'N/A' }})
+                    </p>
+
+                    <p><strong>Tags:</strong> {{ $orderData['customer']['tags'] ?? 'N/A' }}</p>
+                </div>
+            </div>
 
 
 
-        <div class="card mt-4">
-            <div class="card-header"><strong>Consultation Details</strong></div>
-            <div class="card-body">
+            <div class="card mt-4">
+                <div class="card-header"><strong>Consultation Details</strong></div>
+                <div class="card-body">
 
-                @foreach ($orderData['line_items'] as $item)
-                    @php
-                        $quizAnswers =
-                            collect($item['properties'] ?? [])->firstWhere('name', '_quiz_kit_answers')['value'] ??
-                            null;
-                    @endphp
-
-                    @if ($quizAnswers)
+                    @foreach ($orderData['line_items'] as $item)
                         @php
-                            // Step 1: Split entries by semicolon
-                            $qaPairs = preg_split('/;\s*/', $quizAnswers);
-
-                            // Step 2: Clean and split each into Q/A
-                            $qaList = [];
-                            foreach ($qaPairs as $qa) {
-                                // Only split on the first colon
-                                $parts = explode(':', $qa, 2);
-                                if (count($parts) === 2) {
-                                    $question = trim($parts[0]);
-                                    $answer = trim($parts[1]);
-                                    if ($question && $answer) {
-                                        $qaList[] = ['question' => $question, 'answer' => $answer];
-                                    }
-                                }
-                            }
+                            $quizAnswers =
+                                collect($item['properties'] ?? [])->firstWhere('name', '_quiz_kit_answers')['value'] ??
+                                null;
                         @endphp
 
-                        @foreach ($qaList as $qa)
-                            <div class="row mb-1">
-                                <div class="col-md-6"><strong>{{ $qa['question'] }}</strong></div>
-                                <div class="col-md-6">{{ $qa['answer'] }}</div>
-                            </div>
-                        @endforeach
-                    @else
-                        <p>No consultation data found.</p>
-                    @endif
-                @endforeach
+                        @if ($quizAnswers)
+                            @php
+                                // Step 1: Split entries by semicolon
+                                $qaPairs = preg_split('/;\s*/', $quizAnswers);
 
+                                // Step 2: Clean and split each into Q/A
+                                $qaList = [];
+                                foreach ($qaPairs as $qa) {
+                                    // Only split on the first colon
+                                    $parts = explode(':', $qa, 2);
+                                    if (count($parts) === 2) {
+                                        $question = trim($parts[0]);
+                                        $answer = trim($parts[1]);
+                                        if ($question && $answer) {
+                                            $qaList[] = ['question' => $question, 'answer' => $answer];
+                                        }
+                                    }
+                                }
+                            @endphp
+
+                            @foreach ($qaList as $qa)
+                                <div class="row mb-1">
+                                    <div class="col-md-6"><strong>{{ $qa['question'] }}</strong></div>
+                                    <div class="col-md-6">{{ $qa['answer'] }}</div>
+                                </div>
+                            @endforeach
+                        @else
+                            <p>No consultation data found.</p>
+                        @endif
+                    @endforeach
+
+                </div>
+            </div>
+
+
+
+        </div>
+
+
+        <!-- Approve Modal -->
+        <div class="modal fade" id="approveModal" tabindex="-1">
+            <div class="modal-dialog">
+                <form method="POST" action="{{ route('orders.prescriber', $order->order_number) }}">
+                    @csrf
+                    <input type="hidden" name="decision_status" value="approved">
+
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Approve Prescription</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+
+                        <div class="modal-body">
+                            <div class="mb-3">
+                                <label class="form-label">Clinical Reasoning</label>
+                                <textarea name="clinical_reasoning" class="form-control" required>{{ old('clinical_reasoning') }}</textarea>
+                            </div>
+                        </div>
+
+                        <div class="modal-footer">
+                            <button class="btn btn-success" id="submit-approval">Submit Approval</button>
+                        </div>
+                    </div>
+                </form>
             </div>
         </div>
 
 
-
-    </div>
-
-
-    <!-- Approve Modal -->
-    <div class="modal fade" id="approveModal" tabindex="-1">
-        <div class="modal-dialog">
-            <form method="POST" action="{{ route('orders.prescriber', $order->order_number) }}">
-                @csrf
-                <input type="hidden" name="decision_status" value="approved">
-
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title">Approve Prescription</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                    </div>
-
-                    <div class="modal-body">
-                        <div class="mb-3">
-                            <label class="form-label">Clinical Reasoning</label>
-                            <textarea name="clinical_reasoning" class="form-control" required>{{ old('clinical_reasoning') }}</textarea>
+        <!-- Reject Modal -->
+        <div class="modal fade" id="rejectModal" tabindex="-1">
+            <div class="modal-dialog">
+                <form method="POST" action="{{ route('orders.prescriber', $order->order_number) }}">
+                    @csrf
+                    <input type="hidden" name="decision_status" value="rejected">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Reject Prescription</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <textarea name="rejection_reason" class="form-control" placeholder="Rejection reason" required></textarea>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn btn-danger" id="submit-reject">Submit</button>
                         </div>
                     </div>
-
-                    <div class="modal-footer">
-                        <button class="btn btn-success" id="submit-approval">Submit Approval</button>
-                    </div>
-                </div>
-            </form>
+                </form>
+            </div>
         </div>
-    </div>
 
-
-    <!-- Reject Modal -->
-    <div class="modal fade" id="rejectModal" tabindex="-1">
-        <div class="modal-dialog">
-            <form method="POST" action="{{ route('orders.prescriber', $order->order_number) }}">
-                @csrf
-                <input type="hidden" name="decision_status" value="rejected">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title">Reject Prescription</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        <!-- On Hold Modal -->
+        <div class="modal fade" id="onHoldModal" tabindex="-1">
+            <div class="modal-dialog">
+                <form method="POST" action="{{ route('orders.prescriber', $order->order_number) }}">
+                    @csrf
+                    <input type="hidden" name="decision_status" value="on_hold">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Put On Hold</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <textarea name="on_hold_reason" class="form-control" placeholder="Reason for putting on hold" required></textarea>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn btn-warning" id="submit-hold">Submit</button>
+                        </div>
                     </div>
-                    <div class="modal-body">
-                        <textarea name="rejection_reason" class="form-control" placeholder="Rejection reason" required></textarea>
-                    </div>
-                    <div class="modal-footer">
-                        <button class="btn btn-danger" id="submit-reject">Submit</button>
-                    </div>
-                </div>
-            </form>
+                </form>
+            </div>
         </div>
-    </div>
 
-    <!-- On Hold Modal -->
-    <div class="modal fade" id="onHoldModal" tabindex="-1">
-        <div class="modal-dialog">
-            <form method="POST" action="{{ route('orders.prescriber', $order->order_number) }}">
-                @csrf
-                <input type="hidden" name="decision_status" value="on_hold">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title">Put On Hold</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        <div class="modal fade" id="releaseHoldModal" tabindex="-1">
+            <div class="modal-dialog">
+                <form method="POST" action="{{ route('orders.prescribe.release', $order->order_number) }}">
+                    @csrf
+                    <input type="hidden" name="decision_status" value="release_hold">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Release Hold</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <textarea name="release_hold_reason" class="form-control" placeholder="Reason for releasing hold" required></textarea>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="submit" class="btn btn-warning" id="submit-release">Submit</button>
+                        </div>
                     </div>
-                    <div class="modal-body">
-                        <textarea name="on_hold_reason" class="form-control" placeholder="Reason for putting on hold" required></textarea>
-                    </div>
-                    <div class="modal-footer">
-                        <button class="btn btn-warning" id="submit-hold">Submit</button>
-                    </div>
-                </div>
-            </form>
-        </div>
-    </div>
-
-     <div class="modal fade" id="releaseHoldModal" tabindex="-1">
-        <div class="modal-dialog">
-            <form method="POST" action="{{ route('orders.prescribe.release', $order->order_number) }}">
-                @csrf
-                <input type="hidden" name="decision_status" value="release_hold">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title">Release Hold</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body">
-                        <textarea name="release_hold_reason" class="form-control" placeholder="Reason for releasing hold" required></textarea>
-                    </div>
-                    <div class="modal-footer">
-                        <button class="btn btn-warning" id="submit-release">Submit</button>
-                    </div>
-                </div>
-            </form>
+                </form>
+            </div>
         </div>
     </div>
     

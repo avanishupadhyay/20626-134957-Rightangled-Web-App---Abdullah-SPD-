@@ -200,7 +200,7 @@
         </div>
         <div class="row">
             <div class="col-md-6">
-                <div class="card mb-4" style="height: 400px;">
+                <div class="card mb-4" style="height: 400px;  overflow-y: auto;">
                     <div class="card-header"><strong>Shipping Address</strong></div>
                     <div class="card-body" style="height: calc(100% - 56px); overflow-y: auto;">
                         <p><strong>Name:</strong> {{ $orderData['shipping_address']['name'] ?? 'N/A' }}</p>
@@ -214,7 +214,7 @@
                 </div>
             </div>
 
-            @php
+            {{-- @php
                 $hasData = collect($orderMetafields)->filter(fn($v) => !empty($v))->isNotEmpty();
             @endphp
 
@@ -244,7 +244,40 @@
                         @endif
                     </div>
                 </div>
+            </div> --}}
+             <div class="col-md-6">
+                <div class="card" style="max-height: 400px; overflow-y: auto;">
+                    <div class="card-header">
+                       <strong> Order Timeline</strong>
+                    </div>
+                    <div class="card-body">
+                        @if ($auditDetails['logs']->isEmpty())
+                            <p>No audit logs found for this order.</p>
+                        @else
+                            @foreach ($auditDetails['logs'] as $log)
+                                <div class="mb-3 border-bottom pb-2">
+                                    <div><strong>User:</strong> {{ $log->user_name }} ({{ $log->role_name }})</div>
+                                    <div><strong>Action:</strong> {{ ucfirst($log->action) }}</div>
+                                    <div><strong>Details:</strong> {{ $log->details }}</div>
+                                    <div><strong>Date:</strong>
+                                        {{ \Carbon\Carbon::parse($log->created_at)->format('d/m/Y h:i A') }}</div>
+                                </div>
+                            @endforeach
+                        @endif
+
+                        @if ($auditDetails['prescribed_pdf'])
+                            <div class="mt-3">
+                                <strong>Prescribed PDF:</strong>
+                                <a href="{{ $auditDetails['prescribed_pdf'] }}" target="_blank"
+                                    class="btn btn-sm btn-outline-primary">
+                                    🔗 View PDF
+                                </a>
+                            </div>
+                        @endif
+                    </div>
+                </div>
             </div>
+
         </div>
 
 
