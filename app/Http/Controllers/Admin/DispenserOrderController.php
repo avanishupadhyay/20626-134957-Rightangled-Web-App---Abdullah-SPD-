@@ -19,7 +19,7 @@ use SimpleSoftwareIO\QrCode\Facades\QrCode;
 use Milon\Barcode\DNS2D;
 use Illuminate\Support\Facades\Log;
 use setasign\Fpdi\Fpdi;
-use Carbon\Carbon;
+use Illuminate\Support\Carbon;
 
 
 
@@ -975,6 +975,47 @@ class DispenserOrderController extends Controller
             'message' => 'Shipment created and saved successfully!',
             'shipment_tracking' => $shipmentTrackingNumber,
             'pdf_path' => $filePath,
+        ]);
+    }
+
+
+
+
+    public function incrementReprint($id)
+    {
+        $user = auth()->user();
+        $batchItems = OrderDispense::where('batch_id', $id)->get();
+
+        if ($batchItems->isEmpty()) {
+            return response()->json(['success' => false, 'message' => 'Batch not found'], 404);
+        }
+
+        // Check if already printed
+        $alreadyPrinted = $batchItems->firstWhere('reprint_count', '>=', 1);
+
+        if ($alreadyPrinted) {
+            return response()->json([
+                'success' => false,
+                'message' => 'This batch has already been printed. Please contact the admin.'
+            ], 403);
+        }
+
+        // Increment reprint_count for each item
+        foreach ($batchItems as $item) {
+            $item->increment('reprint_count');
+        }
+
+        // Log audit
+        AuditLog::create([
+            'user_id'   => $user->id,
+            'order_id'  => $id, // As requested: using batch_id in order_id column
+            'action'    => 'batch_print',
+            'details'   => "Order dispensed by {$user->name} on " . now()->format('d/m/Y \a\t H:i') . ".",
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Batch reprint count updated. Opening PDF for print...'
         ]);
     }
 }

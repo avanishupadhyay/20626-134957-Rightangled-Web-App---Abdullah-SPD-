@@ -52,6 +52,12 @@
                         </div>
                         Admin Orders
                 </a>
+                 <a class="nav-link {{ request()->routeIs('batches.index') ? 'active' : '' }}"
+                        href="{{ route('batches.index') }}">
+                        <div class="sb-nav-link-icon"><i class="fa fa-first-order" aria-hidden="true"></i>
+                        </div>
+                        Dispensed Batches
+                </a>
                     <div class="sb-sidenav-menu-heading">Configurations</div>
                     @php
                         $configuration_menu = getConfigurationMenu();

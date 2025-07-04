@@ -11,6 +11,12 @@ use App\Models\OrderAction;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use Illuminate\Cache\NullStore;
+use App\Models\OrderDispense;
+use setasign\Fpdi\Fpdi;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Response;
+use Illuminate\Support\Facades\File;
+use Carbon\Carbon;
 
 class OrderController extends Controller
 {
@@ -314,5 +320,200 @@ class OrderController extends Controller
             DB::rollBack();
             return back()->withErrors('Failed to update order: ' . $e->getMessage());
         }
+    }
+
+
+
+    // public function indexing()
+    // {
+    //     $grouped = OrderDispense::with(['order', 'batch'])
+    //         ->whereHas('order', fn($q) => $q->whereNotNull('shipment_pdf_path'))
+    //         ->get()
+    //         ->groupBy('batch_id');
+    //     return view('admin.orders.batches.index', compact('grouped'));
+    // }
+
+    // public function indexing(Request $request)
+    // {
+    //     $search = $request->input('search');
+
+    //     $query = OrderDispense::with(['order', 'batch'])
+    //         ->whereHas('order', fn($q) => $q->whereNotNull('shipment_pdf_path'));
+
+    //     if ($search) {
+    //         $query->where(function ($q) use ($search) {
+    //             $q->whereHas('order', fn($oq) => $oq->where('order_number', 'like', "%$search%"))
+    //                 ->orWhereHas('batch', fn($bq) => $bq->where('batch_number', 'like', "%$search%"));
+    //         });
+    //     }
+
+    //     $dispenses = $query->latest()->paginate(config('Reading.nodes_per_page'))->withQueryString();
+    //     $grouped = $dispenses->getCollection()->groupBy('batch_id');
+
+    //     return view('admin.orders.batches.index', compact('grouped', 'dispenses'));
+    // }
+
+    public function indexing(Request $request)
+    {
+        $search = $request->input('search');
+
+        $query = OrderDispense::with(['order', 'batch'])
+            ->whereHas('order', fn($q) => $q->whereNotNull('shipment_pdf_path'));
+
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->whereHas('order', fn($oq) => $oq->where('order_number', 'like', "%$search%"))
+                    ->orWhereHas('batch', fn($bq) => $bq->where('batch_number', 'like', "%$search%"));
+            });
+        }
+
+        $paginator = $query->latest()->paginate(config('Reading.nodes_per_page'))->withQueryString();
+
+        // Group the collection (not the paginator)
+        $grouped = $paginator->getCollection()->groupBy('batch_id');
+
+        return view('admin.orders.batches.index', [
+            'dispenses' => $paginator, // Use this for pagination links
+            'grouped' => $grouped,     // Use this to loop through grouped results
+        ]);
+    }
+    // public function checkReprint($batchId)
+    // {
+    //     $alreadyPrinted = OrderDispense::where('batch_id', $batchId)
+    //         ->where('reprint_count', '>=', 1)
+    //         ->exists();
+
+    //     AuditLog::create([
+    //         'user_id' => auth()->id(),
+    //         'action' => 'batch',
+    //         'order_id' => $orderId,
+    //         'details' => $request->clinical_reasoning ?? $request->rejection_reason ?? $request->on_hold_reason,
+    //     ]);
+
+    //     return response()->json([
+    //         'alreadyPrinted' => $alreadyPrinted,
+    //     ]);
+    // }
+
+    public function checkReprint(Request $request, $batchId)
+    {
+        $user = auth()->user();
+
+        // Get all dispense records in the batch with their related orders
+        $dispenses = OrderDispense::with('order')->where('batch_id', $batchId)->get();
+
+        if ($dispenses->isEmpty()) {
+            return response()->json(['alreadyPrinted' => false]);
+        }
+
+        // Check if any dispense record has already been printed
+        $alreadyPrinted = $dispenses->firstWhere('reprint_count', '>=', 1);
+        $firstDispense = $dispenses->first();
+        $order = $firstDispense->order;
+
+        $nowFormatted = now()->format('d/m/Y \a\t H:i');
+
+        if ($alreadyPrinted) {
+            // ✅ Increment reprint_count for all
+            foreach ($dispenses as $dispense) {
+                $dispense->increment('reprint_count');
+            }
+
+            // ✅ Log reprint audit
+            AuditLog::create([
+                'user_id'  => $user->id,
+                'order_id' => $batchId ?? null,
+                'action'   => 'batch_reprint',
+                'details'  => "Dispensing & Shipping label reprinted by {$user->name} on {$nowFormatted}.",
+            ]);
+
+            return response()->json([
+                'alreadyPrinted' => true,
+            ]);
+        } else {
+            // ✅ First-time print
+            AuditLog::create([
+                'user_id'  => $user->id,
+                'order_id' => $batchId ?? null,
+                'action'   => 'batch_print',
+                'details'  => "Order dispensed by {$user->name} on {$nowFormatted}.",
+            ]);
+
+            return response()->json([
+                'alreadyPrinted' => false,
+            ]);
+        }
+    }
+
+
+
+
+    public function downloadBatchPdf($batchId)
+    {
+        // Get all orders dispensed in this batch
+        $dispenses = OrderDispense::with('order')
+            ->where('batch_id', $batchId)
+            ->whereHas('order', fn($q) => $q->whereNotNull('shipment_pdf_path'))
+            ->get();
+
+        if ($dispenses->isEmpty()) {
+            return back()->with('error', 'No shipment PDFs found for this batch.');
+        }
+
+        // Directory to store the merged PDF
+        $outputDir = storage_path('app/public/batches');
+        if (!File::exists($outputDir)) {
+            File::makeDirectory($outputDir, 0755, true);
+        }
+
+        $outputFile = $outputDir . "/batch_{$batchId}.pdf";
+
+        // Collect all full paths of shipment PDFs
+        $pdfPaths = [];
+
+        foreach ($dispenses as $dispense) {
+            $relativePath = $dispense->order->shipment_pdf_path;
+            $publicPath = public_path(Storage::url($relativePath)); // e.g. public/storage/shippments_pdf/abc.pdf
+
+            if (file_exists($publicPath)) {
+                $pdfPaths[] = $publicPath;
+            } else {
+                \Log::warning("PDF file missing: $publicPath");
+            }
+        }
+
+        if (empty($pdfPaths)) {
+            return back()->with('error', 'No valid PDF files found for this batch.');
+        }
+
+        // Detect OS and set Ghostscript path
+        if (stripos(PHP_OS, 'WIN') === 0) {
+            $gsExecutable = 'C:\\Program Files\\gs\\gs10.05.1\\bin\\gswin64c.exe'; // Adjust if needed
+        } else {
+            $gsExecutable = '/usr/bin/gs'; // Typical on Linux servers
+        }
+
+        // Escape all file paths
+        $escapedFiles = array_map('escapeshellarg', $pdfPaths);
+
+        // Build the Ghostscript command
+        $cmd = "\"{$gsExecutable}\" -dBATCH -dNOPAUSE -q -sDEVICE=pdfwrite " .
+            "-sOutputFile=" . escapeshellarg($outputFile) . " " .
+            implode(' ', $escapedFiles);
+
+        // Execute the command
+        exec($cmd, $output, $returnCode);
+
+        if ($returnCode !== 0 || !file_exists($outputFile)) {
+            \Log::error("Ghostscript PDF merge failed for batch {$batchId}", [
+                'command' => $cmd,
+                'output' => $output,
+                'code' => $returnCode
+            ]);
+            return back()->with('error', 'Failed to merge shipment PDFs.');
+        }
+
+        // Serve the merged PDF file as a download
+        return response()->download($outputFile)->deleteFileAfterSend(true);
     }
 }
