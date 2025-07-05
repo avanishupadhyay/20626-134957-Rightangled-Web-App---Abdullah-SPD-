@@ -291,6 +291,21 @@
                                 </a>
                             </div>
                         @endif
+                        @if (!empty($auditDetails['checker_pdfs']))
+                            <div class="mt-3">
+                                <strong>Checker Uploaded PDFs:</strong>
+                                <ul class="mt-2">
+                                    @foreach ($auditDetails['checker_pdfs'] as $index => $pdfUrl)
+                                        <li>
+                                            <a href="{{ $pdfUrl }}" target="_blank"
+                                                class="btn btn-sm btn-outline-secondary mb-1">
+                                                📎 PDF {{ $index + 1 }}
+                                            </a>
+                                        </li>
+                                    @endforeach
+                                </ul>
+                            </div>
+                        @endif
                     </div>
                 </div>
             </div>
