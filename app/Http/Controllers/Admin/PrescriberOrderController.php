@@ -34,35 +34,83 @@ class PrescriberOrderController extends Controller
 
     public function index(Request $request)
     {
-        $excludedStatuses = ['approved', 'accurately_checked', 'dispensed'];
+        // $excludedStatuses = ['approved', 'accurately_checked', 'dispensed'];
 
-        $excludedOrderIds = \App\Models\OrderAction::orderBy('created_at', 'desc')
-            ->get()
-            ->unique('order_id') // Keep only the latest action per order_id
-            ->filter(function ($action) use ($excludedStatuses) {
-                return in_array($action->decision_status, $excludedStatuses);
-            })
-            ->pluck('order_id')
-            ->toArray();
+        // $excludedOrderIds = \App\Models\OrderAction::orderBy('created_at', 'desc')
+        //     ->get()
+        //     ->unique('order_id') // Keep only the latest action per order_id
+        //     ->filter(function ($action) use ($excludedStatuses) {
+        //         return in_array($action->decision_status, $excludedStatuses);
+        //     })
+        //     ->pluck('order_id')
+        //     ->toArray();
 
-        $query = Order::query()
-            ->where(function ($q) {
-                $q->whereNull('fulfillment_status')
-                    ->orWhere('fulfillment_status', '!=', 'Fulfilled');
-            })
-            // whereNull('fulfillment_status')
-            // Exclude cancelled orders
-            ->whereRaw("JSON_EXTRACT(order_data, '$.company.id') IS NULL")
-            ->whereRaw("JSON_EXTRACT(order_data, '$.company.location_id') IS NULL")
-            ->where(function ($q) {
-                $q->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(order_data, '$.cancelled_at')) IS NULL")
-                    ->orWhereRaw("JSON_UNQUOTE(JSON_EXTRACT(order_data, '$.cancelled_at')) = 'null'");
-            })->whereNotIn('order_number', $excludedOrderIds);
+        // $query = Order::query()
+        //     ->where(function ($q) {
+        //         $q->whereNull('fulfillment_status')
+        //             ->orWhere('fulfillment_status', '!=', 'Fulfilled');
+        //     })
+        //     // whereNull('fulfillment_status')
+        //     // Exclude cancelled orders
+        //     ->whereRaw("JSON_EXTRACT(order_data, '$.company.id') IS NULL")
+        //     ->whereRaw("JSON_EXTRACT(order_data, '$.company.location_id') IS NULL")
+        //     ->where(function ($q) {
+        //         $q->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(order_data, '$.cancelled_at')) IS NULL")
+        //             ->orWhereRaw("JSON_UNQUOTE(JSON_EXTRACT(order_data, '$.cancelled_at')) = 'null'");
+        //     })->whereNotIn('order_number', $excludedOrderIds);
+        $totalPending = 0;
+        $orderStatus = $request->input('order_status');
 
+        if ($orderStatus && ($orderStatus === "approved" || $orderStatus === "on_hold")) {
+            // Fetch only orders with latest action status = approved
+            $approvedOrderIds = \App\Models\OrderAction::orderBy('created_at', 'desc')
+                ->get()
+                ->unique('order_id')
+                ->filter(function ($action) use ($orderStatus) {
+                    return $action->decision_status === $orderStatus; 
+                })
+                ->pluck('order_id')
+                ->toArray();
+
+            $query = Order::query()
+                ->whereIn('order_number', $approvedOrderIds);
+
+        } else {
+            // Original logic: exclude orders whose latest action is in excludedStatuses
+            $excludedStatuses = ['approved','on_hold' ,'accurately_checked', 'dispensed'];
+            if($request->input('search')){
+                $excludedStatuses = ['accurately_checked', 'dispensed'];
+            }
+
+            $excludedOrderIds = \App\Models\OrderAction::orderBy('created_at', 'desc')
+                ->get()
+                ->unique('order_id')
+                ->filter(function ($action) use ($excludedStatuses) {
+                    return in_array($action->decision_status, $excludedStatuses);
+                })
+                ->pluck('order_id')
+                ->toArray();
+
+            $query = Order::query()
+                ->where(function ($q) {
+                    $q->whereNull('fulfillment_status')
+                        ->orWhere('fulfillment_status', '!=', 'Fulfilled');
+                })
+                ->whereRaw("JSON_EXTRACT(order_data, '$.company.id') IS NULL")
+                ->whereRaw("JSON_EXTRACT(order_data, '$.company.location_id') IS NULL")
+                ->where(function ($q) {
+                    $q->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(order_data, '$.cancelled_at')) IS NULL")
+                        ->orWhereRaw("JSON_UNQUOTE(JSON_EXTRACT(order_data, '$.cancelled_at')) = 'null'");
+                })
+                ->whereNotIn('order_number', $excludedOrderIds);
+
+           
+        }
 
         $query = $this->filter_queries($request, $query);
-
-        $totalPending = (clone $query)->count();
+        if ($orderStatus && $orderStatus !== "approved") {
+            $totalPending = (clone $query)->count();
+        }
         // Get paginated result
         $orders = $query->latest()->paginate(config('Reading.nodes_per_page'));
 
