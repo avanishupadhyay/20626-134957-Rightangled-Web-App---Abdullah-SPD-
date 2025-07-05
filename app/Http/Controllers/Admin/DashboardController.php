@@ -27,7 +27,6 @@ class DashboardController extends Controller
                 ->whereYear('created_at', $year)
                 ->whereMonth('created_at', $monthNumber)
                 ->count();
-
             // Approved logic
             $approved = DB::table('orders')
                 ->whereYear('created_at', $year)
@@ -100,20 +99,20 @@ class DashboardController extends Controller
         })->count();
 
         // -----------Total Orders------------------
-        $query = DB::table('orders');
 
         if ($start && $end) {
-            $query->whereBetween('created_at', [$start . ' 00:00:00', $end . ' 23:59:59']);
-        }
 
-        $current_month_order = $query->count();
+            $current_month_order = DB::table('orders')
+                ->whereBetween('created_at', [$start . ' 00:00:00', $end . ' 23:59:59'])
+                ->count();
+        } else {
 
-        if (!$request) {
             $current_month_order = DB::table('orders')
                 ->whereYear('created_at', Carbon::now()->year)
                 ->whereMonth('created_at', Carbon::now()->month)
                 ->count();
         }
+
 
         return view('admin.dashboard', compact('data', 'current_month_order', 'approved_count'));
     }

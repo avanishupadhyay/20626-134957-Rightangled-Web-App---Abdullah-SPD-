@@ -1972,7 +1972,7 @@ if (!function_exists('getAuditLogDetailsForOrder')) {
 
         $prescribedPdfUrl = null;
         if ($pdfRecord && $pdfRecord->prescribed_pdf) {
-            $prescribedPdfUrl = config('app.url') . '/' . ltrim($pdfRecord->prescribed_pdf, '/');
+            $prescribedPdfUrl = config('app.url'). ltrim($pdfRecord->prescribed_pdf, '/');
         }
 
         return [

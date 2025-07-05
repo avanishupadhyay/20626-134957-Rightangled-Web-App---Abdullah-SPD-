@@ -217,7 +217,7 @@
             document.addEventListener('DOMContentLoaded', function() {
                 // Initialize daterangepicker
                 $('#date_range').daterangepicker({
-                    autoUpdateInput: false,
+                    autoUpdateInput: true,
                     locale: {
                         cancelLabel: 'Clear',
                         format: 'YYYY-MM-DD'
@@ -246,4 +246,5 @@
                 @endif
             });
         </script>
+   
     @endsection

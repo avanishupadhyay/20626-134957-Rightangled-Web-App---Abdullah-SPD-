@@ -74,9 +74,9 @@
                             <div class="card-body">
                                 <div class="row align-items-center m-b-0">
                                     @if (request('start_date') && empty(request('preset')))
-                                        <span>Total Approved Orders</span>
+                                        <span>Total Fulfilled Orders</span>
                                     @else
-                                        <span>Total Approved Orders Of {{ $selectedPreset ?? 'Current Month' }}</span>
+                                        <span>Total Fulfilled Orders Of {{ $selectedPreset ?? 'Current Month' }}</span>
                                     @endif
                                     <strong>{{ $approved_count }}</strong>
                                 </div>
