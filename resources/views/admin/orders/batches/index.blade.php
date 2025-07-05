@@ -50,7 +50,7 @@
                             <td>{{ $loop->iteration }}</td>
                             <td>{{ $batch->batch_number ?? 'N/A' }}</td>
                             <td>{{ $orderCount }}</td>
-                            <td>{{ $batch->created_at ? $batch->created_at->format('d M Y, h:i A') : 'N/A' }}</td>
+                            <td>{{ $batch?->created_at?->format('d M Y, h:i A') ?? '   N/A' }}</td>
                             <td>
                                 {{-- <a href="{{ route('batches.download', $batchId) }}" class="btn btn-primary btn-sm">
                                     <i class="fa fa-print"></i>
@@ -100,7 +100,8 @@
                         confirmButtonText: 'Yes, print again'
                     }).then((result) => {
                         if (result.isConfirmed) {
-                            window.location.href = `/admin/batches/${batchId}/download`; // your existing route
+                            window.location.href =
+                            `/admin/batches/${batchId}/download`; // your existing route
                         }
                     });
                 } else {
