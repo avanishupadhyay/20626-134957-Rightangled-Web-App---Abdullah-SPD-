@@ -1163,24 +1163,24 @@ function releaseFulfillmentHold($orderId, $reason)
 	}
 
 	// Timeline note mutation
-	$userName = auth()->user()?->name ?? 'Admin';
-	$timestamp = now()->format('Y-m-d H:i:s');
-	$note = addslashes("Hold released by: {$userName} on {$timestamp}. Reason: {$reason}");
+	// $userName = auth()->user()?->name ?? 'Admin';
+	// $timestamp = now()->format('Y-m-d H:i:s');
+	// $note = addslashes("Hold released by: {$userName} on {$timestamp}. Reason: {$reason}");
 
-	$batchedMutations .= <<<GQL
-    addNote: orderUpdate(input: {
-        id: "gid://shopify/Order/{$orderId}",
-        note: "{$note}"
-    }) {
-        order {
-            id
-        }
-        userErrors {
-            field
-            message
-        }
-    }
-    GQL;
+	// $batchedMutations .= <<<GQL
+	// addNote: orderUpdate(input: {
+	//     id: "gid://shopify/Order/{$orderId}",
+	//     note: "{$note}"
+	// }) {
+	//     order {
+	//         id
+	//     }
+	//     userErrors {
+	//         field
+	//         message
+	//     }
+	// }
+	// GQL;
 
 	$mutation = <<<GQL
     mutation {
@@ -1949,35 +1949,35 @@ if (!function_exists('getStoreId')) {
 }
 
 if (!function_exists('getAuditLogDetailsForOrder')) {
-    function getAuditLogDetailsForOrder($orderId)
-    {
-        $logs = DB::table('audit_logs')
-            ->join('users', 'audit_logs.user_id', '=', 'users.id')
-            ->join('model_has_roles', function ($join) {
-                $join->on('users.id', '=', 'model_has_roles.model_id')
-                    ->where('model_has_roles.model_type', '=', \App\Models\User::class);
-            })
-            ->join('roles', 'model_has_roles.role_id', '=', 'roles.id')
-            ->where('audit_logs.order_id', $orderId)
-            ->orderBy('audit_logs.created_at', 'desc')
-            ->select('audit_logs.*', 'users.name as user_name', 'roles.name as role_name')
-            ->get();
+	function getAuditLogDetailsForOrder($orderId)
+	{
+		$logs = DB::table('audit_logs')
+			->join('users', 'audit_logs.user_id', '=', 'users.id')
+			->join('model_has_roles', function ($join) {
+				$join->on('users.id', '=', 'model_has_roles.model_id')
+					->where('model_has_roles.model_type', '=', \App\Models\User::class);
+			})
+			->join('roles', 'model_has_roles.role_id', '=', 'roles.id')
+			->where('audit_logs.order_id', $orderId)
+			->orderBy('audit_logs.created_at', 'desc')
+			->select('audit_logs.*', 'users.name as user_name', 'roles.name as role_name')
+			->get();
 
-        // Get prescribed PDF if exists
-        $pdfRecord = DB::table('order_actions')
-            ->where('order_id', $orderId)
-            ->where('decision_status', 'approved')
-            ->orderBy('created_at', 'desc')
-            ->first();
+		// Get prescribed PDF if exists
+		$pdfRecord = DB::table('order_actions')
+			->where('order_id', $orderId)
+			->where('decision_status', 'approved')
+			->orderBy('created_at', 'desc')
+			->first();
 
-        $prescribedPdfUrl = null;
-        if ($pdfRecord && $pdfRecord->prescribed_pdf) {
-            $prescribedPdfUrl = config('app.url') . '/' . ltrim($pdfRecord->prescribed_pdf, '/');
-        }
+		$prescribedPdfUrl = null;
+		if ($pdfRecord && $pdfRecord->prescribed_pdf) {
+			$prescribedPdfUrl = config('app.url') . '/' . ltrim($pdfRecord->prescribed_pdf, '/');
+		}
 
-        return [
-            'logs' => $logs,
-            'prescribed_pdf' => $prescribedPdfUrl,
-        ];
-    }
+		return [
+			'logs' => $logs,
+			'prescribed_pdf' => $prescribedPdfUrl,
+		];
+	}
 }

@@ -47,10 +47,9 @@
         @endphp
         @if (!$statuses['is_cancelled'])
             <div class="m-3">
-                    @if ($statuses['fulfillment_status'] === 'on_hold')
+                @if ($statuses['fulfillment_status'] === 'on_hold')
                     <button class="btn btn-info" data-bs-toggle="modal" data-bs-target="#releaseHoldModal">Release
                         Hold</button>
-
                 @elseif (is_null($statuses['fulfillment_status']) &&
                         (is_null($statuses['latest_decision_status']) || $statuses['latest_decision_status'] === 'release_hold'))
                     <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#approveModal">Approve</button>
@@ -59,6 +58,39 @@
                 @endif
             </div>
         @endif
+        <form action="{{ route('audit-log.store') }}" method="POST" enctype="multipart/form-data" class="mb-3">
+            @csrf
+            <input type="hidden" name="order_id" value="{{ $order->order_number }}">
+
+            <div class="row align-items-end mb-3">
+                <!-- Details Textarea -->
+                <div class="col-md-8">
+                    <label for="details" class="form-label">Details</label>
+                    <textarea name="details" id="details" class="form-control" rows="3" placeholder="Enter reason or notes..."></textarea>
+                </div>
+
+                <!-- File Upload -->
+                <div class="col-md-2 text-center">
+                    <label for="file" class="form-label d-block">Attach PDF</label>
+                    <label for="file" class="btn btn-outline-secondary">
+                        <i class="fa fa-paperclip" style="font-size:20px"></i>
+                    </label>
+                    <input type="file" name="file" id="file" class="d-none" accept="application/pdf">
+                </div>
+                <div class="col-md-2 text-center">
+                    <div class="text-end">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-upload"></i> Submit Log
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Submit Button -->
+
+        </form>
+
+
         <div class="row">
             {{-- Left Card --}}
             <div class="col-md-6">
@@ -80,7 +112,8 @@
                             @if ($item['current_quantity'] > 0)
                                 <div class="row mb-2">
                                     <div class="col-md-6">
-                                        <strong>Product:</strong> {{ $item['title'] }} ({{ $item['variant_title'] ?? '' }})
+                                        <strong>Product:</strong> {{ $item['title'] }}
+                                        ({{ $item['variant_title'] ?? '' }})
                                     </div>
                                     <div class="col-md-6 text-end">
                                         <strong>£{{ number_format($item['price'], 2) }}</strong> ×
@@ -229,10 +262,10 @@
                     </div>
                 </div>
             </div> --}}
-              <div class="col-md-6">
+            <div class="col-md-6">
                 <div class="card" style="max-height: 400px; overflow-y: auto;">
                     <div class="card-header">
-                       <strong> Order Timeline</strong>
+                        <strong> Order Timeline</strong>
                     </div>
                     <div class="card-body">
                         @if ($auditDetails['logs']->isEmpty())
@@ -422,7 +455,7 @@
         </div>
     </div>
 
-       <div class="modal fade" id="releaseHoldModal" tabindex="-1">
+    <div class="modal fade" id="releaseHoldModal" tabindex="-1">
         <div class="modal-dialog">
             <form method="POST" action="{{ route('orders.checker.release', $order->order_number) }}">
                 @csrf

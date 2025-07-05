@@ -361,8 +361,8 @@ class CheckerOrderController extends Controller
                 'user_id' => auth()->id(),
                 'action' => $decisionStatus,
                 'order_id' => $orderId,
-                // 'details' => $request->clinical_reasoning ?? $request->rejection_reason ?? $request->on_hold_reason,
-                'details' => 'Order checked by ' . auth()->user()->name . ' on ' . now()->format('d/m/Y') . ' at ' . now()->format('H:i'),
+                // 'details' => 'Order checked by ' . auth()->user()->name . ' on ' . now()->format('d/m/Y') . ' at ' . now()->format('H:i'),
+                'details' =>  'Order checked by ' . auth()->user()->name . ' on ' . now()->format('d/m/Y') . ' at ' . now()->format('H:i') . '. Reason: "' . $request->clinical_reasoning ?? $request->rejection_reason ?? $request->on_hold_reason . '"',
             ]);
 
             DB::commit();
@@ -516,5 +516,36 @@ class CheckerOrderController extends Controller
             DB::rollBack();
             return back()->withErrors('Failed to update order: ' . $e->getMessage());
         }
+    }
+
+
+
+    public function store(Request $request)
+    {
+        $request->validate([
+            'order_id' => 'required|exists:orders,order_number',
+            'details' => 'nullable|string',
+            'file' => 'nullable|file|mimes:pdf|max:2048',
+        ]);
+
+        $filePath = null;
+
+        if ($request->hasFile('file')) {
+            $file = $request->file('file');
+            $filename = time() . '_' . $file->getClientOriginalName();
+            $filePath = 'checker_prescription/' . $filename;
+
+            Storage::disk('public')->putFileAs('checker_prescription', $file, $filename);
+        }
+
+        AuditLog::create([
+            'user_id' => auth()->id(),
+            'order_id' => $request->order_id,
+            'action' => 'manual_log',
+            'details' => $request->details . ' (' . Carbon::now()->format('Y-m-d H:i:s') . ')',
+            'checker_prescription_file' => $filePath,
+        ]);
+
+        return redirect()->back()->with('success', 'Log submitted successfully.');
     }
 }
