@@ -105,10 +105,11 @@ class PrescriberOrderController extends Controller
                 ->whereNotIn('order_number', $excludedOrderIds);
 
            
+           
         }
 
         $query = $this->filter_queries($request, $query);
-        if ($orderStatus && $orderStatus !== "approved") {
+        if (!$orderStatus) {
             $totalPending = (clone $query)->count();
         }
         // Get paginated result

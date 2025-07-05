@@ -134,7 +134,8 @@ function App() {
       setLoading(true);
       try {
         const response = await fetch(
-          'https://d8a9-136-232-169-245.ngrok-free.app/api/prescriber/audit-logs/order',
+          // 'https://d8a9-136-232-169-245.ngrok-free.app/api/prescriber/audit-logs/order',
+          'https://rightangled.24livehost.com/api/prescriber/audit-logs/order',
           {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
