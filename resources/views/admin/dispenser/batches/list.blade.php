@@ -75,10 +75,14 @@
                                         onclick="openAndPrintPDF('{{ asset('storage/' . $batch->pdf_path) }}')">
                                         <i class="fa fa-print"></i>
                                     </button> --}}
-                                    <button class="btn btn-sm btn-primary m-3"
-                                        onclick="handleReprint({{ $batch->id }}, '{{ asset('storage/' . $batch->pdf_path) }}')">
+                                    @php
+                                        $path = $batch->pdf_path ?? $batch->shipment_pdf_path;
+                                    @endphp
+                                    <button class="btn btn-sm btn-primary"
+                                        onclick="openAndPrintPDF('{{ asset('storage/' . $path) }}')">
                                         <i class="fa fa-print"></i>
                                     </button>
+
 
                                 </td>
                             </tr>
