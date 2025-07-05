@@ -6,33 +6,7 @@
             width: 100%;
         }
     </style>
-    <style>
-        /* Ensure visibility of toastr messages */
-        #toast-container>.toast {
-            color: #fff !important;
-            /* White text */
-            background-color: #333 !important;
-            /* Dark background for contrast */
-            font-weight: 500;
-        }
-
-        #toast-container>.toast-success {
-            background-color: #28a745 !important;
-        }
-
-        #toast-container>.toast-error {
-            background-color: #dc3545 !important;
-        }
-
-        #toast-container>.toast-info {
-            background-color: #17a2b8 !important;
-        }
-
-        #toast-container>.toast-warning {
-            background-color: #ffc107 !important;
-            color: #000 !important;
-        }
-    </style>
+    
 
     <div class="container">
         <div class="row page-titles mx-0 mb-3">
@@ -228,20 +202,6 @@
 
 @endsection
 
-<!-- ✅ jQuery must come first -->
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-
-<!-- ✅ Then toastr -->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" />
-<script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
-<script>
-    toastr.options = {
-        closeButton: false,
-        progressBar: true,
-        positionClass: 'toast-top-right',
-        timeOut: 5000
-    };
-</script>
 
 
 {{-- <script>

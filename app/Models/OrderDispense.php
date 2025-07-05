@@ -21,5 +21,8 @@ class OrderDispense extends Model
     {
         return $this->belongsTo(DispenseBatch::class, 'batch_id');
     }
+   public function order()
+{
+    return $this->belongsTo(Order::class, 'order_id', 'order_number');
 }
-
+}

@@ -68,15 +68,18 @@
                                 <td>{{ $batch->batch_number }}</td>
                                 <td>{{ $batch->user->name ?? 'N/A' }}</td>
                                 <td>{{ \Carbon\Carbon::parse($batch->created_at)->format('d/m/Y H:i') }}</td>
-                                <td> <a href="{{ route('dispenser.batches.download', $batch->id) }}"
-                                        class="btn btn-sm btn-success"> <i class="fa fa-download"></i></a>
-                                    @php
-                                        $path = $batch->pdf_path ?? $batch->shipment_pdf_path;
-                                    @endphp
-                                    <button class="btn btn-sm btn-primary"
-                                        onclick="openAndPrintPDF('{{ asset('storage/' . $path) }}')">
+                                <td> 
+                                    {{-- <a href="{{ route('dispenser.batches.download', $batch->id) }}"
+                                        class="btn btn-sm btn-success"> <i class="fa fa-download"></i></a> --}}
+                                    {{-- <button class="btn btn-sm btn-primary"
+                                        onclick="openAndPrintPDF('{{ asset('storage/' . $batch->pdf_path) }}')">
+                                        <i class="fa fa-print"></i>
+                                    </button> --}}
+                                    <button class="btn btn-sm btn-primary m-3"
+                                        onclick="handleReprint({{ $batch->id }}, '{{ asset('storage/' . $batch->pdf_path) }}')">
                                         <i class="fa fa-print"></i>
                                     </button>
+
                                 </td>
                             </tr>
                         @endforeach
@@ -90,7 +93,7 @@
         </div>
 
 </div> @endsection
-<script>
+{{-- <script>
     function openAndPrintPDF(pdfUrl) {
         const printWindow = window.open(pdfUrl, '_blank');
 
@@ -102,5 +105,38 @@
             }
         }, 500);
     }
-</script>
+</script> --}}
 
+<script>
+    function handleReprint(batchId, pdfUrl) {
+        fetch(`/admin/dispenser/batches/${batchId}/increment-reprint`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                },
+                body: JSON.stringify({})
+            })
+            .then(response => response.json().then(data => ({
+                status: response.status,
+                body: data
+            })))
+            .then(({
+                status,
+                body
+            }) => {
+                if (status === 200 && body.success) {
+                    toastr.success(body.message);
+                    setTimeout(() => {
+                        window.open(pdfUrl, '_blank');
+                    }, 1000);
+                } else {
+                    toastr.error(body.message || 'An error occurred.');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                toastr.error('Something went wrong.');
+            });
+    }
+</script>

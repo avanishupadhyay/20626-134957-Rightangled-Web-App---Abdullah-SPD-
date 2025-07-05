@@ -94,9 +94,6 @@ function App() {
       >
         {logs.map((log) => (
           <BlockStack key={log.id} spacing="tight">
-            <InlineStack>
-              <Text>🕓 {new Date(log.created_at).toLocaleString()}</Text>
-            </InlineStack>
             <Text tone="subdued">{log.details}</Text>
             <Text size="small" tone="secondary">Action: {log.action}</Text>
           </BlockStack>
