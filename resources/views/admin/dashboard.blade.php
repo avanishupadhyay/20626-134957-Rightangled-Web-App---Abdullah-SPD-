@@ -191,6 +191,7 @@
             singleMode: false,
             format: 'YYYY-MM-DD',
             autoApply: true,
+            maxDate: new Date(), 
             setup: (picker) => {
                 picker.on('selected', (start, end) => {
                     document.getElementById('start-date').value = start.format('YYYY-MM-DD');

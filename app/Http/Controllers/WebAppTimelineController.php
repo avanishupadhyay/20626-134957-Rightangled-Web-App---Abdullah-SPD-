@@ -56,6 +56,7 @@ class WebAppTimelineController extends Controller
     //         'prescribed_pdf' => $prescribedPdfUrl
     //     ]);
     // }
+
     //     public function getPrescriberLogsByOrder(Request $request)
     // {
     //     $orderId = $request->input('order_id');
