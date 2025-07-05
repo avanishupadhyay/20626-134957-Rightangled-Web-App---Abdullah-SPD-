@@ -1972,12 +1972,24 @@ if (!function_exists('getAuditLogDetailsForOrder')) {
 
 		$prescribedPdfUrl = null;
 		if ($pdfRecord && $pdfRecord->prescribed_pdf) {
-			$prescribedPdfUrl = config('app.url') . '/' . ltrim($pdfRecord->prescribed_pdf, '/');
+			$prescribedPdfUrl = config('app.url') . ltrim($pdfRecord->prescribed_pdf, '/');
 		}
+		$checkerPdfs = [];
 
+		foreach ($logs as $log) {
+			$roleName = strtolower($log->role_name ?? '');
+
+			if (
+				in_array($roleName, ['Checker', 'Admin']) &&
+				!empty($log->checker_prescription_file)
+			) {
+				$checkerPdfs[] = config('app.url') . '/' . ltrim($log->checker_prescription_file, '/');
+			}
+		}
 		return [
 			'logs' => $logs,
 			'prescribed_pdf' => $prescribedPdfUrl,
+			'checker_pdfs' => $checkerPdfs, // return array of checker PDF URLs
 		];
 	}
 }

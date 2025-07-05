@@ -204,11 +204,11 @@
                 </div>
             </div> --}}
              <div class="col-md-6">
-                <div class="card" style="max-height: 400px; overflow-y: auto;">
+                <div class="card" style="max-height: 400px;">
                     <div class="card-header">
                        <strong> Order Timeline</strong>
                     </div>
-                    <div class="card-body">
+                    <div class="card-body" style="overflow-y: auto;"> 
                         @if ($auditDetails['logs']->isEmpty())
                             <p>No audit logs found for this order.</p>
                         @else

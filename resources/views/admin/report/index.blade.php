@@ -302,7 +302,7 @@
             $('#date_range').val(displayText);
 
             $('#date_range').daterangepicker({
-                autoUpdateInput: false,
+                autoUpdateInput: true,
                 locale: {
                     format: 'YYYY-MM-DD',
                     cancelLabel: 'Clear'

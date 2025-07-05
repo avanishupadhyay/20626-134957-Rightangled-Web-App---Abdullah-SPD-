@@ -7,8 +7,14 @@
         }
         label{
             font-weight: 600;
+        }   
+        /* #identifier{
+            background: #c7c7c7;
         }
-    </style>
+        #identifier:focus{
+            background: #c7c7c7;
+        } */
+    </style>    
     <div class="card">
         <div class="card-header">
             <h3>{{ !empty($template) ? 'Edit' : 'Create' }} Email Template</h3>
