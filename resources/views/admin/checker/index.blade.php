@@ -91,6 +91,13 @@
                                     class="form-control" placeholder="Select date range" autocomplete="off" />
                             </div>
 
+                            <div class="col-md-2">
+                                <select name="order_status" id="order_status" class="form-select">
+                                    <option value="">--Order Status--</option>
+                                    <option value="approved" {{ request('order_status') == 'approved' ? 'selected' : '' }}>Approved</option>
+                                    <option value="on_hold" {{ request('order_status') == 'on_hold' ? 'selected' : '' }}>On-Hold</option>
+                                </select>
+                            </div>
 
                             {{-- Filter button --}}
                             <div class="col-md-1 d-grid">
