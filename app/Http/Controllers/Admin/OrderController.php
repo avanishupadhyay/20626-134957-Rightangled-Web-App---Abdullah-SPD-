@@ -431,12 +431,15 @@ class OrderController extends Controller
                 'alreadyPrinted' => true,
             ]);
         } else {
+            $dispenses->each(function ($dispense) {
+                $dispense->increment('reprint_count');
+            });
             // ✅ First-time print
             AuditLog::create([
                 'user_id'  => $user->id,
                 'order_id' => $batchId ?? null,
                 'action'   => 'batch_print',
-                'details'  => "Order dispensed by {$user->name} on {$nowFormatted}.",
+                'details'  => "Dispensing & Shipping label printed by {$user->name} on {$nowFormatted}.",
             ]);
 
             return response()->json([
@@ -515,5 +518,33 @@ class OrderController extends Controller
 
         // Serve the merged PDF file as a download
         return response()->download($outputFile)->deleteFileAfterSend(true);
+    }
+
+
+    public function store(Request $request)
+    {
+        $request->validate([
+            'order_id' => 'required|exists:orders,order_number',
+            'details' => 'nullable|string',
+            'file' => 'nullable|file|mimes:pdf|max:5048',
+        ]);
+        $filePath = null;
+        if ($request->hasFile('file')) {
+            $file = $request->file('file');
+            $filename = time() . '_' . $file->getClientOriginalName();
+            $filePath = 'checker_prescription/' . $filename;
+
+            Storage::disk('public')->putFileAs('checker_prescription', $file, $filename);
+        }
+
+        AuditLog::create([
+            'user_id' => auth()->id(),
+            'order_id' => $request->order_id,
+            'action' => 'manual_log',
+            'details' => $request->details . ' (' . Carbon::now()->format('Y-m-d H:i:s') . ')',
+            'checker_prescription_file' => $filePath,
+        ]);
+
+        return redirect()->back()->with('success', 'Log submitted successfully.');
     }
 }

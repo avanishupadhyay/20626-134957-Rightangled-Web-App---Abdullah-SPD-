@@ -63,6 +63,37 @@
                 @endif
             @endif
         </div>
+           <form action="{{ route('admin.audit-log.store') }}" method="POST" enctype="multipart/form-data" class="mb-3">
+            @csrf
+            <input type="hidden" name="order_id" value="{{ $order->order_number }}">
+
+            <div class="row align-items-end mb-3">
+                <!-- Details Textarea -->
+                <div class="col-md-8">
+                    <textarea name="details" id="details" class="form-control" rows="3" placeholder="Enter reason or notes..."></textarea>
+                </div>
+
+                <!-- File Upload -->
+                <div class="col-md-2 text-center">
+                    <label for="file" class="form-label d-block">Attach PDF</label>
+                    <label for="file" class="btn btn-outline-secondary">
+                        <i class="fa fa-paperclip" style="font-size:20px"></i>
+                    </label>
+                    <input type="file" name="file" id="file" class="d-none" accept="application/pdf">
+                </div>
+                <div class="col-md-2 text-center">
+                    <div class="text-end">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-upload"></i> Submit Log
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Submit Button -->
+
+        </form>
+
 
         <div class="row">
             {{-- Left Card --}}
