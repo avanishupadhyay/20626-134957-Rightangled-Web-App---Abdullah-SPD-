@@ -73,6 +73,7 @@ Route::get('/orders/{order}/download-pdf', [OrderController::class, 'downloadPDF
 Route::get('/batches', [OrderController::class, 'indexing'])->name('batches.index');
 Route::get('/batches/{batchId}/download', [OrderController::class, 'downloadBatchPdf'])->name('batches.download');
 Route::post('/batches/{batchId}/check-reprint', [OrderController::class, 'checkReprint'])->name('batches.checkReprint');
+Route::post('/admin/audit-log/store', [OrderController::class, 'store'])->name('admin.audit-log.store');
 
 
 //prescriber route
@@ -88,6 +89,7 @@ Route::get('Checker/orders', [CheckerOrderController::class, 'index'])->name('ch
 Route::get('Checker/orders/{id}/view', [CheckerOrderController::class, 'view'])->name('checker_orders.view');
 Route::post('Checker/orders/{orderId}/check', [CheckerOrderController::class, 'check'])->name('orders.checker');
 Route::post('/orders/{orderId}/checker', [CheckerOrderController::class, 'overrideaction'])->name('orders.checker.release');
+Route::post('/Checker/audit-log/store', [CheckerOrderController::class, 'store'])->name('audit-log.store');
 
 //Dispenser route
 Route::get('Dispenser/orders', [DispenserOrderController::class, 'index'])->name('dispenser_orders.index');
