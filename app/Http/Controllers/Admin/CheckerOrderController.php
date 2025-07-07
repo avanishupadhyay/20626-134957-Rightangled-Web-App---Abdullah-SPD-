@@ -40,7 +40,7 @@ class CheckerOrderController extends Controller
 
         if ($orderStatus && ($orderStatus === "approved" || $orderStatus === "on_hold")) {
             // Fetch only orders with latest action status = approved
-            $approvedOrderIds = \App\Models\OrderAction::orderBy('created_at', 'desc')
+            $approvedOrderIds = \App\Models\OrderAction::orderBy('updated_at', 'desc')
                 ->get()
                 ->unique('order_id')
                 ->filter(function ($action) use ($orderStatus) {
@@ -67,7 +67,7 @@ class CheckerOrderController extends Controller
             }
 
 
-            $excludedOrderIds = \App\Models\OrderAction::orderBy('created_at', 'desc')
+            $excludedOrderIds = \App\Models\OrderAction::orderBy('updated_at', 'desc')
                 ->get()
                 ->unique('order_id') // Keep only the latest action per order_id
                 ->filter(function ($action) use ($excludedStatuses) {
