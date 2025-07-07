@@ -63,7 +63,7 @@ class PrescriberOrderController extends Controller
 
         if ($orderStatus && ($orderStatus === "approved" || $orderStatus === "on_hold")) {
             // Fetch only orders with latest action status = approved
-            $approvedOrderIds = \App\Models\OrderAction::orderBy('created_at', 'desc')
+            $approvedOrderIds = \App\Models\OrderAction::orderBy('updated_at', 'desc')
                 ->get()
                 ->unique('order_id')
                 ->filter(function ($action) use ($orderStatus) {
@@ -82,7 +82,7 @@ class PrescriberOrderController extends Controller
                 $excludedStatuses = ['accurately_checked', 'dispensed'];
             }
 
-            $excludedOrderIds = \App\Models\OrderAction::orderBy('created_at', 'desc')
+            $excludedOrderIds = \App\Models\OrderAction::orderBy('updated_at', 'desc')
                 ->get()
                 ->unique('order_id')
                 ->filter(function ($action) use ($excludedStatuses) {
@@ -454,8 +454,7 @@ class PrescriberOrderController extends Controller
                 'user_id' => auth()->id(),
                 'action' => $decisionStatus,
                 'order_id' => $orderId,
-                // 'details' => $request->clinical_reasoning ?? $request->rejection_reason ?? $request->on_hold_reason,
-                'details' =>  'Order prescribed by ' . auth()->user()->name . ' on ' . now()->format('d/m/Y') . ' at ' . now()->format('H:i') . '. Reason: "' . $request->clinical_reasoning ?? $request->rejection_reason ?? $request->on_hold_reason . '"',
+                'details' => 'Order Prescribed by ' . auth()->user()->name . ' on ' . now()->format('d/m/Y') . ' at ' . now()->format('H:i') . '. Reason: "' . ($request->clinical_reasoning ?? $request->rejection_reason ?? $request->on_hold_reason) . '"',
             ]);
 
             DB::commit();
