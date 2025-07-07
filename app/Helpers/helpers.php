@@ -1978,12 +1978,13 @@ if (!function_exists('getAuditLogDetailsForOrder')) {
 
 		foreach ($logs as $log) {
 			$roleName = strtolower($log->role_name ?? '');
+			// dd($roleName);
 
 			if (
-				in_array($roleName, ['Checker', 'Admin']) &&
+				in_array($roleName, ['checker', 'admin']) &&
 				!empty($log->checker_prescription_file)
 			) {
-				$checkerPdfs[] = config('app.url') . '/' . ltrim($log->checker_prescription_file, '/');
+				$checkerPdfs[] = config('app.url') . '/storage/' . ltrim($log->checker_prescription_file, '/');
 			}
 		}
 		return [

@@ -218,6 +218,7 @@ class CheckerOrderController extends Controller
 
         $orderData = json_decode($order->order_data, true);
         $auditDetails = getAuditLogDetailsForOrder($order->order_number) ?? null;
+        // dd($auditDetails);
 
         return view('admin.checker.view', compact('order', 'orderData', 'auditDetails'));
     }
@@ -550,8 +551,8 @@ class CheckerOrderController extends Controller
     {
         $request->validate([
             'order_id' => 'required|exists:orders,order_number',
-            'details' => 'nullable|string',
-            'file' => 'nullable|file|mimes:pdf|max:2048',
+            'details' => 'required|string',
+            'file' => 'nullable|file|mimes:pdf|max:5048',
         ]);
 
         $filePath = null;

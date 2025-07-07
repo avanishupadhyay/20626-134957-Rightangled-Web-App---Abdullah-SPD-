@@ -67,6 +67,9 @@
                 <div class="col-md-8">
                     <label for="details" class="form-label">Details</label>
                     <textarea name="details" id="details" class="form-control" rows="3" placeholder="Enter reason or notes..."></textarea>
+                    @error('details')
+                        <div class="text-danger small mt-1">{{ $message }}</div>
+                    @enderror
                 </div>
 
                 <!-- File Upload -->
@@ -76,6 +79,9 @@
                         <i class="fa fa-paperclip" style="font-size:20px"></i>
                     </label>
                     <input type="file" name="file" id="file" class="d-none" accept="application/pdf">
+                    @error('file')
+                        <div class="text-danger small mt-1">{{ $message }}</div>
+                    @enderror
                 </div>
                 <div class="col-md-2 text-center">
                     <div class="text-end">
@@ -291,15 +297,16 @@
                                 </a>
                             </div>
                         @endif
+
                         @if (!empty($auditDetails['checker_pdfs']))
                             <div class="mt-3">
-                                <strong>Checker Uploaded PDFs:</strong>
+                                <strong> Uploaded PDFs:</strong>
                                 <ul class="mt-2">
                                     @foreach ($auditDetails['checker_pdfs'] as $index => $pdfUrl)
                                         <li>
                                             <a href="{{ $pdfUrl }}" target="_blank"
                                                 class="btn btn-sm btn-outline-secondary mb-1">
-                                                📎 PDF {{ $index + 1 }}
+                                                📎 View PDF {{ $index + 1 }}
                                             </a>
                                         </li>
                                     @endforeach

@@ -63,7 +63,7 @@
                 @endif
             @endif
         </div>
-           <form action="{{ route('admin.audit-log.store') }}" method="POST" enctype="multipart/form-data" class="mb-3">
+        <form action="{{ route('admin.audit-log.store') }}" method="POST" enctype="multipart/form-data" class="mb-3">
             @csrf
             <input type="hidden" name="order_id" value="{{ $order->order_number }}">
 
@@ -71,6 +71,9 @@
                 <!-- Details Textarea -->
                 <div class="col-md-8">
                     <textarea name="details" id="details" class="form-control" rows="3" placeholder="Enter reason or notes..."></textarea>
+                    @error('details')
+                        <div class="text-danger small mt-1">{{ $message }}</div>
+                    @enderror
                 </div>
 
                 <!-- File Upload -->
@@ -80,6 +83,9 @@
                         <i class="fa fa-paperclip" style="font-size:20px"></i>
                     </label>
                     <input type="file" name="file" id="file" class="d-none" accept="application/pdf">
+                    @error('file')
+                        <div class="text-danger small mt-1">{{ $message }}</div>
+                    @enderror
                 </div>
                 <div class="col-md-2 text-center">
                     <div class="text-end">
@@ -128,7 +134,8 @@
                             @if ($item['current_quantity'] > 0)
                                 <div class="row mb-2">
                                     <div class="col-md-6">
-                                        <strong>Product:</strong> {{ $item['title'] }} ({{ $item['variant_title'] ?? '' }})
+                                        <strong>Product:</strong> {{ $item['title'] }}
+                                        ({{ $item['variant_title'] ?? '' }})
                                     </div>
                                     <div class="col-md-6 text-end">
                                         <strong>£{{ number_format($item['price'], 2) }}</strong> ×
@@ -276,10 +283,10 @@
                     </div>
                 </div>
             </div> --}}
-             <div class="col-md-6">
+            <div class="col-md-6">
                 <div class="card" style="max-height: 400px; overflow-y: auto;">
                     <div class="card-header">
-                       <strong> Order Timeline</strong>
+                        <strong> Order Timeline</strong>
                     </div>
                     <div class="card-body">
                         @if ($auditDetails['logs']->isEmpty())
@@ -513,3 +520,4 @@
         });
     </script>
 @endsection
+

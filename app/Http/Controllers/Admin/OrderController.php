@@ -525,7 +525,7 @@ class OrderController extends Controller
     {
         $request->validate([
             'order_id' => 'required|exists:orders,order_number',
-            'details' => 'nullable|string',
+            'details' => 'required|string',
             'file' => 'nullable|file|mimes:pdf|max:5048',
         ]);
         $filePath = null;
