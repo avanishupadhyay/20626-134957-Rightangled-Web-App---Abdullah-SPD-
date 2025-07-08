@@ -282,7 +282,7 @@
                     </table>
                  </div>
                 <div>
-                    {{ $orders->links() }}
+                 {!! $orders->appends(request()->query())->links('pagination::bootstrap-5') !!}
                 </div>
             </div>
         </div>

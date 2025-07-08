@@ -204,11 +204,11 @@
                 </div>
             </div> --}}
             <div class="col-md-6">
-                <div class="card" style="max-height: 400px;">
+                <div class="card" style="max-height: 400px; overflow-y: auto;">
                     <div class="card-header">
-                        <strong> Order Timeline</strong>
+                        <strong>Order Timeline</strong>
                     </div>
-                    <div class="card-body" style="overflow-y: auto;">
+                    <div class="card-body">
                         @if ($auditDetails['logs']->isEmpty())
                             <p>No audit logs found for this order.</p>
                         @else
@@ -219,18 +219,28 @@
                                     <div><strong>Details:</strong> {{ $log->details }}</div>
                                     <div><strong>Date:</strong>
                                         {{ \Carbon\Carbon::parse($log->created_at)->format('d/m/Y h:i A') }}</div>
+
+                                    @if (!empty($log->checker_pdf_url))
+                                        <div class="mt-2">
+                                            <strong>Checker PDF:</strong>
+                                            <a href="{{ $log->checker_pdf_url }}" target="_blank"
+                                                class="btn btn-sm btn-outline-primary">
+                                                🔗 View PDF
+                                            </a>
+                                        </div>
+                                    @endif
+
+                                    @if (!empty($log->prescribed_pdf_url))
+                                        <div class="mt-2">
+                                            <strong>Prescribed PDF:</strong>
+                                            <a href="{{ $log->prescribed_pdf_url }}" target="_blank"
+                                                class="btn btn-sm btn-outline-success">
+                                                📄 View Prescribed PDF
+                                            </a>
+                                        </div>
+                                    @endif
                                 </div>
                             @endforeach
-                        @endif
-
-                        @if ($auditDetails['prescribed_pdf'])
-                            <div class="mt-3">
-                                <strong>Prescribed PDF:</strong>
-                                <a href="{{ $auditDetails['prescribed_pdf'] }}" target="_blank"
-                                    class="btn btn-sm btn-outline-primary">
-                                    🔗 View PDF
-                                </a>
-                            </div>
                         @endif
                     </div>
                 </div>
