@@ -249,6 +249,14 @@ class AccuracyCheckerOrderController extends Controller
             // Step 5: Update fulfillment status
             $order->fulfillment_status = 'fulfilled';
             $order->save();
+            AuditLog::create([
+                'user_id' => auth()->id(),
+                'action' => 'accurately_checked',
+                'order_id' => $id,
+                'details' => 'Order accurately checked by ' . auth()->user()->name .
+                    ' on ' . now()->format('d/m/Y') .
+                    ' at ' . now()->format('H:i'),
+            ]);
 
             return response()->json(['status' => 'success']);
         } catch (\Exception $e) {

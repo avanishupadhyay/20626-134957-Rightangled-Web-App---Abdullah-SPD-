@@ -1040,32 +1040,69 @@ function markFulfillmentOnHold($orderId, $reason)
 
 
 
+// function cancelOrder($orderId, $reason)
+// {
+// 	// $shopDomain = env('SHOP_DOMAIN');
+// 	// $accessToken = env('ACCESS_TOKEN');
+// 	[$shopDomain, $accessToken] = array_values(getShopifyCredentialsByOrderId($orderId));
+
+// 	// ['shopDomain' => $shopDomain, 'accessToken' => $accessToken] = getShopifyCredentialsByOrderId($orderId);
+
+
+// 	$response = Http::withHeaders([
+// 		'X-Shopify-Access-Token' => $accessToken,
+// 		'Content-Type' => 'application/json',
+// 	])->post("{$shopDomain}/admin/api/2023-10/orders/{$orderId}/cancel.json", [
+// 		'email' => true,
+// 		'reason' => $reason, // or 'other', 'fraud', 'inventory'
+// 		// 'restock' => true,
+// 		'note' => $reason ?? 'Order rejected by prescriber.',
+
+// 	]);
+
+// 	if ($response->failed()) {
+// 		throw new \Exception('Order cancellation failed: ' . json_encode($response->json()));
+// 	}
+
+// 	return true;
+// }
+
 function cancelOrder($orderId, $reason)
 {
-	// $shopDomain = env('SHOP_DOMAIN');
-	// $accessToken = env('ACCESS_TOKEN');
 	[$shopDomain, $accessToken] = array_values(getShopifyCredentialsByOrderId($orderId));
 
-	// ['shopDomain' => $shopDomain, 'accessToken' => $accessToken] = getShopifyCredentialsByOrderId($orderId);
-
-
-	$response = Http::withHeaders([
+	// 1. Cancel the order
+	$cancelResponse = Http::withHeaders([
 		'X-Shopify-Access-Token' => $accessToken,
 		'Content-Type' => 'application/json',
 	])->post("{$shopDomain}/admin/api/2023-10/orders/{$orderId}/cancel.json", [
 		'email' => true,
 		'reason' => $reason, // or 'other', 'fraud', 'inventory'
-		// 'restock' => true,
-		'note' => $reason ?? 'Order rejected by prescriber.',
-
+		// 'note' => $reason ?? 'Order rejected by prescriber.',
 	]);
 
-	if ($response->failed()) {
-		throw new \Exception('Order cancellation failed: ' . json_encode($response->json()));
+	if ($cancelResponse->failed()) {
+		throw new \Exception('Order cancellation failed: ' . json_encode($cancelResponse->json()));
+	}
+
+	// 2. Add hardcoded tag
+	$tagResponse = Http::withHeaders([
+		'X-Shopify-Access-Token' => $accessToken,
+		'Content-Type' => 'application/json',
+	])->put("{$shopDomain}/admin/api/2023-10/orders/{$orderId}.json", [
+		'order' => [
+			'id' => $orderId,
+			'tags' => 'Order Cancelled',
+		],
+	]);
+
+	if ($tagResponse->failed()) {
+		throw new \Exception('Failed to add tag: ' . json_encode($tagResponse->json()));
 	}
 
 	return true;
 }
+
 
 
 function getOrderDecisionStatus($orderId)
