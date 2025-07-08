@@ -63,7 +63,7 @@ class PrescriberOrderController extends Controller
 
         if ($orderStatus && ($orderStatus === "approved" || $orderStatus === "on_hold")) {
             // Fetch only orders with latest action status = approved
-            $approvedOrderIds = \App\Models\OrderAction::orderBy('created_at', 'desc')
+            $approvedOrderIds = \App\Models\OrderAction::orderBy('updated_at', 'desc')
                 ->get()
                 ->unique('order_id')
                 ->filter(function ($action) use ($orderStatus) {
@@ -81,7 +81,7 @@ class PrescriberOrderController extends Controller
                 $excludedStatuses = ['accurately_checked', 'dispensed'];
             }
 
-            $excludedOrderIds = \App\Models\OrderAction::orderBy('created_at', 'desc')
+            $excludedOrderIds = \App\Models\OrderAction::orderBy('updated_at', 'desc')
                 ->get()
                 ->unique('order_id')
                 ->filter(function ($action) use ($excludedStatuses) {
