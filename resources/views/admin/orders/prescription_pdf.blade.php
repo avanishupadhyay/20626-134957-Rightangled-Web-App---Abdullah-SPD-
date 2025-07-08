@@ -241,6 +241,7 @@
         <tr>
             <td>
                 <h3><strong>PATIENT</strong></h3><br>
+                {{ $orderData['shipping_address']['name'] ?? '' }}<br>
                 {{ $orderData['shipping_address']['address1'] ?? '' }}<br>
                 {{ $orderData['shipping_address']['city'] ?? '' }},
                 {{ $orderData['shipping_address']['province'] ?? '' }}

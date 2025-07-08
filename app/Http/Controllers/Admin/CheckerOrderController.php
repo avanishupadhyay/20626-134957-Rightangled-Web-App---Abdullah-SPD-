@@ -61,8 +61,8 @@ class CheckerOrderController extends Controller
                         ->orWhereRaw("JSON_UNQUOTE(JSON_EXTRACT(order_data, '$.cancelled_at')) = 'null'");
                 })->whereIn('order_number', $approvedOrderIds);
         } else {
-             $excludedStatuses = ['approved','on_hold' ,'accurately_checked', 'dispensed'];
-            if($request->input('search')){
+            $excludedStatuses = ['approved', 'on_hold', 'accurately_checked', 'dispensed'];
+            if ($request->input('search')) {
                 $excludedStatuses = ['accurately_checked', 'dispensed'];
             }
 
@@ -383,13 +383,19 @@ class CheckerOrderController extends Controller
                 ]
             );
 
-
+            $reason = $request->clinical_reasoning
+                ?: ($request->rejection_reason
+                    ?: ($request->on_hold_reason
+                        ?: 'N/A'));
             // Step 4: Log
             AuditLog::create([
                 'user_id' => auth()->id(),
                 'action' => $decisionStatus,
                 'order_id' => $orderId,
-                'details' =>  'Order checked by ' . auth()->user()->name . ' on ' . now()->format('d/m/Y') . ' at ' . now()->format('H:i') . '. Reason: "' . $request->clinical_reasoning ?? $request->rejection_reason ?? $request->on_hold_reason . '"',
+                'details' => 'Order Checked by ' . auth()->user()->name .
+                    ' on ' . now()->format('d/m/Y') .
+                    ' at ' . now()->format('H:i') .
+                    '. Reason: "' . $reason . '"',                // 'details' =>  'Order checked by ' . auth()->user()->name . ' on ' . now()->format('d/m/Y') . ' at ' . now()->format('H:i') . '. Reason: "' . $request->clinical_reasoning ?? $request->rejection_reason ?? $request->on_hold_reason . '"',
             ]);
 
             DB::commit();

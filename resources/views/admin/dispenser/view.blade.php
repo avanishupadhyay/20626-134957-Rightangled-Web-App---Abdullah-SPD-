@@ -203,12 +203,12 @@
                     </div>
                 </div>
             </div> --}}
-             <div class="col-md-6">
+            <div class="col-md-6">
                 <div class="card" style="max-height: 400px;">
                     <div class="card-header">
-                       <strong> Order Timeline</strong>
+                        <strong> Order Timeline</strong>
                     </div>
-                    <div class="card-body" style="overflow-y: auto;"> 
+                    <div class="card-body" style="overflow-y: auto;">
                         @if ($auditDetails['logs']->isEmpty())
                             <p>No audit logs found for this order.</p>
                         @else
@@ -305,9 +305,25 @@
                         @endphp
 
                         @foreach ($qaList as $qa)
+                            @php
+                                $question = $qa['question'];
+                                $answer = $qa['answer'];
+
+                                // Format DOB if question matches
+                                if (stripos($question, 'date of birth') !== false && preg_match('/^\d{8}$/', $answer)) {
+                                    // Convert from DDMMYYYY to DD-MM-YYYY
+                                    $answer =
+                                        substr($answer, 0, 2) .
+                                        '-' .
+                                        substr($answer, 2, 2) .
+                                        '-' .
+                                        substr($answer, 4, 4);
+                                }
+                            @endphp
+
                             <div class="row mb-1">
-                                <div class="col-md-6"><strong>{{ $qa['question'] }}</strong></div>
-                                <div class="col-md-6">{{ $qa['answer'] }}</div>
+                                <div class="col-md-6"><strong>{{ $question }}</strong></div>
+                                <div class="col-md-6">{{ $answer }}</div>
                             </div>
                         @endforeach
                     @else

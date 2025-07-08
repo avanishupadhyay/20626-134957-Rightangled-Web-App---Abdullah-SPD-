@@ -6,7 +6,7 @@
             width: 100%;
         }
     </style>
-    
+
 
     <div class="container">
         <div class="row page-titles mx-0 mb-3">
@@ -106,10 +106,10 @@
                                             {{-- <td> --}}
 
                                             @role('ACT')
-                                                <td>
+                                                {{-- <td>
                                                     {!! DNS2D::getBarcodeHTML((string) $order->order_number, 'QRCODE', 6, 6) !!}
                                                     <p>Scan order QR</p>
-                                                </td>
+                                                </td> --}}
                                             @endrole
 
                                             {{-- <input type="text" id="qr-scan-input" autofocus
@@ -154,7 +154,7 @@
                                     <th>Product</th>
                                     <th>Quantity</th>
                                     <th>Price</th>
-                                    <th style="width:50px">Product Barcode</th> <!-- new column -->
+                                    <th style="width:50px">Product SKU</th> <!-- new column -->
 
 
                                 </tr>
@@ -516,17 +516,10 @@
                                 <td>${item.name}</td>
                                 <td>${item.quantity}</td>
                                 <td> £ ${item.price}</td>
-    //                           <td id="scan-result-${item.sku}">
-    //     <!-- Will fill this after scan -->
-    // </td>
-    <td>
-                                    <img src="${item.barcode_base64}" 
-                                         alt="Product Barcode"
-                                         class="product-barcode"
-                                         style="height: 60px;"
-                                         data-product-id="${item.product_id}"
-                                         data-order-id="${data.order.order_number}">
-                                </td>
+                              <td id="scan-result-${item.sku}">
+        <!-- Will fill this after scan -->
+    </td>
+  
                             </tr>`;
                             tbody.insertAdjacentHTML('beforeend', row);
                         });
@@ -617,7 +610,7 @@
                     if (scannedProductIds.size === requiredProductIds.size) {
                         toastr.success(
                             '🎉 All products scanned. Now scan the Shipment label QR to fulfill'
-                            );
+                        );
                         scanningMode = 'fulfill';
                         orderBarcodeInput.disabled = false;
                         orderBarcodeInput.style.display = 'block';
