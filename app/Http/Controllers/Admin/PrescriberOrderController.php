@@ -67,18 +67,17 @@ class PrescriberOrderController extends Controller
                 ->get()
                 ->unique('order_id')
                 ->filter(function ($action) use ($orderStatus) {
-                    return $action->decision_status === $orderStatus; 
+                    return $action->decision_status === $orderStatus;
                 })
                 ->pluck('order_id')
                 ->toArray();
 
             $query = Order::query()
                 ->whereIn('order_number', $approvedOrderIds);
-
         } else {
             // Original logic: exclude orders whose latest action is in excludedStatuses
-            $excludedStatuses = ['approved','on_hold' ,'accurately_checked', 'dispensed'];
-            if($request->input('search')){
+            $excludedStatuses = ['approved', 'on_hold', 'accurately_checked', 'dispensed'];
+            if ($request->input('search')) {
                 $excludedStatuses = ['accurately_checked', 'dispensed'];
             }
 
@@ -103,9 +102,6 @@ class PrescriberOrderController extends Controller
                         ->orWhereRaw("JSON_UNQUOTE(JSON_EXTRACT(order_data, '$.cancelled_at')) = 'null'");
                 })
                 ->whereNotIn('order_number', $excludedOrderIds);
-
-           
-           
         }
 
         $query = $this->filter_queries($request, $query);
@@ -243,7 +239,7 @@ class PrescriberOrderController extends Controller
         // $orderMetafields = getOrderMetafields($order->order_number) ?? null;
         $orderData = json_decode($order->order_data, true);
         $auditDetails = getAuditLogDetailsForOrder($order->order_number) ?? null;
-        return view('admin.prescriber.view', compact('order', 'orderData', 'order_images','auditDetails'));
+        return view('admin.prescriber.view', compact('order', 'orderData', 'order_images', 'auditDetails'));
     }
 
     // public function downloadPDF($orderId)
@@ -296,56 +292,56 @@ class PrescriberOrderController extends Controller
 
         $order_detail = Order::where('order_number', $orderId)->first();
 
-        if ($order_detail) {
-            $order_data = json_decode($order_detail->order_data, true) ?? [];
-            $check_id = '';
-            $birth_date = '';
+        // if ($order_detail) {
+        //     $order_data = json_decode($order_detail->order_data, true) ?? [];
+        //     $check_id = '';
+        //     $birth_date = '';
 
-            if (isset($order_data['customer']) && !empty($order_data['customer'])) {
-                // Get customer ID from order
-                // $customerId = $order_data['customer']['id'] ?? null;
-                $customerId = 23044010213763;
+        //     if (isset($order_data['customer']) && !empty($order_data['customer'])) {
+        //         // Get customer ID from order
+        //         // $customerId = $order_data['customer']['id'] ?? null;
+        //         $customerId = 23044010213763;
 
-                // Continue only if dob is NOT already set
-                if ($customerId && empty($order_data['customer']['dob'])) {
-                    // Fetch metafields from Shopify
-                    $response = Http::withHeaders([
-                        'X-Shopify-Access-Token' => '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'
-                    ])->get("https://rightangled-store.myshopify.com/admin/api/2023-10/customers/{$customerId}/metafields.json");
+        //         // Continue only if dob is NOT already set
+        //         if ($customerId && empty($order_data['customer']['dob'])) {
+        //             // Fetch metafields from Shopify
+        //             $response = Http::withHeaders([
+        //                 'X-Shopify-Access-Token' => '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'
+        //             ])->get("https://rightangled-store.myshopify.com/admin/api/2023-10/customers/{$customerId}/metafields.json");
 
-                    $data = $response->json();
+        //             $data = $response->json();
 
-                    // Extract check_id
-                    if (isset($data['metafields'])) {
-                        foreach ($data['metafields'] as $meta) {
-                            if ($meta['key'] === 'check_id') {
-                                $check_id = $meta['value'];
-                                break;
-                            }
-                        }
-                    }
+        //             // Extract check_id
+        //             if (isset($data['metafields'])) {
+        //                 foreach ($data['metafields'] as $meta) {
+        //                     if ($meta['key'] === 'check_id') {
+        //                         $check_id = $meta['value'];
+        //                         break;
+        //                     }
+        //                 }
+        //             }
 
-                    // Fetch Real ID details
-                    if (!empty($check_id)) {
-                        $realIdResponse = Http::withHeaders([
-                            'Authorization' => 'Bearer ' . env('REAL_ID_API_TOKEN'),
-                            'Accept' => 'application/json',
-                        ])->get("https://real-id.getverdict.com/api/v1/checks/{$check_id}");
+        //             // Fetch Real ID details
+        //             if (!empty($check_id)) {
+        //                 $realIdResponse = Http::withHeaders([
+        //                     'Authorization' => 'Bearer ' . env('REAL_ID_API_TOKEN'),
+        //                     'Accept' => 'application/json',
+        //                 ])->get("https://real-id.getverdict.com/api/v1/checks/{$check_id}");
 
-                        $realIdData = $realIdResponse->json();
+        //                 $realIdData = $realIdResponse->json();
 
-                        if (!empty($realIdData['check']['result']['document']['birth_date'])) {
-                            $birth_date = $realIdData['check']['result']['document']['birth_date'];
+        //                 if (!empty($realIdData['check']['result']['document']['birth_date'])) {
+        //                     $birth_date = $realIdData['check']['result']['document']['birth_date'];
 
-                            // Update the order_data
-                            $order_data['customer']['dob'] = $birth_date;
-                            $order_detail->order_data = json_encode($order_data);
-                            $order_detail->save();
-                        }
-                    }
-                }
-            }
-        }
+        //                     // Update the order_data
+        //                     $order_data['customer']['dob'] = $birth_date;
+        //                     $order_detail->order_data = json_encode($order_data);
+        //                     $order_detail->save();
+        //                 }
+        //             }
+        //         }
+        //     }
+        // }
 
         // // $pdfUrl = $this->generateAndStorePDF($orderId);
         // $pdfPath = $this->generateAndStorePDF($orderId);
@@ -448,14 +444,20 @@ class PrescriberOrderController extends Controller
                 ]
             );
 
-
+            $reason = $request->clinical_reasoning
+                ?: ($request->rejection_reason
+                    ?: ($request->on_hold_reason
+                        ?: 'N/A'));
             // Step 4: Log
             AuditLog::create([
                 'user_id' => auth()->id(),
                 'action' => $decisionStatus,
                 'order_id' => $orderId,
                 // 'details' => $request->clinical_reasoning ?? $request->rejection_reason ?? $request->on_hold_reason,
-                'details' =>  'Order prescribed by ' . auth()->user()->name . ' on ' . now()->format('d/m/Y') . ' at ' . now()->format('H:i') . '. Reason: "' . $request->clinical_reasoning ?? $request->rejection_reason ?? $request->on_hold_reason . '"',
+                'details' => 'Order prescribed by ' . auth()->user()->name .
+                    ' on ' . now()->format('d/m/Y') .
+                    ' at ' . now()->format('H:i') .
+                    '. Reason: "' . $reason . '"',
             ]);
 
             DB::commit();

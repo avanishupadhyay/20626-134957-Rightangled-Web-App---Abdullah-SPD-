@@ -74,6 +74,7 @@ Route::get('/batches', [OrderController::class, 'indexing'])->name('batches.inde
 Route::get('/batches/{batchId}/download', [OrderController::class, 'downloadBatchPdf'])->name('batches.download');
 Route::post('/batches/{batchId}/check-reprint', [OrderController::class, 'checkReprint'])->name('batches.checkReprint');
 Route::post('/admin/audit-log/store', [OrderController::class, 'store'])->name('admin.audit-log.store');
+Route::get('/admin/batches/{batch}/download', [OrderController::class, 'download'])->name('admin.batches.download');
 
 
 //prescriber route

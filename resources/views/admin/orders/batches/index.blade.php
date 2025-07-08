@@ -52,9 +52,9 @@
                             <td>{{ $orderCount }}</td>
                             <td>{{ $batch?->created_at?->format('d M Y, h:i A') ?? '   N/A' }}</td>
                             <td>
-                                {{-- <a href="{{ route('batches.download', $batchId) }}" class="btn btn-primary btn-sm">
-                                    <i class="fa fa-print"></i>
-                                </a> --}}
+                                <a href="{{ route('admin.batches.download', $batch->id) }}"
+                                        class="btn btn-sm btn-success"> <i class="fa fa-download"></i></a>
+                                </a> 
                                 <a href="javascript:void(0);" class="btn btn-primary btn-sm"
                                     onclick="confirmAndPrint({{ $batchId }})">
                                     <i class="fa fa-print"></i>

@@ -17,6 +17,8 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Facades\File;
 use Carbon\Carbon;
+use App\Models\DispenseBatch;
+
 
 class OrderController extends Controller
 {
@@ -306,12 +308,17 @@ class OrderController extends Controller
                 ]
             );
 
+            $reason = $request->clinical_reasoning
+                ?: ($request->rejection_reason
+                    ?: ($request->on_hold_reason
+                        ?: ($request->release_hold_reason
+                            ?: 'N/A')));
             // Step 4: Log
             AuditLog::create([
                 'user_id' => auth()->id(),
                 'action' => $decisionStatus,
                 'order_id' => $orderId,
-                'details' => $request->clinical_reasoning ?? $request->rejection_reason ?? $request->on_hold_reason,
+                'details' => $reason,
             ]);
 
             DB::commit();
@@ -546,5 +553,16 @@ class OrderController extends Controller
         ]);
 
         return redirect()->back()->with('success', 'Log submitted successfully.');
+    }
+
+    public function download($id)
+    {
+        $batch = DispenseBatch::findOrFail($id);
+        $path = $batch->pdf_path ?? $batch->shipment_pdf_path;
+        if (!$path || !Storage::disk('public')->exists($path)) {
+            return redirect()->back()->with('error', 'PDF not found for this batch.');
+        }
+
+        return Storage::disk('public')->download($path);
     }
 }
