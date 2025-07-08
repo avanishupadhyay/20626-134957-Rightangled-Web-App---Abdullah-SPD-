@@ -448,17 +448,28 @@ class PrescriberOrderController extends Controller
                 ?: ($request->rejection_reason
                     ?: ($request->on_hold_reason
                         ?: 'N/A'));
-            // Step 4: Log
+
+            // Decide action text based on which field is filled
+            if ($request->clinical_reasoning) {
+                $actionText = 'Order Checked by ';
+            } elseif ($request->rejection_reason) {
+                $actionText = 'Order Rejected by ';
+            } elseif ($request->on_hold_reason) {
+                $actionText = 'Order Put On Hold by ';
+            } else {
+                $actionText = 'Order Updated by ';
+            }
+
             AuditLog::create([
-                'user_id' => auth()->id(),
-                'action' => $decisionStatus,
-                'order_id' => $orderId,
-                // 'details' => $request->clinical_reasoning ?? $request->rejection_reason ?? $request->on_hold_reason,
-                'details' => 'Order prescribed by ' . auth()->user()->name .
+                'user_id'   => auth()->id(),
+                'action'    => $decisionStatus, // could be 'approved', 'rejected', etc.
+                'order_id'  => $orderId,
+                'details'   => $actionText . auth()->user()->name .
                     ' on ' . now()->format('d/m/Y') .
                     ' at ' . now()->format('H:i') .
                     '. Reason: "' . $reason . '"',
             ]);
+
 
             DB::commit();
 
@@ -628,7 +639,9 @@ class PrescriberOrderController extends Controller
                 'user_id' => auth()->id(),
                 'action' => $decisionStatus,
                 'order_id' => $orderId,
-                'details' => $request->release_hold_reason ?? '',
+                'details' => 'Order hold released by' . auth()->user()->name .
+                    ' on ' . now()->format('d/m/Y') .
+                    ' at ' . now()->format('H:i') . $request->release_hold_reason ?? '',
             ]);
 
             DB::commit();

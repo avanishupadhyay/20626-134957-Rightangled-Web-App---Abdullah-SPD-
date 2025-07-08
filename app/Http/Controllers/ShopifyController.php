@@ -13,6 +13,7 @@ use Carbon\Carbon;
 use GuzzleHttp\Client;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Cache;
+use App\Models\AuditLog;
 
 class ShopifyController extends Controller
 {
@@ -88,14 +89,14 @@ class ShopifyController extends Controller
                 $this->handleOrderCancel($payload);
                 break;
 
-            case 'fulfillment_holds/released': 
+            case 'fulfillment_holds/released':
                 $this->handleOrderRelease($payload);
                 break;
 
             default:
                 Log::warning("Unhandled Shopify event: $event");
         }
-        
+
         return response('Webhook handled', 200);
     }
 
@@ -108,7 +109,7 @@ class ShopifyController extends Controller
         $normalizedShopUrl = 'https://' . $shopDomain;
         // Now match store using the full URL
         $store = \App\Models\Store::where('domain', $normalizedShopUrl)->first();
-        if(!$store){
+        if (!$store) {
             return;
         }
         Log::info("Matched Store:", [$store]);
@@ -117,7 +118,7 @@ class ShopifyController extends Controller
             [
                 'order_number' => $orderData['id'],
                 'name' => $orderData['name'],
-                 'email' => $orderData['email'],
+                'email' => $orderData['email'],
                 'total_price' => $orderData['total_price'],
                 'financial_status' => $orderData['financial_status'],
                 'fulfillment_status' => $orderData['fulfillment_status'],
@@ -147,7 +148,7 @@ class ShopifyController extends Controller
         $normalizedShopUrl = 'https://' . $shopDomain;
         // Now match store using the full URL
         $store = \App\Models\Store::where('domain', $normalizedShopUrl)->first();
-        if(!$store){
+        if (!$store) {
             return;
         }
         Log::info("Matched Store:", [$store]);
@@ -166,7 +167,7 @@ class ShopifyController extends Controller
                 'updated_at' => now(),
             ]
         );
-
+        // Step 4: Log
         Log::info("Order updated from: {$shopDomain}");
     }
 
@@ -177,13 +178,21 @@ class ShopifyController extends Controller
         $normalizedShopUrl = 'https://' . $shopDomain;
         // Now match store using the full URL
         $store = \App\Models\Store::where('domain', $normalizedShopUrl)->first();
-        if(!$store){
+        if (!$store) {
             return;
         }
         Log::info("Matched Store:", [$store]);
         $order = \App\Models\Order::where('order_number', $payload['id'])
             ->where('store_id', $store?->id)
             ->first();
+
+        // AuditLog::create([
+        //     'user_id'   => null, // or set to a system/admin ID if preferred
+        //     'action'    => 'release_hold',
+        //     'order_id'  => $payload['id'],
+        //     'details'   => 'Order deleted directly from Shopify Admin on ' . now()->format('d/m/Y') . ' at ' . now()->format('H:i') . '.',
+        // ]);
+
 
         if ($order) {
             $order->delete(); // assuming your Order model uses SoftDeletes
@@ -200,7 +209,7 @@ class ShopifyController extends Controller
         $normalizedShopUrl = 'https://' . $shopDomain;
         // Now match store using the full URL
         $store = \App\Models\Store::where('domain', $normalizedShopUrl)->first();
-        if(!$store){
+        if (!$store) {
             return;
         }
         Log::info("Matched Store:", [$store]);
@@ -222,21 +231,21 @@ class ShopifyController extends Controller
         }
     }
 
-     protected function handleOrderRelease(array $payload)
-    {   
+    protected function handleOrderRelease(array $payload)
+    {
 
         $shopDomain = request()->header('X-Shopify-Shop-Domain');
         $normalizedShopUrl = 'https://' . $shopDomain;
         // Now match store using the full URL
         $store = \App\Models\Store::where('domain', $normalizedShopUrl)->first();
-        if(!$store){
+        if (!$store) {
             return;
         }
         Log::info("Matched Store:", [$store]);
 
         $data = isset($payload[0]) && is_array($payload[0]) ? $payload[0] : $payload;
 
-            // Safely log fulfillment order GID
+        // Safely log fulfillment order GID
         $fulfillmentOrderGid = $data['fulfillment_order']['id'] ?? null;
         // Extract Fulfillment Order ID from GraphQL format
         $fulfillmentOrderGid = $data['fulfillment_order']['id'] ?? null;
@@ -246,8 +255,8 @@ class ShopifyController extends Controller
         }
 
         $response = Http::withHeaders([
-                'X-Shopify-Access-Token' => $store->app_admin_access_token,
-            ])->get("{$store->domain}/admin/api/2024-01/fulfillment_orders/{$fulfillmentOrderId}.json");
+            'X-Shopify-Access-Token' => $store->app_admin_access_token,
+        ])->get("{$store->domain}/admin/api/2024-01/fulfillment_orders/{$fulfillmentOrderId}.json");
 
         $data = $response->json();
 
@@ -266,16 +275,23 @@ class ShopifyController extends Controller
             $reasonMessage = "Hold Reason: " . ucfirst($holdReason);
         }
 
-        if($orderId){
+        if ($orderId) {
             $action = OrderAction::create([
                 'order_id'             => $orderId,
                 'decision_status'      => 'release_hold',
                 'release_hold_reason'  => $reasonMessage,
                 'decision_timestamp' => now(),
             ]);
-             $order = \App\Models\Order::where('order_number', $orderId)
-            ->update(['fulfillment_status'=>null]);
-        }else{
+            $order = \App\Models\Order::where('order_number', $orderId)
+                ->update(['fulfillment_status' => null]);
+
+            // AuditLog::create([
+            //     'user_id'   => null, // or set to a system/admin ID if preferred
+            //     'action'    => 'release_hold',
+            //     'order_id'  => $orderId,
+            //     'details'   => 'Order fulfilment released hold directly from Shopify Admin on ' . now()->format('d/m/Y') . ' at ' . now()->format('H:i') . '.',
+            // ]);
+        } else {
             Log::info("Order ID Not Exist");
         }
         // Log the result
@@ -285,6 +301,4 @@ class ShopifyController extends Controller
             Log::warning("Failed to insert OrderAction for Order ID: {$orderId}");
         }
     }
-
-
 }

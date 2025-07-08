@@ -1,114 +1,16 @@
-// import {
-//   reactExtension,
-//   useApi,
-//   AdminBlock,
-//   BlockStack,
-//   Text,
-//   InlineStack,
-//   Link,
-// } from '@shopify/ui-extensions-react/admin';
-// import { useEffect, useState } from 'react';
 
-// const TARGET = 'admin.order-details.block.render';
-
-// export default reactExtension(TARGET, () => <App />);
-
-// function App() {
-//   const { data } = useApi(TARGET);
-//   const orderGID = data?.selected?.[0]?.id;
-//   const orderId = orderGID?.split('/')?.pop();
-
-//   const [prescriberLogs, setPrescriberLogs] = useState([]);
-//   const [checkerLogs, setCheckerLogs] = useState([]);
-//   const [pdfLink, setPdfLink] = useState(null);
-//   const [loading, setLoading] = useState(true);
-
-//   useEffect(() => {
-//     if (!orderId) return;
-
-//     const fetchLogs = async () => {
-//       setLoading(true);
-//       try {
-//         const response = await fetch(
-//           'https://rightangled.24livehost.com/api/prescriber/audit-logs/order',
-//           {
-//             method: 'POST',
-//             headers: { 'Content-Type': 'application/json' },
-//             body: JSON.stringify({ order_id: orderId }),
-//           }
-//         );
-
-//         const result = await response.json();
-//         setPrescriberLogs(result?.prescriber_logs || []);
-//         setCheckerLogs(result?.checker_logs || []);
-//         setPdfLink(result?.prescribed_pdf || null);
-//       } catch (error) {
-//         console.error('❌ Error fetching logs:', error);
-//       } finally {
-//         setLoading(false);
-//       }
-//     };
-
-//     fetchLogs();
-//   }, [orderId]);
-
-
-
-//   const renderLogs = (logs, title, showPdf = false) => (
-//     <AdminBlock title={title}>
-//       <BlockStack
-//         spacing="loose"
-//         style={{
-//           maxHeight: '100px', // Adjust height as needed
-//           overflowY: 'auto',
-//           paddingRight: '8px', // Add right padding to avoid hiding scrollbar
-//         }}
-//       >
-//         {logs.map((log) => (
-//           <BlockStack key={log.id} spacing="tight">
-//             <Text tone="subdued">{log.details}</Text>
-//             <Text size="small" tone="secondary">Action: {log.action}</Text>
-//           </BlockStack>
-//         ))}
-
-//         {showPdf && pdfLink && (
-//           <InlineStack>
-//             <Text size="medium" emphasis="bold">Prescribed PDF:</Text>
-//             <Link to={pdfLink} target="_blank">🔗 View PDF</Link>
-//           </InlineStack>
-//         )}
-//       </BlockStack>
-//     </AdminBlock>
-//   );
-
-
-//   if (loading) {
-//     return (
-//       <AdminBlock title="Audit Logs">
-//         <Text>Loading logs...</Text>
-//       </AdminBlock>
-//     );
-//   }
-
-//   return (
-//     <>
-//       {prescriberLogs.length > 0 && renderLogs(prescriberLogs, 'Prescriber Audit Logs', true)}
-//       {checkerLogs.length > 0 && renderLogs(checkerLogs, 'Checker Audit Logs')}
-//     </>
-//   );
-// }
 
 import {
   reactExtension,
   useApi,
   AdminBlock,
   BlockStack,
+  Box,
+  Button,
   InlineStack,
   Text,
   Link,
   Divider,
-  Badge,
-  Box,
 } from '@shopify/ui-extensions-react/admin';
 import { useEffect, useState } from 'react';
 
@@ -121,11 +23,10 @@ function App() {
   const orderGID = data?.selected?.[0]?.id;
   const orderId = orderGID?.split('/')?.pop();
 
-  const [prescriberLogs, setPrescriberLogs] = useState([]);
-  const [checkerLogs, setCheckerLogs] = useState([]);
-  const [adminLogs, setAdminLogs] = useState([]);
-  const [pdfLink, setPdfLink] = useState(null);
+  const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const logsPerPage = 5;
 
   useEffect(() => {
     if (!orderId) return;
@@ -134,7 +35,6 @@ function App() {
       setLoading(true);
       try {
         const response = await fetch(
-          // 'https://d8a9-136-232-169-245.ngrok-free.app/api/prescriber/audit-logs/order',
           'https://rightangled.24livehost.com/api/prescriber/audit-logs/order',
           {
             method: 'POST',
@@ -144,10 +44,7 @@ function App() {
         );
 
         const result = await response.json();
-        setPrescriberLogs(result?.prescriber_logs || []);
-        setCheckerLogs(result?.checker_logs || []);
-        setAdminLogs(result?.admin_logs || []);
-        setPdfLink(result?.prescribed_pdf || null);
+        setLogs(result?.logs || []);
       } catch (error) {
         console.error('❌ Error fetching logs:', error);
       } finally {
@@ -158,86 +55,83 @@ function App() {
     fetchLogs();
   }, [orderId]);
 
-  let emoji = '🔷';
-  const renderTimeline = (logs) => {
-    return logs.map((log, index) => {
-    
-      return (
-            <BlockStack spacing="loose">
-                <Box
-                    maxHeight="250px"
-                    overflow="auto"
-                    paddingInlineEnd="200"
-                  >
-              <Text tone="subdued" fontWeight="medium">
-                {log.details}
-              </Text>
-              <Text tone="info" size="small">
-                 <Text as="span" fontWeight="bold">Action</Text>: {log.action}
-              </Text>
-              {log.checker_pdf_url && (
-                <InlineStack gap="tight" align="center">
-                  <Text size="small" tone="subdued">
-                    Attachment:
-                  </Text>
-                  <Link to={log.checker_pdf_url} target="_blank">
-                    🔗 View PDF
-                  </Link>
-                </InlineStack>
-              )}
-          {index < logs.length - 1 && <Divider />}
-          </Box>
-        </BlockStack>
-      );
-    });
+  const totalPages = Math.ceil(logs.length / logsPerPage);
+  const indexOfLast = currentPage * logsPerPage;
+  const indexOfFirst = indexOfLast - logsPerPage;
+  const currentLogs = logs.slice(indexOfFirst, indexOfLast);
+
+  const renderLogs = () => {
+    return currentLogs.map((log, index) => (
+      <BlockStack key={log.id} spacing="extraTight">
+        <Text tone="subdued">
+          {/* <strong>{log.user_name}</strong> ({log.role_name}) */}
+        </Text>
+        <Text>{log.details}</Text>
+        <Text size="small" tone="info">
+          <Text as="span" fontWeight="bold">Action:</Text> {log.action}
+        </Text>
+
+        {log.checker_pdf_url && (
+          <InlineStack gap="tight" align="center">
+            <Text size="small" tone="subdued">Attachment:</Text>
+            <Link to={log.checker_pdf_url} target="_blank">📎 View PDF</Link>
+          </InlineStack>
+        )}
+
+        {log.prescribed_pdf_url && (
+          <InlineStack gap="tight" align="center">
+            <Text size="small" tone="subdued">Prescribed PDF:</Text>
+            <Link to={log.prescribed_pdf_url} target="_blank">📎 View PDF</Link>
+          </InlineStack>
+        )}
+
+        {index < currentLogs.length - 1 && <Divider />}
+      </BlockStack>
+    ));
   };
 
+  const PaginationControls = () => (
+    <InlineStack gap="tight" alignment="center" blockAlignment="center">
+      <Button
+        variant="secondary"
+        disabled={currentPage === 1}
+        onPress={() => setCurrentPage((prev) => prev - 1)}
+      >
+        ◀ Previous
+      </Button>
+      <Text size="small">
+        Page {currentPage} of {totalPages}
+      </Text>
+      <Button
+        variant="secondary"
+        disabled={currentPage === totalPages}
+        onPress={() => setCurrentPage((prev) => prev + 1)}
+      >
+        Next ▶
+      </Button>
+    </InlineStack>
+  );
+
   return (
-    <AdminBlock title="Audit Logs" spacing="loose">
-      <BlockStack spacing="loose">
-        {loading && <Text>Loading logs...</Text>}
-
-        {!loading && adminLogs.length > 0 && (
-          <>
-            <Text emphasis="bold" size="medium">
-              {emoji} Admin Audit Logs
-            </Text>
-            {renderTimeline(adminLogs)}
-          </>
-        )}
-
-        {!loading && prescriberLogs.length > 0 && (
-          <>
-            <Text emphasis="bold" size="medium">
-              {emoji} Prescriber Audit Logs
-            </Text>
-            {renderTimeline(prescriberLogs)}
-
-            {pdfLink && (
-              <InlineStack gap="tight" align="center">
-                <Text size="small" emphasis="bold">
-                  Prescribed PDF:
-                </Text>
-                <Link to={pdfLink} target="_blank">
-                  🔗 View PDF
-                </Link>
-              </InlineStack>
-            )}
-          </>
-        )}
-
-        {!loading && checkerLogs.length > 0 && (
-          <>
-            <Text emphasis="bold" size="medium">
-              {emoji} Checker Audit Logs
-            </Text>
-            {renderTimeline(checkerLogs)}
-          </>
-        )}
-      </BlockStack>
+    <AdminBlock title="Order Timeline">
+      <Box padding="base">
+        <BlockStack spacing="loose">
+          {loading ? (
+            <Text>Loading logs...</Text>
+          ) : logs.length === 0 ? (
+            <Text>No logs available.</Text>
+          ) : (
+            <>
+              {renderLogs()}
+              {totalPages > 1 && <PaginationControls />}
+            </>
+          )}
+        </BlockStack>
+      </Box>
     </AdminBlock>
   );
 }
+
 
 
 // import {
