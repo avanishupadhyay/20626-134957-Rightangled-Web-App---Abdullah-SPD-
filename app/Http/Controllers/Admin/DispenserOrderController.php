@@ -98,211 +98,6 @@ class DispenserOrderController extends Controller
         return view('admin.dispenser.view', compact('order', 'orderData', 'auditDetails'));
     }
 
-    // public function printDispenseBatch(Request $request)
-    // {
-    //     ini_set('max_execution_time', 3000);
-    //     $request->validate([
-    //         'order_ids' => 'required|array|min:1',
-    //     ]);
-    //     $orderNumbers = $request->order_ids;
-
-    //     $orders = Order::whereIn('order_number', $orderNumbers)->get();
-
-    //     $processedOrders = $orders->map(function ($order) {
-
-    //         $orderData = is_array($order->order_data)
-    //             ? $order->order_data
-    //             : json_decode($order->order_data, true);
-
-    //         $shippingLines = $orderData['shipping_lines'][0] ?? [];
-    //         $shippingCode = strtolower($shippingLines['code'] ?? '');
-    //         $customer = $orderData['customer'] ?? [];
-    //         $shippingAddress = $orderData['shipping_address'] ?? [];
-    //         $billingAddress = $orderData['billing_address'] ?? [];
-
-
-    //         $authToken = '';
-    //         $shipper = Store::where('id',$order->store_id)->first()->toArray();
-
-    //         $destination = $shippingAddress;
-
-    //         // $response = Http::withHeaders([
-    //         //     'Authorization' => 'f3e7618c-d590-4e85-9246-1c39fcefd4f2',
-    //         //     'Content-Type' => 'application/json',
-    //         // ])->post(
-    //         //     'https://api.parcel.royalmail.com/api/v1/Orders');
-
-    //         // dd([
-    //         //     'status' => $response->status(),
-    //         //     'body' => $response->body(),
-    //         // ]);
-    //         // if(isset($shippingAddress) && isset($shippingAddress['country']) && $shippingAddress['country'] == "United Kingdom" && $shippingCode != 'rightangled hq' && $shippingCode != 'local delivery'){
-    //         //     // For UK Shippment
-    //         //     $response = $this->createRoyalMailShipment($authToken, $shipper, $destination, $orderData);
-    //         // }elseif(isset($shippingAddress) && isset($shippingAddress['country']) && $shippingAddress['country'] != "United Kingdom"){
-    //         //     // For International Shippment
-
-    //         $shippingDateAndTime = Carbon::now('Europe/Berlin')
-    //             ->addDay()
-    //             ->format('Y-m-d\TH:i:s \G\M\TP');
-    //         $response = $this->createDHLShipment($authToken, $shipper, $destination, $orderData, $shippingDateAndTime, $order->order_number);
-
-    //         // }
-
-    //         // Sort items by quantity (descending)
-    //         $lineItems = collect($orderData['line_items'] ?? [])->map(function ($item) use ($order) {
-    //             $productId = $item['product_id'] ?? null;
-    //             $item['direction_of_use'] = $productId ? getProductMetafield($productId, $order->order_number) : 'N/A';
-    //             $item['direction_of_use'] = $productId ? getProductMetafield($productId, $order->order_number) : 'N/A';
-    //             return $item;
-    //         })->sortByDesc('quantity')->values();
-
-    //         $order->order_data = $orderData;
-    //         $order->line_items = $lineItems;
-    //         $order->total_quantity = $lineItems->sum('quantity');
-
-    //         // Determine slip type
-    //         if ($shippingCode === 'rightangled hq') {
-    //             $order->slip_type = 'hq';
-    //         } elseif ($shippingCode === 'local delivery') {
-    //             $order->slip_type = 'local';
-    //         } else {
-    //             $order->slip_type = 'other';
-    //         }
-
-    //         // Set ship_to
-    //         if ($order->slip_type === 'hq') {
-    //             $order->ship_to = 'No shipping address';
-    //         } elseif ($order->slip_type === 'local') {
-    //             $order->ship_to = [
-    //                 'name' => trim(($customer['first_name'] ?? '') . ' ' . ($customer['last_name'] ?? '')),
-    //                 'address1' => $shippingAddress['address1'] ?? '',
-    //                 'city' => $shippingAddress['city'] ?? '',
-    //                 'province' => $shippingAddress['province'] ?? '',
-    //                 'zip' => $shippingAddress['zip'] ?? '',
-    //                 'country' => $shippingAddress['country'] ?? '',
-    //             ];
-    //         } else {
-    //             $order->ship_to = [
-    //                 'name' => trim($shippingAddress['name'] ?? ''),
-    //                 'address1' => $shippingAddress['address1'] ?? '',
-    //                 'city' => $shippingAddress['city'] ?? '',
-    //                 'province' => $shippingAddress['province'] ?? '',
-    //                 'zip' => $shippingAddress['zip'] ?? '',
-    //                 'country' => $shippingAddress['country'] ?? '',
-    //             ];
-    //         }
-
-    //         // Bill to (same for all)
-    //         $order->bill_to = [
-    //             'name' => trim(($customer['first_name'] ?? '') . ' ' . ($customer['last_name'] ?? '')),
-    //             'address1' => $billingAddress['address1'] ?? '',
-    //             'city' => $billingAddress['city'] ?? '',
-    //             'province' => $billingAddress['province'] ?? '',
-    //             'zip' => $billingAddress['zip'] ?? '',
-    //             'country' => $billingAddress['country'] ?? '',
-    //         ];
-
-    //         return $order;
-    //     })->sortByDesc('total_quantity')->values();
-    //     // dd($processedOrders);
-
-    //     // Create new batch
-    //     $batch = DispenseBatch::create([
-    //         'batch_number' => 'BATCH-' . now()->format('YmdHis') . '-' . Str::random(4),
-    //         'user_id' => auth()->id(),
-    //     ]);
-
-    //     $pdfHtml = view('admin.dispenser.dispenselabel', compact('processedOrders', 'batch'))->render();
-    //     $pdf = PDF::loadHTML($pdfHtml)->setPaper('A4');
-    //     $fileName = "{$batch->batch_number}.pdf";
-    //     $filePath = "dispense_batches/{$fileName}";
-    //     Storage::disk('public')->put($filePath, $pdf->output());
-
-
-    //     // Merge shipping label pdf 
-    //     $first_path = public_path(Storage::url($filePath));
-    //     $s_path = "shippments_pdf/{$batch->batch_number}.pdf";
-    //     $outputFile = public_path("storage/$s_path");
-
-    //     $second_path = [];
-    //     foreach ($orders as $key => $value) {
-    //         $details = Order::where('order_number', $value['order_number'])->first();
-    //         if ($details && $details->shipment_pdf_path) {
-    //             $second_path[] = public_path(Storage::url($details->shipment_pdf_path));
-    //         }
-    //     }
-
-    //     if(isset($second_path) && is_array($second_path)){
-    //         // Detect OS
-    //         if (stripos(PHP_OS, 'WIN') === 0) {
-    //             // Windows path
-    //             $exe = 'C:\\Program Files\\gs\\gs10.05.1\\bin\\gswin64c.exe';
-    //         } else {
-    //             // Linux path on cPanel
-    //             $exe = '/usr/bin/gs';
-    //         }
-    //         // $exe = 'C:\\Program Files\\gs\\gs10.05.1\\bin\\gswin64c.exe';
-
-    //         $allFiles = array_merge([$first_path], $second_path);
-    //         $escapedFiles = array_map('escapeshellarg', $allFiles);
-
-    //         $cmd = "\"$exe\" -dBATCH -dNOPAUSE -q -sDEVICE=pdfwrite -sOutputFile="
-    //             . escapeshellarg($outputFile) . " "
-    //             . implode(' ', $escapedFiles);
-
-    //         exec($cmd, $output, $returnCode);
-    //         $batch->update(['shipment_pdf_path' => $s_path]);
-    //     }else{
-    //         $batch->update(['pdf_path' => $filePath]);
-    //     }
-
-
-
-    //     foreach ($processedOrders as $order) {
-    //         OrderDispense::create([
-    //             'order_id' => $order->order_number,
-    //             'batch_id' => $batch->id,
-    //             'dispensed_at' => now(),
-    //             'reprint_count' => 0,
-    //         ]);
-
-    //         AuditLog::create([
-    //             'user_id' => auth()->id(),
-    //             'action' => 'dispensed',
-    //             'order_id' => $order->order_number,
-    //             'details' => 'Order dispensed by ' . auth()->user()->name . ' on ' . now()->format('d/m/Y') . ' at ' . now()->format('H:i'),
-    //         ]);
-
-    //         $roleName = auth()->user()?->roles?->first()?->name ?? 'unknown';
-
-    //         // Step 4: Log or update order decision
-    //         OrderAction::updateOrCreate(
-    //             [
-    //                 'order_id' => $order->order_number, // Assuming this links to Order.id (not order_number)
-    //                 'user_id' => auth()->id(),
-    //             ],
-    //             [
-    //                 'decision_status' => 'dispensed',
-    //                 'decision_timestamp' => now(),
-    //                 'role' => $roleName,
-    //             ]
-    //         );
-    //     }
-
-    //     $orderGIDsWithStoreIds = $processedOrders->map(function ($order) {
-    //         return [
-    //             'gid' => "gid://shopify/Order/{$order->order_number}",
-    //             'shopify_order_id' => $order->order_number,
-    //             'store_id' => $order->store_id, // assuming you store this
-    //         ];
-    //     })->toArray();
-
-    //     bulkAddShopifyTagsAndNotes($orderGIDsWithStoreIds, 'dispensed');
-
-    //     return redirect()->route('dispenser.batches.list')->with('success', 'Dispensing PDF generated and ready to download');
-    // }
-
     public function printDispenseBatch(Request $request)
     {
         ini_set('max_execution_time', 3000);
@@ -325,31 +120,24 @@ class DispenserOrderController extends Controller
             $shippingAddress = $orderData['shipping_address'] ?? [];
             $billingAddress = $orderData['billing_address'] ?? [];
 
-            $authToken = '';
+
             $shipper = Store::where('id', $order->store_id)->first()->toArray();
 
             $destination = $shippingAddress;
 
-            // $response = Http::withHeaders([
-            //     'Authorization' => 'f3e7618c-d590-4e85-9246-1c39fcefd4f2',
-            //     'Content-Type' => 'application/json',
-            // ])->post(
-            //     'https://api.parcel.royalmail.com/api/v1/Orders');
-
-            // dd([
-            //     'status' => $response->status(),
-            //     'body' => $response->body(),
-            // ]);
             // if(isset($shippingAddress) && isset($shippingAddress['country']) && $shippingAddress['country'] == "United Kingdom" && $shippingCode != 'rightangled hq' && $shippingCode != 'local delivery'){
-            //     // For UK Shippment
-            //     $response = $this->createRoyalMailShipment($authToken, $shipper, $destination, $orderData);
+                // For UK Shippment
+                // $authToken = 'f3e7618c-d590-4e85-9246-1c39fcefd4f2';
+                // $this->createRoyalMailShipment($authToken, $shipper, $shippingAddress, $billingAddress, $orderData, $order->order_number);
+                // die;
             // }elseif(isset($shippingAddress) && isset($shippingAddress['country']) && $shippingAddress['country'] != "United Kingdom"){
-            //     // For International Shippment
 
-            $shippingDateAndTime = Carbon::now('Europe/Berlin')
-                ->addDay()
-                ->format('Y-m-d\TH:i:s \G\M\TP');
-            $response = $this->createDHLShipment($authToken, $shipper, $destination, $orderData, $shippingDateAndTime, $order->order_number);
+            //     $authToken = 'Basic ' . base64_encode('apX2aQ3yA3kF3p:J^9kM@8nD@8pS@1y');
+            //     $shippingDateAndTime = Carbon::now('Europe/Berlin')
+            //         ->addDay()
+            //         ->format('Y-m-d\TH:i:s \G\M\TP');
+                    
+            //     $this->createDHLShipment($authToken, $shipper, $destination, $orderData, $shippingDateAndTime, $order->order_number);
 
             // }
 
@@ -609,397 +397,164 @@ class DispenserOrderController extends Controller
     }
 
 
-    function createRoyalMailShipment(string $authToken, $shipper, $destination, $orderData)
+    function createRoyalMailShipment(string $authToken, $shipper, $shippingAddress, $billingAddress, $orderData, $orderId)
     {
         $items = $orderData['line_items'];
-        $url = 'https://api.royalmail.net/shipping/v3/shipments';
+        $url = 'https://api.parcel.royalmail.com/api/v1/orders';
 
-        $shipmentData = [
-            "Shipper" => [
-                "AddressId" => $shipper['AddressId'] ?? '',
-                "ShipperReference" => $shipper['ShipperReference'] ?? '',
-                "ShipperReference2" => $shipper['ShipperReference2'] ?? '',
-                "ShipperDepartment" => $shipper['ShipperDepartment'] ?? '',
-                "CompanyName" => $shipper['name'] ?? '',
-                "ContactName" => $shipper['ContactName'] ?? '',
-                "AddressLine1" => $shipper['AddressLine1'] ?? '',
-                "AddressLine2" => $shipper['AddressLine1'] ?? '',
-                "AddressLine3" => $shipper['AddressLine1'] ?? '',
-                "Town" => $shipper['Town'] ?? '',
-                "County" => $shipper['County'] ?? '',
-                "CountryCode" => $shipper['CountryCode'] ?? '',
-                "Postcode" => $shipper['Postcode'] ?? '',
-                "PhoneNumber" => $shipper['PhoneNumber'] ?? '',
-                "EmailAddress" => $shipper['EmailAddress'] ?? '',
-                "VatNumber" => $shipper['VatNumber'] ?? '',
-            ],
-            "Destination" => [
-                // "AddressId" => "UNIQUEID123",
-                "CompanyName" => $destination['company'] ?? '',
-                "ContactName" => $destination['name'] ?? '',
-                "AddressLine1" => $destination['address1'] ?? '',
-                "AddressLine2" => $destination['address2'] ?? '',
-                "AddressLine3" => $destination['address3'] ?? '',
-                "Town" => $destination['city'] ?? '',
-                "County" => $destination['country'] ?? '',
-                "CountryCode" => $destination['country_code'] ?? '',
-                "Postcode" => $destination['zip'] ?? '',
-                "PhoneNumber" => $destination['phone'] ?? '',
-                "EmailAddress" => $orderData['customer']['email'] ?? '',
-                // "VatNumber" => $destination[''] ?? '',
-            ],
-            "ShipmentInformation" => [
-                "ShipmentDate" => "2025-06-20",
-                "ServiceCode" => "TPLN",
-                "ServiceOptions" => [
-                    "PostingLocation" => "123456789",
-                    "ServiceLevel" => "01",
-                    "ServiceFormat" => "P",
-                    "Safeplace" => "Front Porch",
-                    "SaturdayGuaranteed" => false,
-                    "ConsequentialLoss" => "Level4",
-                    "LocalCollect" => false,
-                    "TrackingNotifications" => "EmailAndSMS",
-                    "RecordedSignedFor" => false
-                ],
-                "TotalPackages" => 1,
-                "TotalWeight" => $orderData['total_weight'] ?? 0,
-                "WeightUnitOfMeasure" => "G",
-                "Product" => "NDX",
-                "DescriptionOfGoods" => "Clothing",
-                "ReasonForExport" => "Sale of goods",
-                "Value" => $orderData['current_subtotal_price'] ?? '',
-                "Currency" => $orderData['currency'] ?? '',
-                "Incoterms" => "DDU",
-                "LabelFormat" => "PDF",
-                "SilentPrintProfile" => "75b59db8-3cd3-4578-888e-54be016f07cc",
-                "ShipmentAction" => "Process",
-                "Packages" => [
-                    [
-                        "PackageOccurrence" => 1,
-                        "PackagingId" => "UNIQUEID123",
-                        "Weight" => 2.2,
-                        "Length" => 15,
-                        "Width" => 15,
-                        "Height" => 5
-                    ]
-                ],
-                "Items" => [
-                    [
-                        "ItemId" => $items['id'] ?? '',
-                        "Quantity" => $items['quantity'] ?? '',
-                        "Description" => $items[''] ?? '',
-                        "Value" => $items['price'] ?? '',
-                        "Weight" => $items['grams'] ?? '',
-                        "PackageOccurrence" => $items[''] ?? '',
-                        "HsCode" => $items[''] ?? '',
-                        "SkuCode" => $items['sku'] ?? '',
-                        "CountryOfOrigin" => $items[''] ?? '',
-                        "ImageUrl" => "http://www.myimagestore.com/myimage.jpg"
-                    ]
+        $data = [
+            "items" => [
+                [
+                    "orderReference" => "TEST-ORDER-002",
+                    "isRecipientABusiness" => false,
+                    "recipient" => [
+                        "address" => [
+                            "fullName" => "John Doe",
+                            "companyName" => "",
+                            "addressLine1" => "10 Downing Street",
+                            "addressLine2" => "",
+                            "addressLine3" => "",
+                            "city" => "London",
+                            "county" => "Greater London",
+                            "postcode" => "SW1A 2AA",
+                            "countryCode" => "GB"
+                        ],
+                        "phoneNumber" => "07000000000",
+                        "emailAddress" => "john.doe@example.com",
+                        "addressBookReference" => ""
+                    ],
+                    "sender" => [
+                        "tradingName" => "Test Company Ltd",
+                        "phoneNumber" => "07000000001",
+                        "emailAddress" => "sender@example.com"
+                    ],
+                    "billing" => [
+                        "address" => [
+                            "fullName" => "Accounts Team",
+                            "companyName" => "Test Company Ltd",
+                            "addressLine1" => "123 Billing St",
+                            "addressLine2" => "",
+                            "addressLine3" => "",
+                            "city" => "London",
+                            "county" => "Greater London",
+                            "postcode" => "E1 6AN",
+                            "countryCode" => "GB"
+                        ],
+                        "phoneNumber" => "07000000002",
+                        "emailAddress" => "accounts@example.com"
+                    ],
+                    "packages" => [
+                        [
+                            "weightInGrams" => 250,
+                            "packageFormatIdentifier" => "Parcel",
+                            "dimensions" => [
+                                "heightInMms" => 120,
+                                "widthInMms" => 200,
+                                "depthInMms" => 50
+                            ],
+                            "contents" => [
+                                [
+                                    "name" => "Test Product",
+                                    "SKU" => "TP-001",
+                                    "quantity" => 1,
+                                    "unitValue" => 19.99,
+                                    "unitWeightInGrams" => 250,
+                                    "customsDescription" => "Sample Product",
+                                    "extendedCustomsDescription" => "Sample Test Product",
+                                    "customsCode" => "8517620000",
+                                    "originCountryCode" => "GB",
+                                    "customsDeclarationCategory" => "none",
+                                    "requiresExportLicence" => false,
+                                    "stockLocation" => "WH1",
+                                    "useOriginPreference" => true,
+                                    "supplementaryUnits" => "1",
+                                    "licenseNumber" => "",
+                                    "certificateNumber" => ""
+                                ]
+                            ]
+                        ]
+                    ],
+                    "orderDate" => "2025-07-08T10:00:00Z",
+                    "plannedDespatchDate" => "",
+                    "specialInstructions" => "Leave at porch if not home.",
+                    "subtotal" => 19.99,
+                    "shippingCostCharged" => 4.99,
+                    "otherCosts" => 0.00,
+                    "total" => 24.98,
+                    "currencyCode" => "GBP",
+                    "postageDetails" => [
+                        "sendNotificationsTo" => "recipient",
+                        "serviceCode" => "TPN24", // Tracked 24 – adjust to match your account
+                        "serviceRegisterCode" => "",
+                        "consequentialLoss" => 0,
+                        "receiveEmailNotification" => true,
+                        "receiveSmsNotification" => false,
+                        "guaranteedSaturdayDelivery" => false,
+                        "requestSignatureUponDelivery" => true,
+                        "isLocalCollect" => false,
+                        "safePlace" => "Porch",
+                        "department" => null,
+                        "AIRNumber" => "",
+                        "IOSSNumber" => "",
+                        "requiresExportLicense" => false,
+                        "commercialInvoiceNumber" => "INV-TEST-001",
+                        "commercialInvoiceDate" => "2025-07-08T10:00:00Z"
+                    ],
+                    "tags" => [],
+                    "label" => [
+                        "includeLabelInResponse" => true,
+                        "includeCN" => false,
+                        "includeReturnsLabel" => false
+                    ],
+                    "orderTax" => 0.00,
+                    "containsDangerousGoods" => false
                 ]
-            ],
-            "CustomsInformation" => [
-                "PreRegistrationNumber" => "GB13132313",
-                "PreRegistrationType" => "EORI",
-                "ShippingCharges" => $orderData['shipping_lines']['price'] ?? '',
-                "OtherCharges" => "0.00",
-                "QuotedLandedCost" => "0.00",
-                "InvoiceNumber" => "1234567890",
-                "InvoiceDate" => "2020-12-31",
-                "ExportLicence" => false,
-                "AddresseeIdentificationReferenceNumber" => "1234567890"
             ]
         ];
+       
+        $response = Http::withToken($authToken)
+            ->withHeaders([
+                'Accept' => 'application/pdf',
+                'Content-Type' => 'application/json',
+            ])->post($url, $data);
 
-        $response = Http::withHeaders([
-            'X-RMG-Auth-Token' => $authToken,
-            'Accept' => 'application/json',
-            'Content-Type' => 'application/json',
-        ])->post($url, [
-            'shipment' => $shipmentData
-        ]);
+        $responseData = $response->json();
+        $createdOrder = $responseData['createdOrders'][0] ?? null;
 
-        if ($response->successful()) {
-            return $response->json(); // success response
-        } else {
-            // Handle error (log or throw)
-            throw new \Exception("Royal Mail API Error: " . $response->body());
+        if ($createdOrder) {
+            $trackingNumber = $createdOrder['trackingNumber'];
+            $base64Pdf = $createdOrder['label'];
+
+            // Decode Base64 PDF
+            $pdfBinary = base64_decode($base64Pdf);
+
+            // Generate file path
+            $fileName = "{$trackingNumber}.pdf";
+            $folder = 'shippments_pdf';
+            $filePath = "{$folder}/{$fileName}";
+
+            // Store PDF on public disk
+            Storage::disk('public')->put($filePath, $pdfBinary);
+
+            // Find your order by order number
+            $order = Order::where('order_number', $orderId)->first();
+            if ($order) {
+                // Optional: Save PDF file path (if column exists)
+                $order->shipment_pdf_path = $filePath;
+                $order->trackingNumber = $trackingNumber;
+
+                // Save entire shipment details JSON
+                $order->shipment_details = $responseData;
+
+                $order->save();
+            }
+            return $filePath;
         }
+        
     }
 
     function createDHLShipment(string $authToken, $shipper, $destination, $orderData, $shippingDateAndTime, $orderId)
     {
-        // $payload = [
-        //     "plannedShippingDateAndTime" => $shippingDateAndTime,
-        //     "pickup" => [
-        //         "isRequested" => false
-        //     ],
-        //     "productCode" => "P",
-        //     "localProductCode" => "P",
-        //     "getRateEstimates" => false,
-        //     "accounts" => [
-        //         [
-        //             "typeCode" => "shipper",
-        //             "number" => "422890238"
-        //         ]
-        //     ],
-        //     "valueAddedServices" => [
-        //         [
-        //             "serviceCode" => "II",
-        //             "value" => 10,
-        //             "currency" => "USD"
-        //         ]
-        //     ],
-        //     "outputImageProperties" => [
-        //         "printerDPI" => 300,
-        //         "encodingFormat" => "pdf",
-        //         "imageOptions" => [
-        //             [
-        //                 "typeCode" => "invoice",
-        //                 "templateName" => "COMMERCIAL_INVOICE_P_10",
-        //                 "isRequested" => true,
-        //                 "invoiceType" => "commercial",
-        //                 "languageCode" => "eng",
-        //                 "languageCountryCode" => "US"
-        //             ],
-        //             [
-        //                 "typeCode" => "waybillDoc",
-        //                 "templateName" => "ARCH_8x4",
-        //                 "isRequested" => true,
-        //                 "hideAccountNumber" => false,
-        //                 "numberOfCopies" => 1
-        //             ],
-        //             [
-        //                 "typeCode" => "label",
-        //                 "templateName" => "ECOM26_84_001",
-        //                 "renderDHLLogo" => true,
-        //                 "fitLabelsToA4" => false
-        //             ]
-        //         ],
-        //         "splitTransportAndWaybillDocLabels" => true,
-        //         "allDocumentsInOneImage" => false,
-        //         "splitDocumentsByPages" => false,
-        //         "splitInvoiceAndReceipt" => true,
-        //         "receiptAndLabelsInOneImage" => false
-        //     ],
-        //        "AddressId" => $shipper['AddressId'] ?? '',
-        //         "ShipperReference" => $shipper['ShipperReference'] ?? '',
-        //         "ShipperReference2" => $shipper['ShipperReference2'] ?? '',
-        //         "ShipperDepartment" => $shipper['ShipperDepartment'] ?? '',
-        //         "CompanyName" => $shipper['name'] ?? '',
-        //         "ContactName" => $shipper['ContactName'] ?? '',
-        //         "AddressLine1" => $shipper['AddressLine1'] ?? '',
-        //         "AddressLine2" => $shipper['AddressLine1'] ?? '',
-        //         "AddressLine3" => $shipper['AddressLine1'] ?? '',
-        //         "Town" => $shipper['Town'] ?? '',
-        //         "County" => $shipper['County'] ?? '',
-        //         "CountryCode" => $shipper['CountryCode'] ?? '',
-        //         "Postcode" => $shipper['Postcode'] ?? '',
-        //         "PhoneNumber" => $shipper['PhoneNumber'] ?? '',
-        //         "EmailAddress" => $shipper['EmailAddress'] ?? '',
-        //         "VatNumber" => $shipper['VatNumber'] ?? '',
-
-        //     "customerDetails" => [
-        //         "shipperDetails" => [
-        //             "postalAddress" => [
-        //                 "postalCode" => $shipper['Postcode'] ?? '',
-        //                 "cityName" => "Zhaoqing",
-        //                 "countryCode" => $shipper['CountryCode'] ?? '',
-        //                 "addressLine1" => $shipper['AddressLine1'] ?? '',
-        //                 "addressLine2" => $shipper['AddressLine2'] ?? '',
-        //                 "addressLine3" => $shipper['AddressLine3'] ?? '',
-        //                 "countyName" => $shipper['County'] ?? '',
-        //                 "countryName" => $shipper['County'] ?? '',
-        //             ],
-        //             "contactInformation" => [
-        //                 "email" => $shipper['EmailAddress'] ?? '',
-        //                 "phone" => $shipper['PhoneNumber'] ?? '',
-        //                 "mobilePhone" => "18211309039",
-        //                 "companyName" => $shipper['name'] ?? '',
-        //                 "fullName" => $shipper['ContactName'] ?? '',
-        //             ],
-        //             "registrationNumbers" => [
-        //                 [
-        //                     "typeCode" => "SDT",
-        //                     "number" => "CN123456789",
-        //                     "issuerCountryCode" => "CN"
-        //                 ]
-        //             ],
-        //             "bankDetails" => [
-        //                 [
-        //                     "name" => "Bank of China",
-        //                     "settlementLocalCurrency" => "RMB",
-        //                     "settlementForeignCurrency" => "USD"
-        //                 ]
-        //             ],
-        //             "typeCode" => "business"
-        //         ],
-        //         "receiverDetails" => [
-        //             "postalAddress" => [
-        //                 "cityName" => $destination['city'] ?? '',
-        //                 "countryCode" => $destination['country_code'] ?? '',
-        //                 "postalCode" => $destination['zip'] ?? '',
-        //                 "addressLine1" => $destination['address1'] ?? '',
-        //                 "countryName" => $destination['country'] ?? '',
-        //             ],
-        //             "contactInformation" => [
-        //                 "email" => $orderData['customer']['email'] ?? '',
-        //                 "phone" =>  $destination['phone'] ?? '',
-        //                 "mobilePhone" => "9402825666",
-        //                 "companyName" => $destination['company'] ?? '',
-        //                 "fullName" => $destination['name'] ?? '',
-        //             ],
-        //             "registrationNumbers" => [
-        //                 [
-        //                     "typeCode" => "SSN",
-        //                     "number" => "US123456789",
-        //                     "issuerCountryCode" => "US"
-        //                 ]
-        //             ],
-        //             "bankDetails" => [
-        //                 [
-        //                     "name" => "Bank of America",
-        //                     "settlementLocalCurrency" => "USD",
-        //                     "settlementForeignCurrency" => "USD"
-        //                 ]
-        //             ],
-        //             "typeCode" => "business"
-        //         ]
-        //     ],
-        //     "content" => [
-        //         "packages" => [
-        //             [
-        //                 "typeCode" => "2BP",
-        //                 "weight" => 0.5,
-        //                 "dimensions" => [
-        //                     "length" => 1,
-        //                     "width" => 1,
-        //                     "height" => 1
-        //                 ],
-        //                 "customerReferences" => [
-        //                     [
-        //                         "value" => "3654673",
-        //                         "typeCode" => "CU"
-        //                     ]
-        //                 ],
-        //                 "description" => "Piece content description",
-        //                 "labelDescription" => "bespoke label description"
-        //             ]
-        //         ],
-        //         "isCustomsDeclarable" => true,
-        //         "declaredValue" => 120,
-        //         "declaredValueCurrency" => "USD",
-        //         "exportDeclaration" => [
-        //             "lineItems" => [
-        //                 [
-        //                     "number" => 1,
-        //                     "description" => "Harry Steward biography first edition",
-        //                     "price" => 15,
-        //                     "quantity" => [
-        //                         "value" => 4,
-        //                         "unitOfMeasurement" => "GM"
-        //                     ],
-        //                     "commodityCodes" => [
-        //                         ["typeCode" => "outbound", "value" => "84713000"],
-        //                         ["typeCode" => "inbound", "value" => "5109101110"]
-        //                     ],
-        //                     "exportReasonType" => "permanent",
-        //                     "manufacturerCountry" => "US",
-        //                     "exportControlClassificationNumber" => "US123456789",
-        //                     "weight" => ["netValue" => 0.1, "grossValue" => 0.7],
-        //                     "isTaxesPaid" => true,
-        //                     "additionalInformation" => ["450pages"],
-        //                     "customerReferences" => [["typeCode" => "AFE", "value" => "1299210"]],
-        //                     "customsDocuments" => [["typeCode" => "COO", "value" => "MyDHLAPI - LN#1-CUSDOC-001"]]
-        //                 ],
-        //                 [
-        //                     "number" => 2,
-        //                     "description" => "Andromeda Chapter 394 - Revenge of Brook",
-        //                     "price" => 15,
-        //                     "quantity" => [
-        //                         "value" => 4,
-        //                         "unitOfMeasurement" => "GM"
-        //                     ],
-        //                     "commodityCodes" => [
-        //                         ["typeCode" => "outbound", "value" => "6109100011"],
-        //                         ["typeCode" => "inbound", "value" => "5109101111"]
-        //                     ],
-        //                     "exportReasonType" => "permanent",
-        //                     "manufacturerCountry" => "US",
-        //                     "exportControlClassificationNumber" => "US123456789",
-        //                     "weight" => ["netValue" => 0.1, "grossValue" => 0.7],
-        //                     "isTaxesPaid" => true,
-        //                     "additionalInformation" => ["36pages"],
-        //                     "customerReferences" => [["typeCode" => "AFE", "value" => "1299211"]],
-        //                     "customsDocuments" => [["typeCode" => "COO", "value" => "MyDHLAPI - LN#1-CUSDOC-001"]]
-        //                 ]
-        //             ],
-        //             "invoice" => [
-        //                 "number" => "2667168671",
-        //                 "date" => "2022-10-22",
-        //                 "instructions" => ["Handle with care"],
-        //                 "totalNetWeight" => 0.4,
-        //                 "totalGrossWeight" => 0.5,
-        //                 "customerReferences" => [
-        //                     ["typeCode" => "UCN", "value" => "UCN-783974937"],
-        //                     ["typeCode" => "CN", "value" => "CUN-76498376498"],
-        //                     ["typeCode" => "RMA", "value" => "MyDHLAPI-TESTREF-001"]
-        //                 ],
-        //                 "termsOfPayment" => "100 days",
-        //                 "indicativeCustomsValues" => [
-        //                     "importCustomsDutyValue" => 150.57,
-        //                     "importTaxesValue" => 49.43
-        //                 ]
-        //             ],
-        //             "remarks" => [["value" => "Right side up only"]],
-        //             "additionalCharges" => [
-        //                 ["value" => 10, "caption" => "fee", "typeCode" => "freight"],
-        //                 ["value" => 20, "caption" => "freight charges", "typeCode" => "other"],
-        //                 ["value" => 10, "caption" => "ins charges", "typeCode" => "insurance"],
-        //                 ["value" => 7, "caption" => "rev charges", "typeCode" => "reverse_charge"]
-        //             ],
-        //             "destinationPortName" => "New York Port",
-        //             "placeOfIncoterm" => "ShenZhen Port",
-        //             "payerVATNumber" => "12345ED",
-        //             "recipientReference" => "01291344",
-        //             "exporter" => ["id" => "121233", "code" => "S"],
-        //             "packageMarks" => "Fragile glass bottle",
-        //             "declarationNotes" => [["value" => "up to three declaration notes"]],
-        //             "exportReference" => "export reference",
-        //             "exportReason" => "export reason",
-        //             "exportReasonType" => "permanent",
-        //             "licenses" => [["typeCode" => "export", "value" => "123127233"]],
-        //             "shipmentType" => "personal",
-        //             "customsDocuments" => [["typeCode" => "INV", "value" => "MyDHLAPI - CUSDOC-001"]]
-        //         ],
-        //         "description" => "Shipment",
-        //         "USFilingTypeValue" => "12345",
-        //         "incoterm" => "DAP",
-        //         "unitOfMeasurement" => "metric"
-        //     ],
-        //     "shipmentNotification" => [
-        //         [
-        //             "typeCode" => "email",
-        //             "receiverId" => "shipmentnotification@mydhlapisample.com",
-        //             "languageCode" => "eng",
-        //             "languageCountryCode" => "UK",
-        //             "bespokeMessage" => "message to be included in the notification"
-        //         ]
-        //     ],
-        //     "getTransliteratedResponse" => false,
-        //     "estimatedDeliveryDate" => [
-        //         "isRequested" => true,
-        //         "typeCode" => "QDDC"
-        //     ],
-        //     "getAdditionalInformation" => [
-        //         [
-        //             "typeCode" => "pickupDetails",
-        //             "isRequested" => true
-        //         ]
-        //     ]
-        // ];
-
         $data = [
             "plannedShippingDateAndTime" => $shippingDateAndTime,
             "pickup" => [
@@ -1138,7 +693,7 @@ class DispenserOrderController extends Controller
             'Message-Reference' => 'd0e7832e-5c98-11ea-bc55-0242ac13',
             'Message-Reference-Date' => $shippingDateAndTime,
             'x-version' => '2.12.0',
-            'Authorization' => 'Basic ' . base64_encode('apX2aQ3yA3kF3p:J^9kM@8nD@8pS@1y'),
+            'Authorization' => $authToken,
         ])->post('https://express.api.dhl.com/mydhlapi/test/shipments', $data);
 
 
@@ -1148,7 +703,7 @@ class DispenserOrderController extends Controller
 
         $responseData = $response->json();
 
-        $shipmentTrackingNumber = $responseData['shipmentTrackingNumber'] ?? 'no-tracking';
+        $trackingNumber = $responseData['packages']['trackingNumber'] ?? 'no-tracking';
 
         $pdfContentCombined = '';
         foreach ($responseData['documents'] as $doc) {
@@ -1158,7 +713,7 @@ class DispenserOrderController extends Controller
         }
 
         // Save the PDF to storage
-        $fileName = "{$shipmentTrackingNumber}.pdf";
+        $fileName = "{$trackingNumber}.pdf";
         $folder = 'shippments_pdf';
 
         if (!Storage::disk('public')->exists($folder)) {
@@ -1172,14 +727,14 @@ class DispenserOrderController extends Controller
 
         // Optional: Save PDF path to order if needed
         $order->shipment_pdf_path = $filePath; // Only if you have this column
-
+        $order->trackingNumber = $trackingNumber;
         // STEP 3: Save full shipment details in DB (as JSON)
         $order->shipment_details = $responseData;
         $order->save();
 
         return response()->json([
             'message' => 'Shipment created and saved successfully!',
-            'shipment_tracking' => $shipmentTrackingNumber,
+            'shipment_tracking' => $trackingNumber,
             'pdf_path' => $filePath,
         ]);
     }
