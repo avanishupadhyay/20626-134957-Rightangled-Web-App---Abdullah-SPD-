@@ -17,6 +17,8 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Facades\File;
 use Carbon\Carbon;
+use App\Models\DispenseBatch;
+
 
 class OrderController extends Controller
 {
@@ -306,13 +308,33 @@ class OrderController extends Controller
                 ]
             );
 
-            // Step 4: Log
+            $reason = $request->clinical_reasoning
+                ?: ($request->rejection_reason
+                    ?: ($request->on_hold_reason
+                        ?: ($request->release_hold_reason
+                            ?: 'N/A')));
+
+            // Decide action text based on which field is filled
+            if ($request->clinical_reasoning) {
+                $actionText = 'Order approved by ';
+            } elseif ($request->rejection_reason) {
+                $actionText = 'Order Rejected by ';
+            } elseif ($request->on_hold_reason) {
+                $actionText = 'Order Put On Hold by ';
+            } else {
+                $actionText = 'Order Hold Released by ';
+            }
+
             AuditLog::create([
-                'user_id' => auth()->id(),
-                'action' => $decisionStatus,
-                'order_id' => $orderId,
-                'details' => $request->clinical_reasoning ?? $request->rejection_reason ?? $request->on_hold_reason,
+                'user_id'   => auth()->id(),
+                'action'    => $decisionStatus, // could be 'approved', 'rejected', etc.
+                'order_id'  => $orderId,
+                'details'   => $actionText . auth()->user()->name .
+                    ' on ' . now()->format('d/m/Y') .
+                    ' at ' . now()->format('H:i') .
+                    '. Reason: "' . $reason . '"',
             ]);
+
 
             DB::commit();
             return back()->with('suceess', 'Order status changed successfully.');
@@ -323,15 +345,6 @@ class OrderController extends Controller
     }
 
 
-
-    // public function indexing()
-    // {
-    //     $grouped = OrderDispense::with(['order', 'batch'])
-    //         ->whereHas('order', fn($q) => $q->whereNotNull('shipment_pdf_path'))
-    //         ->get()
-    //         ->groupBy('batch_id');
-    //     return view('admin.orders.batches.index', compact('grouped'));
-    // }
 
     // public function indexing(Request $request)
     // {
@@ -377,24 +390,7 @@ class OrderController extends Controller
             'grouped' => $grouped,     // Use this to loop through grouped results
         ]);
     }
-    // public function checkReprint($batchId)
-    // {
-    //     $alreadyPrinted = OrderDispense::where('batch_id', $batchId)
-    //         ->where('reprint_count', '>=', 1)
-    //         ->exists();
-
-    //     AuditLog::create([
-    //         'user_id' => auth()->id(),
-    //         'action' => 'batch',
-    //         'order_id' => $orderId,
-    //         'details' => $request->clinical_reasoning ?? $request->rejection_reason ?? $request->on_hold_reason,
-    //     ]);
-
-    //     return response()->json([
-    //         'alreadyPrinted' => $alreadyPrinted,
-    //     ]);
-    // }
-
+  
     public function checkReprint(Request $request, $batchId)
     {
         $user = auth()->user();
@@ -525,7 +521,7 @@ class OrderController extends Controller
     {
         $request->validate([
             'order_id' => 'required|exists:orders,order_number',
-            'details' => 'nullable|string',
+            'details' => 'required|string',
             'file' => 'nullable|file|mimes:pdf|max:5048',
         ]);
         $filePath = null;
@@ -546,5 +542,16 @@ class OrderController extends Controller
         ]);
 
         return redirect()->back()->with('success', 'Log submitted successfully.');
+    }
+
+    public function download($id)
+    {
+        $batch = DispenseBatch::findOrFail($id);
+        $path = $batch->pdf_path ?? $batch->shipment_pdf_path;
+        if (!$path || !Storage::disk('public')->exists($path)) {
+            return redirect()->back()->with('error', 'PDF not found for this batch.');
+        }
+
+        return Storage::disk('public')->download($path);
     }
 }

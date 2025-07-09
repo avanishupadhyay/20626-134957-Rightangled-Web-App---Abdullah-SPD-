@@ -61,8 +61,8 @@ class CheckerOrderController extends Controller
                         ->orWhereRaw("JSON_UNQUOTE(JSON_EXTRACT(order_data, '$.cancelled_at')) = 'null'");
                 })->whereIn('order_number', $approvedOrderIds);
         } else {
-             $excludedStatuses = ['approved','on_hold' ,'accurately_checked', 'dispensed'];
-            if($request->input('search')){
+            $excludedStatuses = ['approved', 'on_hold', 'accurately_checked', 'dispensed'];
+            if ($request->input('search')) {
                 $excludedStatuses = ['accurately_checked', 'dispensed'];
             }
 
@@ -218,6 +218,7 @@ class CheckerOrderController extends Controller
 
         $orderData = json_decode($order->order_data, true);
         $auditDetails = getAuditLogDetailsForOrder($order->order_number) ?? null;
+        // dd($auditDetails);
 
         return view('admin.checker.view', compact('order', 'orderData', 'auditDetails'));
     }
@@ -382,14 +383,32 @@ class CheckerOrderController extends Controller
                 ]
             );
 
+            $reason = $request->clinical_reasoning
+                ?: ($request->rejection_reason
+                    ?: ($request->on_hold_reason
+                        ?: 'N/A'));
 
-            // Step 4: Log
+            // Decide action text based on which field is filled
+            if ($request->clinical_reasoning) {
+                $actionText = 'Order Checked by ';
+            } elseif ($request->rejection_reason) {
+                $actionText = 'Order Rejected by ';
+            } elseif ($request->on_hold_reason) {
+                $actionText = 'Order Put On Hold by ';
+            } else {
+                $actionText = 'Order Updated by ';
+            }
+
             AuditLog::create([
-                'user_id' => auth()->id(),
-                'action' => $decisionStatus,
-                'order_id' => $orderId,
-                'details' =>  'Order checked by ' . auth()->user()->name . ' on ' . now()->format('d/m/Y') . ' at ' . now()->format('H:i') . '. Reason: "' . $request->clinical_reasoning ?? $request->rejection_reason ?? $request->on_hold_reason . '"',
+                'user_id'   => auth()->id(),
+                'action'    => $decisionStatus, // could be 'approved', 'rejected', etc.
+                'order_id'  => $orderId,
+                'details'   => $actionText . auth()->user()->name .
+                    ' on ' . now()->format('d/m/Y') .
+                    ' at ' . now()->format('H:i') .
+                    '. Reason: "' . $reason . '"',
             ]);
+
 
             DB::commit();
 
@@ -487,7 +506,9 @@ class CheckerOrderController extends Controller
                 'user_id' => auth()->id(),
                 'action' => $decisionStatus,
                 'order_id' => $orderId,
-                'details' => $request->release_hold_reason ?? '',
+                'details' => 'Order hold released by' . auth()->user()->name .
+                    ' on ' . now()->format('d/m/Y') .
+                    ' at ' . now()->format('H:i') . $request->release_hold_reason ?? '',
             ]);
 
             DB::commit();
@@ -550,8 +571,8 @@ class CheckerOrderController extends Controller
     {
         $request->validate([
             'order_id' => 'required|exists:orders,order_number',
-            'details' => 'nullable|string',
-            'file' => 'nullable|file|mimes:pdf|max:2048',
+            'details' => 'required|string',
+            'file' => 'nullable|file|mimes:pdf|max:5048',
         ]);
 
         $filePath = null;

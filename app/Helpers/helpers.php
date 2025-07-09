@@ -1040,32 +1040,69 @@ function markFulfillmentOnHold($orderId, $reason)
 
 
 
+// function cancelOrder($orderId, $reason)
+// {
+// 	// $shopDomain = env('SHOP_DOMAIN');
+// 	// $accessToken = env('ACCESS_TOKEN');
+// 	[$shopDomain, $accessToken] = array_values(getShopifyCredentialsByOrderId($orderId));
+
+// 	// ['shopDomain' => $shopDomain, 'accessToken' => $accessToken] = getShopifyCredentialsByOrderId($orderId);
+
+
+// 	$response = Http::withHeaders([
+// 		'X-Shopify-Access-Token' => $accessToken,
+// 		'Content-Type' => 'application/json',
+// 	])->post("{$shopDomain}/admin/api/2023-10/orders/{$orderId}/cancel.json", [
+// 		'email' => true,
+// 		'reason' => $reason, // or 'other', 'fraud', 'inventory'
+// 		// 'restock' => true,
+// 		'note' => $reason ?? 'Order rejected by prescriber.',
+
+// 	]);
+
+// 	if ($response->failed()) {
+// 		throw new \Exception('Order cancellation failed: ' . json_encode($response->json()));
+// 	}
+
+// 	return true;
+// }
+
 function cancelOrder($orderId, $reason)
 {
-	// $shopDomain = env('SHOP_DOMAIN');
-	// $accessToken = env('ACCESS_TOKEN');
 	[$shopDomain, $accessToken] = array_values(getShopifyCredentialsByOrderId($orderId));
 
-	// ['shopDomain' => $shopDomain, 'accessToken' => $accessToken] = getShopifyCredentialsByOrderId($orderId);
-
-
-	$response = Http::withHeaders([
+	// 1. Cancel the order
+	$cancelResponse = Http::withHeaders([
 		'X-Shopify-Access-Token' => $accessToken,
 		'Content-Type' => 'application/json',
 	])->post("{$shopDomain}/admin/api/2023-10/orders/{$orderId}/cancel.json", [
 		'email' => true,
 		'reason' => $reason, // or 'other', 'fraud', 'inventory'
-		// 'restock' => true,
-		'note' => $reason ?? 'Order rejected by prescriber.',
-
+		// 'note' => $reason ?? 'Order rejected by prescriber.',
 	]);
 
-	if ($response->failed()) {
-		throw new \Exception('Order cancellation failed: ' . json_encode($response->json()));
+	if ($cancelResponse->failed()) {
+		throw new \Exception('Order cancellation failed: ' . json_encode($cancelResponse->json()));
+	}
+
+	// 2. Add hardcoded tag
+	$tagResponse = Http::withHeaders([
+		'X-Shopify-Access-Token' => $accessToken,
+		'Content-Type' => 'application/json',
+	])->put("{$shopDomain}/admin/api/2023-10/orders/{$orderId}.json", [
+		'order' => [
+			'id' => $orderId,
+			'tags' => 'Order Cancelled',
+		],
+	]);
+
+	if ($tagResponse->failed()) {
+		throw new \Exception('Failed to add tag: ' . json_encode($tagResponse->json()));
 	}
 
 	return true;
 }
+
 
 
 function getOrderDecisionStatus($orderId)
@@ -1948,6 +1985,52 @@ if (!function_exists('getStoreId')) {
 	}
 }
 
+// if (!function_exists('getAuditLogDetailsForOrder')) {
+// 	function getAuditLogDetailsForOrder($orderId)
+// 	{
+// 		$logs = DB::table('audit_logs')
+// 			->join('users', 'audit_logs.user_id', '=', 'users.id')
+// 			->join('model_has_roles', function ($join) {
+// 				$join->on('users.id', '=', 'model_has_roles.model_id')
+// 					->where('model_has_roles.model_type', '=', \App\Models\User::class);
+// 			})
+// 			->join('roles', 'model_has_roles.role_id', '=', 'roles.id')
+// 			->where('audit_logs.order_id', $orderId)
+// 			->orderBy('audit_logs.created_at', 'desc')
+// 			->select('audit_logs.*', 'users.name as user_name', 'roles.name as role_name')
+// 			->get();
+
+// 		// Get prescribed PDF if exists
+// 		$pdfRecord = DB::table('order_actions')
+// 			->where('order_id', $orderId)
+// 			->where('decision_status', 'approved')
+// 			->orderBy('created_at', 'desc')
+// 			->first();
+
+// 		$prescribedPdfUrl = null;
+// 		if ($pdfRecord && $pdfRecord->prescribed_pdf) {
+// 			$prescribedPdfUrl = config('app.url') . ltrim($pdfRecord->prescribed_pdf, '/');
+// 		}
+// 		$checkerPdfs = [];
+
+// 		foreach ($logs as $log) {
+// 			$roleName = strtolower($log->role_name ?? '');
+// 			// dd($roleName);
+
+// 			if (
+// 				in_array($roleName, ['checker', 'admin']) &&
+// 				!empty($log->checker_prescription_file)
+// 			) {
+// 				$checkerPdfs[] = config('app.url') . '/storage/' . ltrim($log->checker_prescription_file, '/');
+// 			}
+// 		}
+// 		return [
+// 			'logs' => $logs,
+// 			'prescribed_pdf' => $prescribedPdfUrl,
+// 			'checker_pdfs' => $checkerPdfs, // return array of checker PDF URLs
+// 		];
+// 	}
+// }
 if (!function_exists('getAuditLogDetailsForOrder')) {
 	function getAuditLogDetailsForOrder($orderId)
 	{
@@ -1961,35 +2044,31 @@ if (!function_exists('getAuditLogDetailsForOrder')) {
 			->where('audit_logs.order_id', $orderId)
 			->orderBy('audit_logs.created_at', 'desc')
 			->select('audit_logs.*', 'users.name as user_name', 'roles.name as role_name')
-			->get();
+			->get()
+			->map(function ($log) {
+				// Add checker PDF URL if present
+				if (!empty($log->checker_prescription_file)) {
+					$log->checker_pdf_url = config('app.url') . '/storage/' . ltrim($log->checker_prescription_file, '/');
+				}
 
-		// Get prescribed PDF if exists
-		$pdfRecord = DB::table('order_actions')
-			->where('order_id', $orderId)
-			->where('decision_status', 'approved')
-			->orderBy('created_at', 'desc')
-			->first();
+				// Add prescribed PDF if action is approved
+				if ($log->action === 'approved') {
+					$latestPdf = DB::table('order_actions')
+						->where('order_id', $log->order_id)
+						->where('decision_status', 'approved')
+						->orderBy('updated_at', 'desc')
+						->first();
 
-		$prescribedPdfUrl = null;
-		if ($pdfRecord && $pdfRecord->prescribed_pdf) {
-			$prescribedPdfUrl = config('app.url') . ltrim($pdfRecord->prescribed_pdf, '/');
-		}
-		$checkerPdfs = [];
+					if ($latestPdf && $latestPdf->prescribed_pdf) {
+						$log->prescribed_pdf_url = config('app.url') . '/' . ltrim($latestPdf->prescribed_pdf, '/');
+					}
+				}
 
-		foreach ($logs as $log) {
-			$roleName = strtolower($log->role_name ?? '');
+				return $log;
+			});
 
-			if (
-				in_array($roleName, ['Checker', 'Admin']) &&
-				!empty($log->checker_prescription_file)
-			) {
-				$checkerPdfs[] = config('app.url') . '/' . ltrim($log->checker_prescription_file, '/');
-			}
-		}
 		return [
 			'logs' => $logs,
-			'prescribed_pdf' => $prescribedPdfUrl,
-			'checker_pdfs' => $checkerPdfs, // return array of checker PDF URLs
 		];
 	}
 }
