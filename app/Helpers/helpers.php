@@ -1771,10 +1771,7 @@ if (!function_exists('fulfillShopifyOrder')) {
 		$fulfillmentOrders = $orderResponse['fulfillment_orders'] ?? [];
 		$order_details = Order::where('order_number', $shopifyOrderId)->first()->toArray();
 
-		$shipmentDetails = json_decode($order_details['shipment_details'], true);
-
-		$trackingNumber = $shipmentDetails['shipmentTrackingNumber'] ?? null;
-		$trackingUrl = $shipmentDetails['trackingUrl'] ?? null;
+		$trackingNumber = $order_details['trackingNumber'] ?? null;
 
 		if (empty($fulfillmentOrders)) {
 			throw new \Exception('No fulfillment orders found');
@@ -1808,7 +1805,6 @@ if (!function_exists('fulfillShopifyOrder')) {
 				'notify_customer' => true,
 				'tracking_info' => [
 					'number' => $trackingNumber,
-					'url' => $trackingUrl,
 				],
 				'line_items_by_fulfillment_order' => $lineItemsPayload
 			]
