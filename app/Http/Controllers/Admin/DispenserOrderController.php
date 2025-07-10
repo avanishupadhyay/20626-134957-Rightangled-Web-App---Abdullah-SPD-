@@ -124,22 +124,23 @@ class DispenserOrderController extends Controller
             $shipper = Store::where('id', $order->store_id)->first()->toArray();
 
             $destination = $shippingAddress;
+            //  && $shippingCode != 'rightangled hq' && $shippingCode != 'local delivery'
 
-            // if(isset($shippingAddress) && isset($shippingAddress['country']) && $shippingAddress['country'] == "United Kingdom" && $shippingCode != 'rightangled hq' && $shippingCode != 'local delivery'){
-                // For UK Shippment
-                // $authToken = 'f3e7618c-d590-4e85-9246-1c39fcefd4f2';
-                // $response =  $this->createRoyalMailShipment($authToken, $shipper, $shippingAddress, $billingAddress, $orderData, $order->order_number);
-                // die;
-            // }elseif(isset($shippingAddress) && isset($shippingAddress['country']) && $shippingAddress['country'] != "United Kingdom"){
+            if(isset($shippingAddress) && isset($shippingAddress['country']) && $shippingAddress['country'] == "United Kingdom"){
+            // For UK Shippment
+            $authToken = 'f3e7618c-d590-4e85-9246-1c39fcefd4f2';
+            $response =  $this->createRoyalMailShipment($authToken, $shipper, $shippingAddress, $billingAddress, $orderData, $order->order_number);
+            
+            }elseif(isset($shippingAddress) && isset($shippingAddress['country']) && $shippingAddress['country'] != "United Kingdom"){
 
-                $authToken = 'Basic ' . base64_encode('apX2aQ3yA3kF3p:J^9kM@8nD@8pS@1y');
-                $shippingDateAndTime = Carbon::now('Europe/Berlin')
-                    ->addDay()
-                    ->format('Y-m-d\TH:i:s \G\M\TP');
-                    
-                $response = $this->createDHLShipment($authToken, $shipper, $destination, $orderData, $shippingDateAndTime, $order->order_number);
+            $authToken = 'Basic ' . base64_encode('apX2aQ3yA3kF3p:J^9kM@8nD@8pS@1y');
+            $shippingDateAndTime = Carbon::now('Europe/Berlin')
+                ->addDay()
+                ->format('Y-m-d\TH:i:s \G\M\TP');
 
-            // }
+            $response = $this->createDHLShipment($authToken, $shipper, $destination, $orderData, $shippingDateAndTime, $order->order_number);
+
+            }
 
             $lineItems = collect($orderData['line_items'] ?? [])->map(function ($item) use ($order) {
                 $productId = $item['product_id'] ?? null;
@@ -220,7 +221,7 @@ class DispenserOrderController extends Controller
         }
 
         $individualFiles = [];
-        
+
         foreach ($processedOrders as $order) {
             // Render individual dispensing label PDF
             $pdfHtml = view('admin.dispenser.dispenselabel', [
@@ -621,9 +622,9 @@ class DispenserOrderController extends Controller
                     "orderTax" => 0.00,
                     "containsDangerousGoods" => false
                 ]
-            ]  
+            ]
         ];
-       
+
         $response = Http::withToken($authToken)
             ->withHeaders([
                 'Accept' => 'application/pdf',
@@ -660,22 +661,198 @@ class DispenserOrderController extends Controller
 
                 $order->save();
             }
-        
-        return [
-            'trackingNumber' =>$trackingNumber,
-            'shipment_pdf_path' =>$filePath,
-        ];
+
+            return [
+                'trackingNumber' => $trackingNumber,
+                'shipment_pdf_path' => $filePath,
+            ];
         }
     }
 
     function createDHLShipment(string $authToken, $shipper, $destination, $orderData, $shippingDateAndTime, $orderId)
     {
+        // $data = [
+        //     "plannedShippingDateAndTime" => $shippingDateAndTime,
+        //     "pickup" => [
+        //         "isRequested" => false
+        //     ],
+        //     "productCode" => "I",
+        //     "getRateEstimates" => false,
+        //     "accounts" => [
+        //         [
+        //             "number" => "422890238",
+        //             "typeCode" => "shipper"
+        //         ]
+        //     ],
+        //     "valueAddedServices" => [
+        //         [
+        //             "serviceCode" => "IB",
+        //             "value" => 10,
+        //             "currency" => "GBP",
+        //             "method" => "cash"
+        //         ]
+        //     ],
+        //     "outputImageProperties" => [
+        //         "printerDPI" => 300,
+        //         "encodingFormat" => "pdf",
+        //         "imageOptions" => [
+        //             [
+        //                 "typeCode" => "waybillDoc",
+        //                 "templateName" => "ARCH_8x4",
+        //                 "isRequested" => true,
+        //                 "hideAccountNumber" => false,
+        //                 "numberOfCopies" => 1
+        //             ],
+        //             [
+        //                 "typeCode" => "label",
+        //                 "templateName" => "ECOM26_84_001",
+        //                 "isRequested" => true
+        //             ]
+        //         ],
+        //         "splitTransportAndWaybillDocLabels" => true,
+        //         "allDocumentsInOneImage" => false,
+        //         "splitDocumentsByPages" => true,
+        //         "splitInvoiceAndReceipt" => true,
+        //         "receiptAndLabelsInOneImage" => false
+        //     ],
+        //     "customerDetails" => [
+        //         "shipperDetails" => [
+        //             "postalAddress" => [
+        //                 "postalCode" => "EN3 7SN",
+        //                 "cityName" => "Enfield",
+        //                 "countryCode" => "GB",
+        //                 "addressLine1" => "17",
+        //                 "addressLine2" => "Suez Rd",
+        //                 "countryName" => "UNITED KINGDOM"
+        //             ],
+        //             "contactInformation" => [
+        //                 "email" => "shipper_create_shipmentapi@dhltestmail.com",
+        //                 "phone" => "4972463",
+        //                 "mobilePhone" => "2563456227231",
+        //                 "companyName" => "DPR Wholesalers",
+        //                 "fullName" => "Johnny Steward"
+        //             ],
+        //             "registrationNumbers" => [
+        //                 [
+        //                     "typeCode" => "VAT",
+        //                     "number" => "244444911",
+        //                     "issuerCountryCode" => "GB"
+        //                 ]
+        //             ],
+        //             "typeCode" => "business"
+        //         ],
+        //         "receiverDetails" => [
+        //             "postalAddress" => [
+        //                 "postalCode" => "TW4 6FD",
+        //                 "cityName" => "Hounslow",
+        //                 "countryCode" => "GB",
+        //                 "addressLine1" => "200",
+        //                 "addressLine2" => "Great South-West Rd",
+        //                 "addressLine3" => "McFarley Drive",
+        //                 "countryName" => "UNITED KINGDOM"
+        //             ],
+        //             "contactInformation" => [
+        //                 "email" => "recipient_create_shipmentapi@dhltestmail.com",
+        //                 "phone" => "1123123",
+        //                 "mobilePhone" => "256345123",
+        //                 "companyName" => "DoCo Event Airline Catering",
+        //                 "fullName" => "Hillary Dickins"
+        //             ],
+        //             "registrationNumbers" => [
+        //                 [
+        //                     "typeCode" => "VAT",
+        //                     "number" => "12345678",
+        //                     "issuerCountryCode" => "GB"
+        //                 ]
+        //             ],
+        //             "typeCode" => "business"
+        //         ]
+        //     ],
+        //     "content" => [
+        //         "packages" => [
+        //             [
+        //                 "typeCode" => "2BP",
+        //                 "weight" => 0.296,
+        //                 "dimensions" => [
+        //                     "length" => 1,
+        //                     "width" => 1,
+        //                     "height" => 1
+        //                 ]
+        //             ]
+        //         ],
+        //         "isCustomsDeclarable" => false,
+        //         "description" => "Shipment Description",
+        //         "incoterm" => "DAP",
+        //         "unitOfMeasurement" => "metric"
+        //     ],
+        //     "getTransliteratedResponse" => false,
+        //     "estimatedDeliveryDate" => [
+        //         "isRequested" => false,
+        //         "typeCode" => "QDDC"
+        //     ],
+        //     "getAdditionalInformation" => [
+        //         [
+        //             "typeCode" => "pickupDetails",
+        //             "isRequested" => true
+        //         ]
+        //     ]
+        // ];
+
+        $maxLength = 45;
+
+        // Your defaults
+        $defaults = [
+            'address1' => "200",
+            'address2' => "Great South-West Rd",
+            'address3' => "McFarley Drive",
+        ];
+
+        // Address 1
+        $address1 = !empty($destination['address1'])
+            ? $destination['address1']
+            : $defaults['address1'];
+
+        // Address 2 only if address1 exists
+        if (!empty($address1)) {
+            $address2 = !empty($destination['address2'])
+                ? $destination['address2']
+                : $defaults['address2'];
+        } else {
+            $address2 = '';
+        }
+
+        // Address 3 only if address2 exists
+        if (!empty($address2)) {
+            $address3 = !empty($destination['address3'])
+                ? $destination['address3']
+                : $defaults['address3'];
+        } else {
+            $address3 = '';
+        }
+
+        // Now process overflow
+        $addresses = [$address1, $address2, $address3];
+
+        for ($i = 0; $i < count($addresses); $i++) {
+            if (strlen($addresses[$i]) > $maxLength) {
+                $allowed = substr($addresses[$i], 0, $maxLength);
+                $overflow = substr($addresses[$i], $maxLength);
+                $addresses[$i] = $allowed;
+
+                if (isset($addresses[$i + 1])) {
+                    $addresses[$i + 1] = trim($overflow . ' ' . $addresses[$i + 1]);
+                }
+            }
+        }
+
+
+
         $data = [
             "plannedShippingDateAndTime" => $shippingDateAndTime,
             "pickup" => [
                 "isRequested" => false
             ],
-            "productCode" => "I",
+            "productCode" => "D",
             "getRateEstimates" => false,
             "accounts" => [
                 [
@@ -696,17 +873,17 @@ class DispenserOrderController extends Controller
                 "encodingFormat" => "pdf",
                 "imageOptions" => [
                     [
-                        "typeCode" => "waybillDoc",
-                        "templateName" => "ARCH_8x4",
-                        "isRequested" => true,
-                        "hideAccountNumber" => false,
-                        "numberOfCopies" => 1
+                        "typeCode" => "shipmentReceipt",
+                        "templateName" => "SHIPRCPT_EN_001",
+                        // "isRequested" => true,
+                        // "hideAccountNumber" => false,
+                        // "numberOfCopies" => 1
                     ],
-                    [
-                        "typeCode" => "label",
-                        "templateName" => "ECOM26_84_001",
-                        "isRequested" => true
-                    ]
+                    // [
+                    //     "typeCode" => "label",
+                    //     "templateName" => "ECOM26_84_001",
+                    //     "isRequested" => true
+                    // ]
                 ],
                 "splitTransportAndWaybillDocLabels" => true,
                 "allDocumentsInOneImage" => false,
@@ -717,45 +894,45 @@ class DispenserOrderController extends Controller
             "customerDetails" => [
                 "shipperDetails" => [
                     "postalAddress" => [
-                        "postalCode" => "EN3 7SN",
-                        "cityName" => "Enfield",
-                        "countryCode" => "GB",
-                        "addressLine1" => "17",
-                        "addressLine2" => "Suez Rd",
-                        "countryName" => "UNITED KINGDOM"
+                        "postalCode" => $shipper['Postcode'],
+                        "cityName" => $shipper['Town'],
+                        "countryCode" => $shipper['CountryCode'],
+                        "addressLine1" => $shipper['AddressLine1'],
+                        "addressLine2" => $shipper['AddressLine1'],
+                        "countryName" => $shipper['County'],
                     ],
                     "contactInformation" => [
-                        "email" => "shipper_create_shipmentapi@dhltestmail.com",
-                        "phone" => "4972463",
+                        "email" => $shipper['EmailAddress'],
+                        "phone" => $shipper['PhoneNumber'],
                         "mobilePhone" => "2563456227231",
-                        "companyName" => "DPR Wholesalers",
-                        "fullName" => "Johnny Steward"
+                        "companyName" => $shipper['name'], //"DPR Wholesalers"
+                        "fullName" => $shipper['ContactName'] //Johnny Steward
                     ],
                     "registrationNumbers" => [
                         [
                             "typeCode" => "VAT",
-                            "number" => "244444911",
-                            "issuerCountryCode" => "GB"
+                            "number" => $shipper['VatNumber'],
+                            "issuerCountryCode" => !empty($shipper['country_code']) ? $shipper['country_code'] : "GB",
                         ]
                     ],
                     "typeCode" => "business"
                 ],
                 "receiverDetails" => [
                     "postalAddress" => [
-                        "postalCode" => "TW4 6FD",
-                        "cityName" => "Hounslow",
-                        "countryCode" => "GB",
-                        "addressLine1" => "200",
-                        "addressLine2" => "Great South-West Rd",
-                        "addressLine3" => "McFarley Drive",
-                        "countryName" => "UNITED KINGDOM"
+                        "postalCode" => !empty($destination['zip']) ? $destination['zip'] : "TW4 6FD",
+                        "cityName" => !empty($destination['city']) ? $destination['city'] : "Hounslow",
+                        "countryCode" => !empty($destination['country_code']) ? $destination['country_code'] : "GB",
+                        "addressLine1" => $addresses[0],
+                        "addressLine2" => $addresses[1],
+                        "addressLine3" => $addresses[2],
+                        "countryName" => !empty($destination['country']) ? $destination['country'] : "UNITED KINGDOM"
                     ],
                     "contactInformation" => [
-                        "email" => "recipient_create_shipmentapi@dhltestmail.com",
-                        "phone" => "1123123",
+                        "email" => $orderData['customer']['email'] ?? "recipient_create_shipmentapi@dhltestmail.com",
+                        "phone" => $destination['phone'] ?? "1123123",
                         "mobilePhone" => "256345123",
-                        "companyName" => "DoCo Event Airline Catering",
-                        "fullName" => "Hillary Dickins"
+                        "companyName" =>  $destination['company'] ?? "DoCo Event Airline Catering",
+                        "fullName" => $destination['name'] ?? "Hillary Dickins"
                     ],
                     "registrationNumbers" => [
                         [
@@ -817,7 +994,7 @@ class DispenserOrderController extends Controller
         }
 
         $responseData = $response->json();
-
+       
         $trackingNumber = $responseData['packages'][0]['trackingNumber'] ?? 'no-tracking';
 
         $pdfContentCombined = '';
@@ -848,8 +1025,8 @@ class DispenserOrderController extends Controller
         $order->save();
 
         return [
-            'trackingNumber' =>$trackingNumber,
-            'shipment_pdf_path' =>$filePath,
+            'trackingNumber' => $trackingNumber,
+            'shipment_pdf_path' => $filePath,
         ];
     }
 
