@@ -128,16 +128,16 @@ class DispenserOrderController extends Controller
             // if(isset($shippingAddress) && isset($shippingAddress['country']) && $shippingAddress['country'] == "United Kingdom" && $shippingCode != 'rightangled hq' && $shippingCode != 'local delivery'){
                 // For UK Shippment
                 // $authToken = 'f3e7618c-d590-4e85-9246-1c39fcefd4f2';
-                // $this->createRoyalMailShipment($authToken, $shipper, $shippingAddress, $billingAddress, $orderData, $order->order_number);
+                // $response =  $this->createRoyalMailShipment($authToken, $shipper, $shippingAddress, $billingAddress, $orderData, $order->order_number);
                 // die;
             // }elseif(isset($shippingAddress) && isset($shippingAddress['country']) && $shippingAddress['country'] != "United Kingdom"){
 
-            //     $authToken = 'Basic ' . base64_encode('apX2aQ3yA3kF3p:J^9kM@8nD@8pS@1y');
-            //     $shippingDateAndTime = Carbon::now('Europe/Berlin')
-            //         ->addDay()
-            //         ->format('Y-m-d\TH:i:s \G\M\TP');
+                $authToken = 'Basic ' . base64_encode('apX2aQ3yA3kF3p:J^9kM@8nD@8pS@1y');
+                $shippingDateAndTime = Carbon::now('Europe/Berlin')
+                    ->addDay()
+                    ->format('Y-m-d\TH:i:s \G\M\TP');
                     
-            //     $this->createDHLShipment($authToken, $shipper, $destination, $orderData, $shippingDateAndTime, $order->order_number);
+                $response = $this->createDHLShipment($authToken, $shipper, $destination, $orderData, $shippingDateAndTime, $order->order_number);
 
             // }
 
@@ -147,6 +147,9 @@ class DispenserOrderController extends Controller
                 // $item['direction_of_use'] = $productId ? getProductMetafield($productId, $order->order_number) : 'N/A';
                 return $item;
             })->sortByDesc('quantity')->values();
+
+            $order->trackingNumber = $response['trackingNumber'];
+            $order->shipment_pdf_path  = $response['shipment_pdf_path'];
 
             $order->order_data = $orderData;
             $order->line_items = $lineItems;
@@ -217,7 +220,7 @@ class DispenserOrderController extends Controller
         }
 
         $individualFiles = [];
-
+        
         foreach ($processedOrders as $order) {
             // Render individual dispensing label PDF
             $pdfHtml = view('admin.dispenser.dispenselabel', [
@@ -402,25 +405,134 @@ class DispenserOrderController extends Controller
         $items = $orderData['line_items'];
         $url = 'https://api.parcel.royalmail.com/api/v1/orders';
 
+        // $data = [
+        //     "items" => [
+        //         [
+        //             "orderReference" => "TEST-ORDER-002",
+        //             "isRecipientABusiness" => false,
+        //             "recipient" => [
+        //                 "address" => [
+        //                     "fullName" => "John Doe",
+        //                     "companyName" => "",
+        //                     "addressLine1" => "10 Downing Street",
+        //                     "addressLine2" => "",
+        //                     "addressLine3" => "",
+        //                     "city" => "London",
+        //                     "county" => "Greater London",
+        //                     "postcode" => "SW1A 2AA",
+        //                     "countryCode" => "GB"
+        //                 ],
+        //                 "phoneNumber" => "07000000000",
+        //                 "emailAddress" => "john.doe@example.com",
+        //                 "addressBookReference" => ""
+        //             ],
+        //             "sender" => [
+        //                 "tradingName" => "Test Company Ltd",
+        //                 "phoneNumber" => "07000000001",
+        //                 "emailAddress" => "sender@example.com"
+        //             ],
+        //             "billing" => [
+        //                 "address" => [
+        //                     "fullName" => "Accounts Team",
+        //                     "companyName" => "Test Company Ltd",
+        //                     "addressLine1" => "123 Billing St",
+        //                     "addressLine2" => "",
+        //                     "addressLine3" => "",
+        //                     "city" => "London",
+        //                     "county" => "Greater London",
+        //                     "postcode" => "E1 6AN",
+        //                     "countryCode" => "GB"
+        //                 ],
+        //                 "phoneNumber" => "07000000002",
+        //                 "emailAddress" => "accounts@example.com"
+        //             ],
+        //             "packages" => [
+        //                 [
+        //                     "weightInGrams" => 250,
+        //                     "packageFormatIdentifier" => "Parcel",
+        //                     "dimensions" => [
+        //                         "heightInMms" => 120,
+        //                         "widthInMms" => 200,
+        //                         "depthInMms" => 50
+        //                     ],
+        //                     "contents" => [
+        //                         [
+        //                             "name" => "Test Product",
+        //                             "SKU" => "TP-001",
+        //                             "quantity" => 1,
+        //                             "unitValue" => 19.99,
+        //                             "unitWeightInGrams" => 250,
+        //                             "customsDescription" => "Sample Product",
+        //                             "extendedCustomsDescription" => "Sample Test Product",
+        //                             "customsCode" => "8517620000",
+        //                             "originCountryCode" => "GB",
+        //                             "customsDeclarationCategory" => "none",
+        //                             "requiresExportLicence" => false,
+        //                             "stockLocation" => "WH1",
+        //                             "useOriginPreference" => true,
+        //                             "supplementaryUnits" => "1",
+        //                             "licenseNumber" => "",
+        //                             "certificateNumber" => ""
+        //                         ]
+        //                     ]
+        //                 ]
+        //             ],
+        //             "orderDate" => "2025-07-08T10:00:00Z",
+        //             "plannedDespatchDate" => "",
+        //             "specialInstructions" => "Leave at porch if not home.",
+        //             "subtotal" => 19.99,
+        //             "shippingCostCharged" => 4.99,
+        //             "otherCosts" => 0.00,
+        //             "total" => 24.98,
+        //             "currencyCode" => "GBP",
+        //             "postageDetails" => [
+        //                 "sendNotificationsTo" => "recipient",
+        //                 "serviceCode" => "TPN24", // Tracked 24 – adjust to match your account
+        //                 "serviceRegisterCode" => "",
+        //                 "consequentialLoss" => 0,
+        //                 "receiveEmailNotification" => true,
+        //                 "receiveSmsNotification" => false,
+        //                 "guaranteedSaturdayDelivery" => false,
+        //                 "requestSignatureUponDelivery" => true,
+        //                 "isLocalCollect" => false,
+        //                 "safePlace" => "Porch",
+        //                 "department" => null,
+        //                 "AIRNumber" => "",
+        //                 "IOSSNumber" => "",
+        //                 "requiresExportLicense" => false,
+        //                 "commercialInvoiceNumber" => "INV-TEST-001",
+        //                 "commercialInvoiceDate" => "2025-07-08T10:00:00Z"
+        //             ],
+        //             "tags" => [],
+        //             "label" => [
+        //                 "includeLabelInResponse" => true,
+        //                 "includeCN" => false,
+        //                 "includeReturnsLabel" => false
+        //             ],
+        //             "orderTax" => 0.00,
+        //             "containsDangerousGoods" => false
+        //         ]
+        //     ]
+        // ];
         $data = [
             "items" => [
                 [
-                    "orderReference" => "TEST-ORDER-002",
+                    "orderReference" => $orderId,
                     "isRecipientABusiness" => false,
                     "recipient" => [
                         "address" => [
-                            "fullName" => "John Doe",
-                            "companyName" => "",
-                            "addressLine1" => "10 Downing Street",
-                            "addressLine2" => "",
+                            "fullName" => $shippingAddress['name'],
+                            "companyName" => $shippingAddress['company'],
+                            "addressLine1" => $shippingAddress['address1'],
+                            "addressLine2" => $shippingAddress['address2'],
                             "addressLine3" => "",
-                            "city" => "London",
-                            "county" => "Greater London",
-                            "postcode" => "SW1A 2AA",
-                            "countryCode" => "GB"
+                            "city" => $shippingAddress['city'],
+                            "county" => $shippingAddress['country'],
+                            "postcode" => $shippingAddress['zip'],
+                            "countryCode" => $shippingAddress['country_code']
                         ],
-                        "phoneNumber" => "07000000000",
-                        "emailAddress" => "john.doe@example.com",
+                        "phoneNumber" => $shippingAddress['phone'],
+                        "emailAddress" => "",
                         "addressBookReference" => ""
                     ],
                     "sender" => [
@@ -430,18 +542,18 @@ class DispenserOrderController extends Controller
                     ],
                     "billing" => [
                         "address" => [
-                            "fullName" => "Accounts Team",
-                            "companyName" => "Test Company Ltd",
-                            "addressLine1" => "123 Billing St",
-                            "addressLine2" => "",
+                            "fullName" => $billingAddress['name'],
+                            "companyName" => $billingAddress['company'],
+                            "addressLine1" => $billingAddress['address1'],
+                            "addressLine2" => $billingAddress['address2'],
                             "addressLine3" => "",
-                            "city" => "London",
-                            "county" => "Greater London",
-                            "postcode" => "E1 6AN",
-                            "countryCode" => "GB"
+                            "city" => $billingAddress['city'],
+                            "county" => $billingAddress['country'],
+                            "postcode" => $billingAddress['zip'],
+                            "countryCode" => $billingAddress['country_code']
                         ],
-                        "phoneNumber" => "07000000002",
-                        "emailAddress" => "accounts@example.com"
+                        "phoneNumber" => $billingAddress['phone'],
+                        "emailAddress" => ""
                     ],
                     "packages" => [
                         [
@@ -474,7 +586,7 @@ class DispenserOrderController extends Controller
                             ]
                         ]
                     ],
-                    "orderDate" => "2025-07-08T10:00:00Z",
+                    "orderDate" => $orderData['created_at'],
                     "plannedDespatchDate" => "",
                     "specialInstructions" => "Leave at porch if not home.",
                     "subtotal" => 19.99,
@@ -509,7 +621,7 @@ class DispenserOrderController extends Controller
                     "orderTax" => 0.00,
                     "containsDangerousGoods" => false
                 ]
-            ]
+            ]  
         ];
        
         $response = Http::withToken($authToken)
@@ -548,9 +660,12 @@ class DispenserOrderController extends Controller
 
                 $order->save();
             }
-            return $filePath;
-        }
         
+        return [
+            'trackingNumber' =>$trackingNumber,
+            'shipment_pdf_path' =>$filePath,
+        ];
+        }
     }
 
     function createDHLShipment(string $authToken, $shipper, $destination, $orderData, $shippingDateAndTime, $orderId)
@@ -703,7 +818,7 @@ class DispenserOrderController extends Controller
 
         $responseData = $response->json();
 
-        $trackingNumber = $responseData['packages']['trackingNumber'] ?? 'no-tracking';
+        $trackingNumber = $responseData['packages'][0]['trackingNumber'] ?? 'no-tracking';
 
         $pdfContentCombined = '';
         foreach ($responseData['documents'] as $doc) {
@@ -732,15 +847,11 @@ class DispenserOrderController extends Controller
         $order->shipment_details = $responseData;
         $order->save();
 
-        return response()->json([
-            'message' => 'Shipment created and saved successfully!',
-            'shipment_tracking' => $trackingNumber,
-            'pdf_path' => $filePath,
-        ]);
+        return [
+            'trackingNumber' =>$trackingNumber,
+            'shipment_pdf_path' =>$filePath,
+        ];
     }
-
-
-
 
     public function incrementReprint($id)
     {
