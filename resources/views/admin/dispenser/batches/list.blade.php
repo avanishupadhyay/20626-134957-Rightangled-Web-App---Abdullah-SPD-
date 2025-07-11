@@ -95,7 +95,31 @@
             @endif
         </div>
 
-</div> @endsection
+    </div>
+    
+    @php
+        $path = $batch->pdf_path ?? $batch->shipment_pdf_path;
+    @endphp
+
+    @if (session('batch_id'))
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                const link = document.createElement('a');
+                link.href = '{{ asset('storage/' . $path) }}';
+                link.setAttribute('download', '');
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            });
+        </script>
+
+        @php
+            session()->forget('batch_id');
+        @endphp
+    @endif
+
+
+@endsection
 {{-- <script>
     function openAndPrintPDF(pdfUrl) {
         const printWindow = window.open(pdfUrl, '_blank');
