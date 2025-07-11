@@ -139,7 +139,7 @@ class DispenserOrderController extends Controller
                 ->format('Y-m-d\TH:i:s \G\M\TP');
 
             $response = $this->createDHLShipment($authToken, $shipper, $destination, $orderData, $shippingDateAndTime, $order->order_number);
-
+        
             }
 
             $lineItems = collect($orderData['line_items'] ?? [])->map(function ($item) use ($order) {
@@ -296,6 +296,7 @@ class DispenserOrderController extends Controller
 
         bulkAddShopifyTagsAndNotes($orderGIDsWithStoreIds, 'dispensed');
         // return redirect()->route('dispenser.batches.download', ['batch' => $batch->id]);
+       session(['batch_id' => $batch->id]);
 
         return redirect()->route('dispenser.batches.list')->with('success', 'Dispensing PDF generated and ready to download');
     }
@@ -843,7 +844,7 @@ class DispenserOrderController extends Controller
                     $addresses[$i + 1] = trim($overflow . ' ' . $addresses[$i + 1]);
                 }
             }
-        }
+        }   
 
 
 
@@ -853,14 +854,14 @@ class DispenserOrderController extends Controller
                 "isRequested" => false
             ],
             "productCode" => "D",
-            "getRateEstimates" => false,
+            // "getRateEstimates" => false,
             "accounts" => [
                 [
                     "number" => "422890238",
                     "typeCode" => "shipper"
                 ]
             ],
-            "valueAddedServices" => [
+            "valueAddedServices" => [   // Email For Confirmation
                 [
                     "serviceCode" => "IB",
                     "value" => 10,
@@ -873,11 +874,11 @@ class DispenserOrderController extends Controller
                 "encodingFormat" => "pdf",
                 "imageOptions" => [
                     [
-                        "typeCode" => "shipmentReceipt",
+                        "typeCode" => "label",
                         "templateName" => "SHIPRCPT_EN_001",
                         // "isRequested" => true,
-                        // "hideAccountNumber" => false,
-                        // "numberOfCopies" => 1
+                        // "hideAccountNumber" => true,
+                        // "numberOfCopies" => 1,
                     ],
                     // [
                     //     "typeCode" => "label",
@@ -885,7 +886,7 @@ class DispenserOrderController extends Controller
                     //     "isRequested" => true
                     // ]
                 ],
-                "splitTransportAndWaybillDocLabels" => true,
+                // "splitTransportAndWaybillDocLabels" => true,
                 "allDocumentsInOneImage" => false,
                 "splitDocumentsByPages" => true,
                 "splitInvoiceAndReceipt" => true,
@@ -905,8 +906,8 @@ class DispenserOrderController extends Controller
                         "email" => $shipper['EmailAddress'],
                         "phone" => $shipper['PhoneNumber'],
                         "mobilePhone" => "2563456227231",
-                        "companyName" => $shipper['name'], //"DPR Wholesalers"
-                        "fullName" => $shipper['ContactName'] //Johnny Steward
+                        "companyName" => $shipper['name'], 
+                        "fullName" => $shipper['ContactName'] 
                     ],
                     "registrationNumbers" => [
                         [
@@ -934,38 +935,38 @@ class DispenserOrderController extends Controller
                         "companyName" =>  $destination['company'] ?? "DoCo Event Airline Catering",
                         "fullName" => $destination['name'] ?? "Hillary Dickins"
                     ],
-                    "registrationNumbers" => [
-                        [
-                            "typeCode" => "VAT",
-                            "number" => "12345678",
-                            "issuerCountryCode" => "GB"
-                        ]
-                    ],
-                    "typeCode" => "business"
+                    // "registrationNumbers" => [
+                    //     [
+                    //         "typeCode" => "VAT",
+                    //         "number" => "12345678",
+                    //         "issuerCountryCode" => "GB"
+                    //     ]
+                    // ],
+                    // "typeCode" => "business"
                 ]
             ],
             "content" => [
                 "packages" => [
                     [
-                        "typeCode" => "2BP",
+                        // "typeCode" => "2BP",
                         "weight" => 0.296,
-                        "dimensions" => [
+                        "dimensions" => [  // Required
                             "length" => 1,
                             "width" => 1,
                             "height" => 1
                         ]
                     ]
                 ],
-                "isCustomsDeclarable" => false,
-                "description" => "Shipment Description",
+                "isCustomsDeclarable" => false, // Need confirmation
+                "description" => "Shipment Description", // Required
                 "incoterm" => "DAP",
                 "unitOfMeasurement" => "metric"
             ],
-            "getTransliteratedResponse" => false,
-            "estimatedDeliveryDate" => [
-                "isRequested" => false,
-                "typeCode" => "QDDC"
-            ],
+            // "getTransliteratedResponse" => false,
+            // "estimatedDeliveryDate" => [
+            //     "isRequested" => false,
+            //     "typeCode" => "QDDC"
+            // ],
             "getAdditionalInformation" => [
                 [
                     "typeCode" => "pickupDetails",
@@ -994,7 +995,7 @@ class DispenserOrderController extends Controller
         }
 
         $responseData = $response->json();
-       
+   
         $trackingNumber = $responseData['packages'][0]['trackingNumber'] ?? 'no-tracking';
 
         $pdfContentCombined = '';
