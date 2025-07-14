@@ -148,6 +148,7 @@ class AccuracyCheckerOrderController extends Controller
             'order' => [
                 'order_number' => $order->order_number,
                 'email' => $order->email,
+                'tracking_number'=>$order->trackingNumber ?? null,
             ],
             'shipping_address' => [
                 'name' => $shipping['name'] ?? 'N/A',
@@ -201,7 +202,7 @@ class AccuracyCheckerOrderController extends Controller
     {
         try {
             // Step 1: Find order by order_number
-            $order = Order::where('order_number', $id)->first();
+            $order = Order::where('trackingNumber', $id)->first();
 
             if (!$order) {
                 return response()->json([
