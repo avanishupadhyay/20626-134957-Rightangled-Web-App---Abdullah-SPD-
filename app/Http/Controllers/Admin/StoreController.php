@@ -55,8 +55,30 @@ class StoreController extends Controller
         return view('admin.stores.create');
     }
 
-    public function validationRules($id = null)
+    public function validationRules($id = null,$update='')
     {
+        if($update && $update != ''){
+            return [
+                'name'  => 'required',
+                'description' => 'required',
+                //'domain' => ['required', 'unique:stores,domain,' . $id, new ValidUrl()],
+                'image' => 'mimes:jpg,jpeg,png,gif,svg|max:2048',
+                // New shipper fields
+                'AddressId' => 'required|string|max:100',
+                'ShipperReference' => 'required|string|max:100',
+                'ShipperReference2' => 'nullable|string|max:100',
+                'ShipperDepartment' => 'nullable|string|max:100',
+                'ContactName' => 'required|string|max:100',
+                'AddressLine1' => 'required|string|max:100',
+                'Town' => 'required|string|max:100',
+                'County' => 'nullable|string|max:100',
+                'CountryCode' => 'required|string|size:2',
+                'Postcode' => 'required|string|max:20',
+                'PhoneNumber' => 'required|string|max:20',
+                'EmailAddress' => 'required|email|max:100',
+                'VatNumber' => 'nullable|string|max:30',
+            ];
+        }
         return [
             'name'  => 'required',
             'description' => 'required',
@@ -113,7 +135,7 @@ class StoreController extends Controller
      */
     public function update(Request $request, Store $store)
     {
-        $request->validate($this->validationRules($store->id));
+        $request->validate($this->validationRules($store->id,'update'));
 
         $data           = $request->all();
         $data['status'] = !empty($data['status']) ? 1 : 0;
