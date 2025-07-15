@@ -35,7 +35,7 @@
                                 @method('PUT')
                                 <div class="row">
                                     <div class="col-md-6 form-group">
-                                        <label for="StoreName">Name</label>
+                                        <label for="StoreName">Name<span class="required text-danger">*</span></label>
                                         <input type="text" name="name" id="Name" class="form-control"
                                             value="{{ old('name', $store->name) }}" maxlength="64">
                                         @error('name')
@@ -46,7 +46,7 @@
                                     </div>
 
                                     <div class="col-md-6 form-group">
-                                        <label for="AddressId">Address ID</label>
+                                        <label for="AddressId">Address ID<span class="required text-danger">*</span></label>
                                         <input type="text" name="AddressId" id="AddressId" class="form-control"
                                             value="{{ old('AddressId', $store->AddressId) }}" maxlength="100">
                                         @error('AddressId')
@@ -55,7 +55,7 @@
                                     </div>
 
                                     <div class="col-md-6 form-group">
-                                        <label for="ShipperReference">Shipper Reference</label>
+                                        <label for="ShipperReference">Shipper Reference<span class="required text-danger">*</span></label>
                                         <input type="text" name="ShipperReference" id="ShipperReference"
                                             class="form-control" value="{{ old('ShipperReference', $store->ShipperReference) }}" maxlength="100">
                                         @error('ShipperReference')
@@ -82,7 +82,7 @@
                                     </div>
 
                                     <div class="col-md-6 form-group">
-                                        <label for="ContactName">Contact Name</label>
+                                        <label for="ContactName">Contact Name<span class="required text-danger">*</span></label>
                                         <input type="text" name="ContactName" id="ContactName" class="form-control"
                                             value="{{ old('ContactName', $store->ContactName) }}" maxlength="100">
                                         @error('ContactName')
@@ -91,7 +91,7 @@
                                     </div>
 
                                     <div class="col-md-6 form-group">
-                                        <label for="AddressLine1">Address Line 1</label>
+                                        <label for="AddressLine1">Address Line 1<span class="required text-danger">*</span></label>
                                         <input type="text" name="AddressLine1" id="AddressLine1" class="form-control"
                                             value="{{ old('AddressLine1', $store->AddressLine1) }}" maxlength="100">
                                         @error('AddressLine1')
@@ -100,7 +100,7 @@
                                     </div>
 
                                     <div class="col-md-6 form-group">
-                                        <label for="Town">Town</label>
+                                        <label for="Town">Town<span class="required text-danger">*</span></label>
                                         <input type="text" name="Town" id="Town" class="form-control"
                                             value="{{ old('Town', $store->Town) }}" maxlength="100">
                                         @error('Town')
@@ -109,7 +109,7 @@
                                     </div>
 
                                     <div class="col-md-6 form-group">
-                                        <label for="County">County</label>
+                                        <label for="County">County<span class="required text-danger">*</span></label>
                                         <input type="text" name="County" id="County" class="form-control"
                                             value="{{ old('County', $store->County) }}" maxlength="100">
                                         @error('County')
@@ -118,7 +118,7 @@
                                     </div>
 
                                     <div class="col-md-6 form-group">
-                                        <label for="CountryCode">Country Code</label>
+                                        <label for="CountryCode">Country Code<span class="required text-danger">*</span></label>
                                         <input type="text" name="CountryCode" id="CountryCode" class="form-control"
                                             value="{{ old('CountryCode', $store->CountryCode) }}" maxlength="100">
                                         @error('CountryCode')
@@ -127,7 +127,7 @@
                                     </div>
 
                                     <div class="col-md-6 form-group">
-                                        <label for="Postcode">Postcode</label>
+                                        <label for="Postcode">Postcode<span class="required text-danger">*</span></label>
                                         <input type="text" name="Postcode" id="Postcode" class="form-control"
                                             value="{{ old('Postcode', $store->Postcode) }}" maxlength="20">
                                         @error('Postcode')
@@ -136,7 +136,7 @@
                                     </div>
 
                                     <div class="col-md-6 form-group">
-                                        <label for="PhoneNumber">Phone Number</label>
+                                        <label for="PhoneNumber">Phone Number<span class="required text-danger">*</span></label>
                                         <input type="text" name="PhoneNumber" id="PhoneNumber" class="form-control"
                                             value="{{ old('PhoneNumber', $store->PhoneNumber) }}" maxlength="20">
                                         @error('PhoneNumber')
@@ -145,7 +145,7 @@
                                     </div>
 
                                     <div class="col-md-6 form-group">
-                                        <label for="EmailAddress">Email Address</label>
+                                        <label for="EmailAddress">Email Address<span class="required text-danger">*</span></label>
                                         <input type="email" name="EmailAddress" id="EmailAddress" class="form-control"
                                             value="{{ old('EmailAddress', $store->EmailAddress) }}" maxlength="100">
                                         @error('EmailAddress')
@@ -163,7 +163,7 @@
                                     </div>
 
                                     <div class="col-md-12 form-group">
-                                        <label for="Description">Description</label>
+                                        <label for="Description">Description<span class="required text-danger">*</span></label>
                                         <textarea name="description" id="Description" class="form-control" rows="4">{{ old('description', $store->description) }}</textarea>
                                         @error('description')
                                             <p class="text-danger">
@@ -173,7 +173,7 @@
                                     </div>
 
                                     <div class="col-md-6 form-group">
-                                        <label for="title">Store URL</label>
+                                        <label for="title">Store URL<span class="required text-danger">*</span></label>
                                         <input type="text" name="domain" id="domain" class="form-control"
                                             value="{{ old('domain', $store->domain) }}">
                                         @error('domain')
@@ -206,7 +206,7 @@
                                         </div>
                                     </div>
                                     <div class="col-md-6 form-group">
-                                        <label for="title">App Client Id</label>
+                                        <label for="title">App Client Id<span class="required text-danger">*</span></label>
                                         <input type="text" name="app_client_id" id="domain" class="form-control"
                                             value="{{ old('app_client_id', $store->app_client_id) }}">
                                         @error('app_client_id')
@@ -216,7 +216,7 @@
                                         @enderror
                                     </div>
                                     <div class="col-md-6 form-group">
-                                        <label for="title">App Secret Key</label>
+                                        <label for="title">App Secret Key<span class="required text-danger">*</span></label>
                                         <input type="text" name="app_secret_key" id="domain" class="form-control"
                                             value="{{ old('app_secret_key', $store->app_secret_key) }}">
                                         @error('app_secret_key')
@@ -226,7 +226,7 @@
                                         @enderror
                                     </div>
                                     <div class="col-md-6 form-group">
-                                        <label for="title">App Admin Access Token</label>
+                                        <label for="title">App Admin Access Token<span class="required text-danger">*</span></label>
                                         <input type="text" name="app_admin_access_token" id="domain"
                                             class="form-control"
                                             value="{{ old('app_admin_access_token', $store->app_admin_access_token) }}">
