@@ -292,56 +292,56 @@ class PrescriberOrderController extends Controller
 
         $order_detail = Order::where('order_number', $orderId)->first();
 
-        // if ($order_detail) {
-        //     $order_data = json_decode($order_detail->order_data, true) ?? [];
-        //     $check_id = '';
-        //     $birth_date = '';
+        if ($order_detail) {
+            $order_data = json_decode($order_detail->order_data, true) ?? [];
+            $check_id = '';
+            $birth_date = '';
 
-        //     if (isset($order_data['customer']) && !empty($order_data['customer'])) {
-        //         // Get customer ID from order
-        //         // $customerId = $order_data['customer']['id'] ?? null;
-        //         $customerId = 23044010213763;
+            if (isset($order_data['customer']) && !empty($order_data['customer'])) {
+                // Get customer ID from order
+                // $customerId = $order_data['customer']['id'] ?? null;
+                $customerId = 23044010213763;
 
-        //         // Continue only if dob is NOT already set
-        //         if ($customerId && empty($order_data['customer']['dob'])) {
-        //             // Fetch metafields from Shopify
-        //             $response = Http::withHeaders([
-        //                 'X-Shopify-Access-Token' => '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'
-        //             ])->get("https://rightangled-store.myshopify.com/admin/api/2023-10/customers/{$customerId}/metafields.json");
+                // Continue only if dob is NOT already set
+                if ($customerId && empty($order_data['customer']['dob'])) {
+                    // Fetch metafields from Shopify
+                    $response = Http::withHeaders([
+                        'X-Shopify-Access-Token' => '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'
+                    ])->get("https://rightangled-store.myshopify.com/admin/api/2023-10/customers/{$customerId}/metafields.json");
 
-        //             $data = $response->json();
+                    $data = $response->json();
+                        
+                    // Extract check_id
+                    if (isset($data['metafields'])) {
+                        foreach ($data['metafields'] as $meta) {
+                            if ($meta['key'] === 'check_id') {
+                                $check_id = $meta['value'];
+                                break;
+                            }
+                        }
+                    }
 
-        //             // Extract check_id
-        //             if (isset($data['metafields'])) {
-        //                 foreach ($data['metafields'] as $meta) {
-        //                     if ($meta['key'] === 'check_id') {
-        //                         $check_id = $meta['value'];
-        //                         break;
-        //                     }
-        //                 }
-        //             }
+                    // Fetch Real ID details
+                    if (!empty($check_id)) {
+                        $realIdResponse = Http::withHeaders([
+                            'Authorization' => 'Bearer ' . env('REAL_ID_API_TOKEN'),
+                            'Accept' => 'application/json',
+                        ])->get("https://real-id.getverdict.com/api/v1/checks/{$check_id}");
 
-        //             // Fetch Real ID details
-        //             if (!empty($check_id)) {
-        //                 $realIdResponse = Http::withHeaders([
-        //                     'Authorization' => 'Bearer ' . env('REAL_ID_API_TOKEN'),
-        //                     'Accept' => 'application/json',
-        //                 ])->get("https://real-id.getverdict.com/api/v1/checks/{$check_id}");
+                        $realIdData = $realIdResponse->json();
 
-        //                 $realIdData = $realIdResponse->json();
+                        if (!empty($realIdData['check']['result']['document']['birth_date'])) {
+                            $birth_date = $realIdData['check']['result']['document']['birth_date'];
 
-        //                 if (!empty($realIdData['check']['result']['document']['birth_date'])) {
-        //                     $birth_date = $realIdData['check']['result']['document']['birth_date'];
-
-        //                     // Update the order_data
-        //                     $order_data['customer']['dob'] = $birth_date;
-        //                     $order_detail->order_data = json_encode($order_data);
-        //                     $order_detail->save();
-        //                 }
-        //             }
-        //         }
-        //     }
-        // }
+                            // Update the order_data
+                            $order_data['customer']['dob'] = $birth_date;
+                            $order_detail->order_data = json_encode($order_data);
+                            $order_detail->save();
+                        }
+                    }
+                }
+            }
+        }
 
         // // $pdfUrl = $this->generateAndStorePDF($orderId);
         // $pdfPath = $this->generateAndStorePDF($orderId);
