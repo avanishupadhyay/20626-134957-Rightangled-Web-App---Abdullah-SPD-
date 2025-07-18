@@ -448,6 +448,7 @@
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         let selectedOrderId = null;
+        let trackingNumber=null;
         const requiredProductIds = new Set();
         const scannedProductIds = new Set();
         let scanningMode = 'product';
@@ -488,6 +489,7 @@
                 .then(data => {
                     if (data.status === 'success') {
                         selectedOrderId = data.order.order_number;
+                        trackingNumber=data.order.tracking_number;
                         document.getElementById('modalOrderNumber').textContent = selectedOrderId;
                         document.getElementById('modalCustomer').textContent = data.order.email;
 
@@ -656,7 +658,7 @@
 
                 if (scanned.length < 2) return;
 
-                if (scanned !== selectedOrderId.toString().trim()) {
+                if (scanned !== trackingNumber.toString().trim()) {
                     toastr.error('❌ Order QR does not match.');
                     return;
                 }
@@ -664,7 +666,7 @@
                 // if (confirm(`Mark order ${scanned} as fulfilled?`)) {
                 loader.style.display = 'flex';
 
-                fetch(`/admin/Accuracy-checker/orders/fulfill/${selectedOrderId}`, {
+                fetch(`/admin/Accuracy-checker/orders/fulfill/${trackingNumber}`, {
                         method: 'POST',
                         headers: {
                             'X-CSRF-TOKEN': '{{ csrf_token() }}',
