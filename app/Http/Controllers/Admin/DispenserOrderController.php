@@ -122,7 +122,7 @@ class DispenserOrderController extends Controller
 
 
             $shipper = Store::where('id', $order->store_id)->first()->toArray();
-
+       
             $destination = $shippingAddress;
             //  && $shippingCode != 'rightangled hq' && $shippingCode != 'local delivery'
 
@@ -130,7 +130,7 @@ class DispenserOrderController extends Controller
             // For UK Shippment
             $authToken = 'f3e7618c-d590-4e85-9246-1c39fcefd4f2';
             $response =  $this->createRoyalMailShipment($authToken, $shipper, $shippingAddress, $billingAddress, $orderData, $order->order_number);
-            
+                // pr($response);die;
             }elseif(isset($shippingAddress) && isset($shippingAddress['country']) && $shippingAddress['country'] != "United Kingdom"){
 
             $authToken = 'Basic ' . base64_encode('apX2aQ3yA3kF3p:J^9kM@8nD@8pS@1y');
@@ -139,13 +139,13 @@ class DispenserOrderController extends Controller
                 ->format('Y-m-d\TH:i:s \G\M\TP');
 
             $response = $this->createDHLShipment($authToken, $shipper, $destination, $orderData, $shippingDateAndTime, $order->order_number);
-        
+                // pr($response);die;
             }
 
             $lineItems = collect($orderData['line_items'] ?? [])->map(function ($item) use ($order) {
                 $productId = $item['product_id'] ?? null;
+                // $item['direction_of_use'] = 'N/A';
                 $item['direction_of_use'] = $productId ? getProductMetafield($productId, $order->order_number) : 'N/A';
-                // $item['direction_of_use'] = $productId ? getProductMetafield($productId, $order->order_number) : 'N/A';
                 return $item;
             })->sortByDesc('quantity')->values();
 
@@ -223,25 +223,27 @@ class DispenserOrderController extends Controller
         $individualFiles = [];
 
         foreach ($processedOrders as $order) {
-            // Render individual dispensing label PDF
-            $pdfHtml = view('admin.dispenser.dispenselabel', [
-                'processedOrders' => collect([$order]),
-                'batch' => $batch
-            ])->render();
+            if(isset($order->trackingNumber) && isset($order->shipment_pdf_path) && !empty($order->trackingNumber) && !empty($order->shipment_pdf_path)){
+                // Render individual dispensing label PDF
+                $pdfHtml = view('admin.dispenser.dispenselabel', [
+                    'processedOrders' => collect([$order]),
+                    'batch' => $batch
+                ])->render();
 
-            $dispensePath = "{$tempDir}/dispense_{$order->order_number}.pdf";
-            PDF::loadHTML($pdfHtml)->setPaper('A4')->save($dispensePath);
-            $individualFiles[] = $dispensePath;
+                $dispensePath = "{$tempDir}/dispense_{$order->order_number}.pdf";
+                PDF::loadHTML($pdfHtml)->setPaper('A4')->save($dispensePath);
+                $individualFiles[] = $dispensePath;
 
-            // Append shipping label if available
-            if ($order->shipment_pdf_path) {
-                $shippingPath = public_path(Storage::url($order->shipment_pdf_path));
-                if (file_exists($shippingPath)) {
-                    $individualFiles[] = $shippingPath;
+                // Append shipping label if available
+                if ($order->shipment_pdf_path) {
+                    $shippingPath = public_path(Storage::url($order->shipment_pdf_path));
+                    if (file_exists($shippingPath)) {
+                        $individualFiles[] = $shippingPath;
+                    }
                 }
             }
         }
-
+      
         // Merge all files using Ghostscript
         $escapedFiles = array_map('escapeshellarg', $individualFiles);
         $cmd = "\"$exe\" -dBATCH -dNOPAUSE -q -sDEVICE=pdfwrite -sOutputFile=" . escapeshellarg($outputFile) . " " . implode(' ', $escapedFiles);
@@ -249,51 +251,59 @@ class DispenserOrderController extends Controller
 
         // Save path
         $batch->update(['shipment_pdf_path' => $s_path]);
-
         // Clean temp
         foreach ($individualFiles as $f) {
             @unlink($f);
         }
         @rmdir($tempDir);
 
+     
         foreach ($processedOrders as $order) {
-            OrderDispense::create([
-                'order_id' => $order->order_number,
-                'batch_id' => $batch->id,
-                'dispensed_at' => now(),
-                'reprint_count' => 0,
-            ]);
-
-            AuditLog::create([
-                'user_id' => auth()->id(),
-                'action' => 'dispensed',
-                'order_id' => $order->order_number,
-                'details' => 'Order dispensed by ' . auth()->user()->name . ' on ' . now()->format('d/m/Y') . ' at ' . now()->format('H:i'),
-            ]);
-
-            $roleName = auth()->user()?->roles?->first()?->name ?? 'unknown';
-
-            OrderAction::updateOrCreate(
-                [
+            if(isset($order->trackingNumber) && isset($order->shipment_pdf_path) && !empty($order->trackingNumber) && !empty($order->shipment_pdf_path)){
+                OrderDispense::create([
                     'order_id' => $order->order_number,
+                    'batch_id' => $batch->id,
+                    'dispensed_at' => now(),
+                    'reprint_count' => 0,
+                ]);
+
+                AuditLog::create([
                     'user_id' => auth()->id(),
-                ],
-                [
-                    'decision_status' => 'dispensed',
-                    'decision_timestamp' => now(),
-                    'role' => $roleName,
-                ]
-            );
+                    'action' => 'dispensed',
+                    'order_id' => $order->order_number,
+                    'details' => 'Order dispensed by ' . auth()->user()->name . ' on ' . now()->format('d/m/Y') . ' at ' . now()->format('H:i'),
+                ]);
+
+                $roleName = auth()->user()?->roles?->first()?->name ?? 'unknown';
+
+                OrderAction::updateOrCreate(
+                    [
+                        'order_id' => $order->order_number,
+                        'user_id' => auth()->id(),
+                    ],
+                    [
+                        'decision_status' => 'dispensed',
+                        'decision_timestamp' => now(),
+                        'role' => $roleName,
+                    ]
+                );
+            }
         }
 
-        $orderGIDsWithStoreIds = $processedOrders->map(function ($order) {
-            return [
-                'gid' => "gid://shopify/Order/{$order->order_number}",
-                'shopify_order_id' => $order->order_number,
-                'store_id' => $order->store_id,
-            ];
-        })->toArray();
-
+       $orderGIDsWithStoreIds = $processedOrders->map(function ($order) {
+            if (
+                !empty($order->trackingNumber) &&
+                !empty($order->shipment_pdf_path)
+            ) {
+                return [
+                    'gid' => "gid://shopify/Order/{$order->order_number}",
+                    'shopify_order_id' => $order->order_number,
+                    'store_id' => $order->store_id,
+                ];
+            }
+            return null; // explicitly return null if not matched
+        })->filter()->values()->toArray();
+       
         bulkAddShopifyTagsAndNotes($orderGIDsWithStoreIds, 'dispensed');
         // return redirect()->route('dispenser.batches.download', ['batch' => $batch->id]);
        session(['batch_id' => $batch->id]);
@@ -631,43 +641,49 @@ class DispenserOrderController extends Controller
                 'Accept' => 'application/pdf',
                 'Content-Type' => 'application/json',
             ])->post($url, $data);
+             
+        if ($response->successful()) {
+            $responseData = $response->json();
+            $createdOrder = $responseData['createdOrders'][0] ?? null;
 
-        $responseData = $response->json();
-        $createdOrder = $responseData['createdOrders'][0] ?? null;
+            if ($createdOrder) {
+                $trackingNumber = $createdOrder['trackingNumber'];
+                $base64Pdf = $createdOrder['label'];
 
-        if ($createdOrder) {
-            $trackingNumber = $createdOrder['trackingNumber'];
-            $base64Pdf = $createdOrder['label'];
+                // Decode Base64 PDF
+                $pdfBinary = base64_decode($base64Pdf);
 
-            // Decode Base64 PDF
-            $pdfBinary = base64_decode($base64Pdf);
+                // Generate file path
+                $fileName = "{$trackingNumber}.pdf";
+                $folder = 'shippments_pdf';
+                $filePath = "{$folder}/{$fileName}";
 
-            // Generate file path
-            $fileName = "{$trackingNumber}.pdf";
-            $folder = 'shippments_pdf';
-            $filePath = "{$folder}/{$fileName}";
+                // Store PDF on public disk
+                Storage::disk('public')->put($filePath, $pdfBinary);
 
-            // Store PDF on public disk
-            Storage::disk('public')->put($filePath, $pdfBinary);
+                // Find your order by order number
+                $order = Order::where('order_number', $orderId)->first();
+                if ($order) {
+                    // Optional: Save PDF file path (if column exists)
+                    $order->shipment_pdf_path = $filePath;
+                    $order->trackingNumber = $trackingNumber;
 
-            // Find your order by order number
-            $order = Order::where('order_number', $orderId)->first();
-            if ($order) {
-                // Optional: Save PDF file path (if column exists)
-                $order->shipment_pdf_path = $filePath;
-                $order->trackingNumber = $trackingNumber;
+                    // Save entire shipment details JSON
+                    $order->shipment_details = $responseData;
 
-                // Save entire shipment details JSON
-                $order->shipment_details = $responseData;
+                    $order->save();
+                }
 
-                $order->save();
+                return [
+                    'trackingNumber' => $trackingNumber,
+                    'shipment_pdf_path' => $filePath,
+                ];
             }
-
-            return [
-                'trackingNumber' => $trackingNumber,
-                'shipment_pdf_path' => $filePath,
-            ];
         }
+         return [
+                    'trackingNumber' => '',
+                    'shipment_pdf_path' => '',
+                ];
     }
 
     function createDHLShipment(string $authToken, $shipper, $destination, $orderData, $shippingDateAndTime, $orderId)
@@ -989,46 +1005,49 @@ class DispenserOrderController extends Controller
             'Authorization' => $authToken,
         ])->post('https://express.api.dhl.com/mydhlapi/test/shipments', $data);
 
+        
+        if ($response->successful()) {
 
-        if (!$response->json()) {
-            return response()->json(['error' => 'DHL API failed', 'details' => $response], 400);
-        }
+            $responseData = $response->json();
+    
+            $trackingNumber = $responseData['packages'][0]['trackingNumber'] ?? 'no-tracking';
 
-        $responseData = $response->json();
-   
-        $trackingNumber = $responseData['packages'][0]['trackingNumber'] ?? 'no-tracking';
-
-        $pdfContentCombined = '';
-        foreach ($responseData['documents'] as $doc) {
-            if ($doc['imageFormat'] === 'PDF') {
-                $pdfContentCombined .= base64_decode($doc['content']);
+            $pdfContentCombined = '';
+            foreach ($responseData['documents'] as $doc) {
+                if ($doc['imageFormat'] === 'PDF') {
+                    $pdfContentCombined .= base64_decode($doc['content']);
+                }
             }
+
+            // Save the PDF to storage
+            $fileName = "{$trackingNumber}.pdf";
+            $folder = 'shippments_pdf';
+
+            if (!Storage::disk('public')->exists($folder)) {
+                Storage::disk('public')->makeDirectory($folder);
+            }
+
+            $filePath = "{$folder}/{$fileName}";
+
+            Storage::disk('public')->put($filePath, $pdfContentCombined);
+            $order = Order::where('order_number', $orderId)->first();
+
+            // Optional: Save PDF path to order if needed
+            $order->shipment_pdf_path = $filePath; // Only if you have this column
+            $order->trackingNumber = $trackingNumber;
+            // STEP 3: Save full shipment details in DB (as JSON)
+            $order->shipment_details = $responseData;
+            $order->save();
+
+            return [
+                'trackingNumber' => $trackingNumber,
+                'shipment_pdf_path' => $filePath,
+            ];
         }
-
-        // Save the PDF to storage
-        $fileName = "{$trackingNumber}.pdf";
-        $folder = 'shippments_pdf';
-
-        if (!Storage::disk('public')->exists($folder)) {
-            Storage::disk('public')->makeDirectory($folder);
-        }
-
-        $filePath = "{$folder}/{$fileName}";
-
-        Storage::disk('public')->put($filePath, $pdfContentCombined);
-        $order = Order::where('order_number', $orderId)->first();
-
-        // Optional: Save PDF path to order if needed
-        $order->shipment_pdf_path = $filePath; // Only if you have this column
-        $order->trackingNumber = $trackingNumber;
-        // STEP 3: Save full shipment details in DB (as JSON)
-        $order->shipment_details = $responseData;
-        $order->save();
-
-        return [
-            'trackingNumber' => $trackingNumber,
-            'shipment_pdf_path' => $filePath,
-        ];
+         return [
+                    'trackingNumber' => '',
+                    'shipment_pdf_path' => '',
+                ];
     }
 
     public function incrementReprint($id)
