@@ -652,7 +652,10 @@
 
             clearTimeout(orderTimer);
             orderTimer = setTimeout(() => {
-                const scanned = orderBuffer.trim();
+                let scanned = orderBuffer;
+                if (scanned.startsWith('JJD')) {
+                    scanned = scanned.substring(1);
+                }
                 orderBuffer = '';
                 orderBarcodeInput.value = '';
 
@@ -662,6 +665,7 @@
                     toastr.error('❌ Order QR does not match.');
                     return;
                 }
+               
 
                 // if (confirm(`Mark order ${scanned} as fulfilled?`)) {
                 loader.style.display = 'flex';

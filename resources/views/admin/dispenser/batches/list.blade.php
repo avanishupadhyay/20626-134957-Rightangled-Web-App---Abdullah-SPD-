@@ -97,7 +97,7 @@
 
     </div>
     
-    @php
+    {{-- @php
         $path = $batch->pdf_path ?? $batch->shipment_pdf_path;
     @endphp
 
@@ -116,7 +116,7 @@
         @php
             session()->forget('batch_id');
         @endphp
-    @endif
+    @endif --}}
 
 
 @endsection

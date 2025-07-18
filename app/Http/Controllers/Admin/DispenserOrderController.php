@@ -680,7 +680,10 @@ class DispenserOrderController extends Controller
                 ];
             }
         }
-         return [
+        $order = Order::where('order_number', $orderId)->first();
+        $order->error = $response->json();
+        $order->save();
+              return [
                     'trackingNumber' => '',
                     'shipment_pdf_path' => '',
                 ];
@@ -868,7 +871,7 @@ class DispenserOrderController extends Controller
             "plannedShippingDateAndTime" => $shippingDateAndTime,
             "pickup" => [
                 "isRequested" => false
-            ],
+            ],  
             "productCode" => "D",
             // "getRateEstimates" => false,
             "accounts" => [
@@ -1044,6 +1047,10 @@ class DispenserOrderController extends Controller
                 'shipment_pdf_path' => $filePath,
             ];
         }
+        $order = Order::where('order_number', $orderId)->first();
+        $order->error = $response->json();
+        $order->save();
+        
          return [
                     'trackingNumber' => '',
                     'shipment_pdf_path' => '',

@@ -253,7 +253,7 @@ class AccuracyCheckerOrderController extends Controller
             AuditLog::create([
                 'user_id' => auth()->id(),
                 'action' => 'accurately_checked',
-                'order_id' => $id,
+                'order_id' => $order->order_number,
                 'details' => 'Order accurately checked by ' . auth()->user()->name .
                     ' on ' . now()->format('d/m/Y') .
                     ' at ' . now()->format('H:i'),

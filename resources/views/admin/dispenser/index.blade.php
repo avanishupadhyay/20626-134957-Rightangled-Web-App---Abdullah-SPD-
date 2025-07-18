@@ -68,7 +68,8 @@
                         <div class="card-header d-flex justify-content-between align-items-center">
                             <strong>Approved Orders for Dispensing</strong>
                             <div id="dispenseSelectedWrapper" style="display: none;">
-                                <button type="submit" class="btn btn-success" id="selected-dispense">Dispense Selected</button>
+                                <button type="submit" class="btn btn-success" id="selected-dispense">Dispense
+                                    Selected</button>
                             </div>
                         </div>
                         <div class="card-body table-responsive">
@@ -95,6 +96,50 @@
                                     </thead>
                                     <tbody>
                                         @foreach ($orders as $order)
+                                            @php
+                                                $errorData = json_decode($order->error, true); // decode stored error response
+                                                $shouldShowError =
+                                                    isset($errorData['errorsCount'], $errorData['successCount']) &&
+                                                    $errorData['errorsCount'] > 0 &&
+                                                    $errorData['successCount'] < 1;
+
+                                                $errorMessages = [];
+                                                if (!empty($errorData)) {
+                                                    // Case 1: Structured "failedOrders" errors
+                                                    if (isset($errorData['failedOrders'])) {
+                                                        foreach ($errorData['failedOrders'] as $failedOrder) {
+                                                            if (!empty($failedOrder['errors'])) {
+                                                                foreach ($failedOrder['errors'] as $error) {
+                                                                    $errorMessages[] =
+                                                                        $error['errorMessage'] ?? 'Unknown error';
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                    // Case 2: Flat structure with detail and title
+                                                    elseif (isset($errorData['detail'])) {
+                                                        // Combine detail + optional title/message
+                                                        $msg = $errorData['detail'];
+                                                        if (!empty($errorData['title'])) {
+                                                            $msg = "{$errorData['title']}: {$msg}";
+                                                        }
+                                                        $errorMessages[] = $msg;
+                                                    }
+                                                    // Case 3: Catch-all fallback (raw array or stringified error)
+                                                    else {
+                                                        $errorMessages[] = is_array($errorData)
+                                                            ? implode(
+                                                                ', ',
+                                                                array_map(
+                                                                    fn($k, $v) => "$k: $v",
+                                                                    array_keys($errorData),
+                                                                    $errorData,
+                                                                ),
+                                                            )
+                                                            : (string) $errorData;
+                                                    }
+                                                }
+                                            @endphp
                                             <tr>
                                                 @role('Dispenser')
                                                     <td>
@@ -117,15 +162,57 @@
                                                 </td>
                                                 @role('Dispenser')
                                                     <td>
-                                                        <div class="d-flex">
+                                                        <div class="d-flex gap-1">
                                                             <a href="{{ route('dispenser_orders.view', $order->id) }}"
                                                                 class="btn btn-primary btn-sm">
                                                                 <i class="fa fa-eye" aria-hidden="true"></i>
                                                             </a>
+                                                            @if (!empty($errorMessages))
+                                                                <button type="button" class="btn btn-danger p-2"
+                                                                    data-bs-toggle="modal"
+                                                                    data-bs-target="#errorModal{{ $order->id }}">
+                                                                    <i class="fa-solid fa-circle-exclamation"></i>
+                                                                </button>
+                                                            @endif
                                                         </div>
                                                     </td>
                                                 @endrole
                                             </tr>
+                                            @if (!empty($errorMessages))
+                                                <!-- Error Modal for each order -->
+                                                <div class="modal fade" id="errorModal{{ $order->id }}" tabindex="-1"
+                                                    role="dialog" aria-labelledby="errorModalLabel{{ $order->id }}"
+                                                    aria-hidden="true">
+                                                    <div class="modal-dialog modal-dialog-centered" role="document">
+                                                        <div class="modal-content">
+
+                                                            <!-- Modal Header -->
+                                                            <div class="modal-header">
+                                                                <h5 class="modal-title"
+                                                                    id="errorModalLabel{{ $order->id }}">Order Error -
+                                                                    #{{ $order->order_number }}</h5>
+                                                                <button type="button" class="btn btn-danger"
+                                                                    data-bs-dismiss="modal" aria-label="Close">
+                                                                    <span aria-hidden="true">&times;</span>
+                                                                </button>
+                                                            </div>
+                                                            <!-- Modal Body -->
+                                                            <div class="modal-body">
+                                                                @if (!empty($errorMessages))
+                                                                    <ul class="mb-0">
+                                                                        @foreach ($errorMessages as $msg)  
+                                                                            <li>{{ $msg }}</li>
+                                                                        @endforeach
+                                                                    </ul>
+                                                                @else
+                                                                    <p>No detailed errors found.</p>
+                                                                @endif
+                                                            </div>
+
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            @endif
                                         @endforeach
                                     </tbody>
                                 </table>
@@ -165,17 +252,16 @@
 
     @endsection
     @section('custom_js_scripts')
-<script>
-        const loader = document.getElementById('loaderOverlay');
+        <script>
+            const loader = document.getElementById('loaderOverlay');
 
-        ['selected-dispense'].forEach(id => {
-            const button = document.getElementById(id);
-            if (button) {
-                button.addEventListener('click', function() {
-                    loader.style.display = 'flex';
-                });
-            }
-        });
-    </script>
-@endsection
-    
+            ['selected-dispense'].forEach(id => {
+                const button = document.getElementById(id);
+                if (button) {
+                    button.addEventListener('click', function() {
+                        loader.style.display = 'flex';
+                    });
+                }
+            });
+        </script>
+    @endsection
