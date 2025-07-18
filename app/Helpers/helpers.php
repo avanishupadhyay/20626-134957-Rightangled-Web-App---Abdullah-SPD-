@@ -599,7 +599,7 @@ function getProductMetafield($productId, $orderId)
 	$query = <<<'GRAPHQL'
     query($productId: ID!) {
       product(id: $productId) {
-        metafield(namespace: "global", key: "direction_of_use_single_line") {
+        metafield(namespace: "custom", key: "direction_of_use_single_line") {
           value
         }
       }
@@ -617,7 +617,7 @@ function getProductMetafield($productId, $orderId)
 		'query' => $query,
 		'variables' => $variables,
 	]);
-
+	// dd($response->json());
 	if ($response->successful()) {
 		return data_get($response->json(), 'data.product.metafield.value');
 	}
