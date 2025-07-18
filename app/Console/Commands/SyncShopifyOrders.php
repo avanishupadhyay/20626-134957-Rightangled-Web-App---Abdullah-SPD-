@@ -41,6 +41,7 @@ class SyncShopifyOrders extends Command
                 'status' => 'any',
                 'limit' => 250,
             ]);
+            // dd($response->json());
 
             if ($response->successful()) {
                 $orders = $response->json()['orders'];
@@ -64,4 +65,6 @@ class SyncShopifyOrders extends Command
             }
         }
     }
+
+
 }
